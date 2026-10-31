@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { STATUS_PROJETO } from './dominio';
+import { PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_ITEM_EAP } from './dominio';
+import { lerNumero } from './importacao/valores';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -80,6 +81,60 @@ export const projetoSchema = z
   });
 export type ProjetoEntrada = z.input<typeof projetoSchema>;
 export type ProjetoValidado = z.output<typeof projetoSchema>;
+
+// Campo numérico de formulário (digitado no padrão brasileiro): vazio vira null.
+const numeroNaoNegativo = (casas: number) =>
+  z
+    .union([z.string(), z.number()])
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      if (v === null || v === undefined) return null;
+      const n = lerNumero(v, ',');
+      if (n === null) return null;
+      if (Number.isNaN(n)) {
+        ctx.addIssue({ code: 'custom', message: 'Número inválido' });
+        return z.NEVER;
+      }
+      if (n < 0) {
+        ctx.addIssue({ code: 'custom', message: 'Não pode ser negativo' });
+        return z.NEVER;
+      }
+      const f = 10 ** casas;
+      return Math.round(n * f) / f;
+    });
+
+/**
+ * Etapa ou tarefa da EAP. Etapas não têm valores próprios (somam as tarefas),
+ * então esses campos são descartados quando o tipo é etapa.
+ */
+export const itemEapSchema = z
+  .object({
+    tipo: z.enum(TIPOS_ITEM_EAP),
+    nome: z.string().trim().min(1, 'Informe o nome').max(300, 'Use no máximo 300 caracteres'),
+    unidade: textoOpcional(20),
+    quantidade: numeroNaoNegativo(4),
+    custo_previsto: numeroNaoNegativo(2),
+    inicio_previsto: dataOpcional,
+    fim_previsto: dataOpcional,
+  })
+  .superRefine((item, ctx) => {
+    if (item.tipo === 'tarefa' && item.inicio_previsto && item.fim_previsto && item.fim_previsto < item.inicio_previsto) {
+      ctx.addIssue({ code: 'custom', path: ['fim_previsto'], message: 'O término não pode ser antes do início' });
+    }
+  })
+  .transform((item) =>
+    item.tipo === 'etapa'
+      ? { ...item, unidade: null, quantidade: null, custo_previsto: null, inicio_previsto: null, fim_previsto: null }
+      : item,
+  );
+export type ItemEapEntrada = z.input<typeof itemEapSchema>;
+export type ItemEapValidado = z.output<typeof itemEapSchema>;
+
+export const membroProjetoSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Informe um e-mail válido'),
+  papel: z.enum(PAPEIS_PROJETO),
+});
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {

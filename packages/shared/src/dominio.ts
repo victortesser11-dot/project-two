@@ -25,6 +25,36 @@ export const ROTULO_PAPEL_PROJETO: Record<PapelProjeto, string> = {
   leitura: 'Somente leitura',
 };
 
+export const TIPOS_ITEM_EAP = ['etapa', 'tarefa'] as const;
+export type TipoItemEap = (typeof TIPOS_ITEM_EAP)[number];
+
+/** Linha da função eap_do_projeto: item com código, nível e somatórios. */
+export interface ItemEap {
+  id: string;
+  pai_id: string | null;
+  posicao: number;
+  nivel: number;
+  codigo: string;
+  tipo: TipoItemEap;
+  nome: string;
+  unidade: string | null;
+  quantidade: number | null;
+  custo_previsto: number | null;
+  inicio_previsto: string | null;
+  fim_previsto: string | null;
+  codigo_externo: string | null;
+  qtd_filhos: number;
+  qtd_tarefas: number;
+}
+
+export interface MembroProjeto {
+  usuario_id: string;
+  email: string;
+  papel: PapelProjeto | null;
+  admin_empresa: boolean;
+  voce: boolean;
+}
+
 export interface Empresa {
   id: string;
   nome: string;

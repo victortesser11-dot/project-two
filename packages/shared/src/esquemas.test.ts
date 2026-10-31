@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { errosPorCampo, lerValorEmReais, projetoSchema } from './esquemas';
+import { errosPorCampo, itemEapSchema, lerValorEmReais, membroProjetoSchema, projetoSchema } from './esquemas';
 import { formatarData, prazoDecorrido } from './formato';
 
 describe('lerValorEmReais', () => {
@@ -66,6 +66,58 @@ describe('projetoSchema', () => {
 
   it('recusa data inexistente', () => {
     expect(projetoSchema.safeParse({ nome: 'Obra', data_inicio: '2026-13-45' }).success).toBe(false);
+  });
+});
+
+describe('itemEapSchema', () => {
+  it('lê números no padrão brasileiro e converte vazios em null', () => {
+    const r = itemEapSchema.parse({
+      tipo: 'tarefa',
+      nome: ' Blocos ',
+      unidade: 'm³',
+      quantidade: '42,5',
+      custo_previsto: '61.500,50',
+      inicio_previsto: '2026-11-18',
+      fim_previsto: '',
+    });
+    expect(r).toEqual({
+      tipo: 'tarefa',
+      nome: 'Blocos',
+      unidade: 'm³',
+      quantidade: 42.5,
+      custo_previsto: 61500.5,
+      inicio_previsto: '2026-11-18',
+      fim_previsto: null,
+    });
+  });
+
+  it('etapa descarta valores próprios', () => {
+    const r = itemEapSchema.parse({ tipo: 'etapa', nome: 'Fundações', custo_previsto: '10', unidade: 'm' });
+    expect(r.custo_previsto).toBeNull();
+    expect(r.unidade).toBeNull();
+  });
+
+  it('recusa negativo e número ilegível', () => {
+    const r = itemEapSchema.safeParse({ tipo: 'tarefa', nome: 'X', quantidade: '-1', custo_previsto: 'dez' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const erros = errosPorCampo(r.error);
+      expect(erros.quantidade).toMatch(/negativo/);
+      expect(erros.custo_previsto).toMatch(/inválido/);
+    }
+  });
+
+  it('recusa término antes do início', () => {
+    const r = itemEapSchema.safeParse({ tipo: 'tarefa', nome: 'X', inicio_previsto: '2026-12-10', fim_previsto: '2026-12-01' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(errosPorCampo(r.error).fim_previsto).toMatch(/antes do início/);
+  });
+});
+
+describe('membroProjetoSchema', () => {
+  it('normaliza o e-mail e exige papel conhecido', () => {
+    expect(membroProjetoSchema.parse({ email: ' Ana@Obra.COM ', papel: 'mestre' })).toEqual({ email: 'ana@obra.com', papel: 'mestre' });
+    expect(membroProjetoSchema.safeParse({ email: 'ana', papel: 'chefe' }).success).toBe(false);
   });
 });
 
