@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/*
+ * Linguagem visual: planta técnica sobre concreto.
+ * Fundo cinza-concreto frio, superfícies papel, texto grafite,
+ * azul cianotipia para ações e laranja-marcador só para alertas.
+ */
+@theme {
+  --color-concreto: #e9e8e4;
+  --color-papel: #f8f8f6;
+  --color-grafite: #1e2124;
+  --color-regua: #6b7076;
+  --color-linha: #d3d2cd;
+  --color-cianotipia: #2346a0;
+  --color-cianotipia-escuro: #1a3578;
+  --color-cianotipia-claro: #dfe5f4;
+  --color-marcador: #d4622a;
+  --color-marcador-claro: #f8e4d9;
+  --color-obra-ok: #2f7d4f;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-pequeno: 3px;
+  --radius-medio: 6px;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-concreto);
+    color: var(--color-grafite);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Títulos com a largura expandida da Archivo, como placa técnica. */
+  h1,
+  h2,
+  h3 {
+    font-stretch: 112%;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cianotipia);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility numeros {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quadriculado de papel milimetrado, usado no painel do login. */
+@utility milimetrado {
+  background-color: var(--color-cianotipia);
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.14) 1px, transparent 1px),
+    linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+  background-size:
+    80px 80px,
+    80px 80px,
+    16px 16px,
+    16px 16px;
+}

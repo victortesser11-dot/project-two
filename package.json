@@ -1,0 +1,15 @@
+{
+  "name": "controle-de-obras",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @obras/web dev",
+    "build": "pnpm --filter @obras/web build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:db": "bash scripts/db-test.sh"
+  }
+}

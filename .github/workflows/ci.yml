@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  banco:
+    name: Banco (migrações + testes de permissão)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testes do banco
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: bash scripts/db-test.sh
+
+  web:
+    name: Web (testes, tipos e build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            **/package.json
+      - name: Instalar dependências
+        # Enquanto não houver pnpm-lock.yaml no repositório, o CI gera um e o publica como artefato.
+        run: |
+          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi
+      - name: Testes unitários
+        run: pnpm -r test
+      - name: Build (inclui checagem de tipos)
+        run: pnpm --filter @obras/web build
+      - name: Checagem de tipos
+        run: pnpm -r typecheck
+      - name: Publicar lockfile gerado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-lock
+          path: pnpm-lock.yaml
+          if-no-files-found: ignore
