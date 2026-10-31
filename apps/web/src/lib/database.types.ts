@@ -53,6 +53,82 @@ export type Database = {
         }
         Relationships: []
       }
+      eap_item: {
+        Row: {
+          atualizado_em: string
+          codigo_externo: string | null
+          criado_em: string
+          custo_previsto: number | null
+          empresa_id: string
+          fim_previsto: string | null
+          id: string
+          inicio_previsto: string | null
+          nome: string
+          ordem: number
+          pai_id: string | null
+          projeto_id: string
+          quantidade: number | null
+          tipo: Database["public"]["Enums"]["tipo_item_eap"]
+          unidade: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          codigo_externo?: string | null
+          criado_em?: string
+          custo_previsto?: number | null
+          empresa_id: string
+          fim_previsto?: string | null
+          id?: string
+          inicio_previsto?: string | null
+          nome: string
+          ordem: number
+          pai_id?: string | null
+          projeto_id: string
+          quantidade?: number | null
+          tipo: Database["public"]["Enums"]["tipo_item_eap"]
+          unidade?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          codigo_externo?: string | null
+          criado_em?: string
+          custo_previsto?: number | null
+          empresa_id?: string
+          fim_previsto?: string | null
+          id?: string
+          inicio_previsto?: string | null
+          nome?: string
+          ordem?: number
+          pai_id?: string | null
+          projeto_id?: string
+          quantidade?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_item_eap"]
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eap_item_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eap_item_pai_id_fkey"
+            columns: ["pai_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eap_item_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa: {
         Row: {
           atualizado_em: string
@@ -200,6 +276,72 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adicionar_membro_projeto: {
+        Args: {
+          p_email: string
+          p_papel?: Database["public"]["Enums"]["papel_projeto"]
+          p_projeto_id: string
+        }
+        Returns: string
+      }
+      atualizar_item_eap: {
+        Args: { p_campos: Json; p_id: string }
+        Returns: undefined
+      }
+      criar_item_eap: {
+        Args: {
+          p_campos?: Json
+          p_nome: string
+          p_pai_id?: string
+          p_posicao?: number
+          p_projeto_id: string
+          p_tipo: Database["public"]["Enums"]["tipo_item_eap"]
+        }
+        Returns: string
+      }
+      eap_do_projeto: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          codigo: string
+          codigo_externo: string
+          custo_previsto: number
+          fim_previsto: string
+          id: string
+          inicio_previsto: string
+          nivel: number
+          nome: string
+          pai_id: string
+          posicao: number
+          qtd_filhos: number
+          qtd_tarefas: number
+          quantidade: number
+          tipo: Database["public"]["Enums"]["tipo_item_eap"]
+          unidade: string
+        }[]
+      }
+      excluir_item_eap: { Args: { p_id: string }; Returns: number }
+      importar_eap: {
+        Args: { p_itens: Json; p_projeto_id: string; p_substituir?: boolean }
+        Returns: number
+      }
+      membros_do_projeto: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          admin_empresa: boolean
+          email: string
+          papel: Database["public"]["Enums"]["papel_projeto"]
+          usuario_id: string
+          voce: boolean
+        }[]
+      }
+      mover_item_eap: {
+        Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
+        Returns: undefined
+      }
+      reposicionar_item_eap: {
+        Args: { p_acao: string; p_id: string }
+        Returns: undefined
+      }
       adicionar_membro_empresa: {
         Args: {
           p_email: string
@@ -231,6 +373,7 @@ export type Database = {
         | "financeiro"
         | "leitura"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
+      tipo_item_eap: "etapa" | "tarefa"
     }
     CompositeTypes: {
       [_ in never]: never

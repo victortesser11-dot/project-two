@@ -36,11 +36,15 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `app.tg_auditoria`). Nada de cálculo de custo só no front.
 4. **`audit_log` é imutável**: sem grant de insert/update/delete para `authenticated`.
 5. **Funções `security definer` sempre com `set search_path = ''`** e nomes qualificados (`public.x`).
-   As RPCs públicas (`criar_empresa`, `criar_projeto`, `adicionar_membro_empresa`) checam a permissão por
-   dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   As RPCs públicas (`criar_empresa`, `criar_projeto`, `adicionar_membro_empresa`, `adicionar_membro_projeto`,
+   `membros_do_projeto` e as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
+   `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`) checam a permissão por dentro; o aviso
+   "authenticated pode executar security definer" do Supabase é esperado para elas.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
    Os enums de `packages/shared/src/dominio.ts` espelham os do banco.
 7. **Datas do dia a dia são datas, não instantes**: guarde `date` e use `hojeIso()` (fuso de Brasília).
+8. **Funções de permissão nunca devolvem NULL.** `if not app.x(...)` com NULL não barra nada em plpgsql.
+   Envolva com `coalesce(..., false)` e teste com `is false` (ver `10_permissoes_test.sql`).
 
 ## Fluxo de trabalho
 
@@ -50,6 +54,15 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Módulo novo do projeto: crie `apps/web/src/app/(app)/projetos/[id]/<slug>/page.tsx` (substitui a
   página "em breve") e atualize `modulos.ts`.
 - Commits pequenos, CI verde (`.github/workflows/ci.yml`: banco + testes + build).
+
+## EAP e importação
+
+- A EAP (`eap_item`) só muda pelas RPCs acima; o trigger `app.tg_eap_item_integridade` é a garantia final
+  (mesmo projeto, pai é etapa, sem ciclo, até 6 níveis). O código 1.2.3 é calculado por `eap_do_projeto`, não gravado.
+- Etapas não têm valores próprios: somam custo e datas das tarefas de dentro.
+- O importador (`packages/shared/src/importacao`) roda no navegador: CSV, XLSX (`read-excel-file`) e MS Project XML
+  viram uma prévia; só ao confirmar o navegador chama `importar_eap` (tudo ou nada, até 5.000 itens).
+  Custos do MS Project XML vêm em centavos (÷100). `.mpp` não é lido: peça "Salvar como XML".
 
 ## Interface
 
