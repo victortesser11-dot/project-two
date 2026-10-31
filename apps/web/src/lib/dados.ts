@@ -2,6 +2,9 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type {
+  AgenteCamera,
+  Camera,
+  FotoCamera,
   ApontamentoRegistrado,
   EmprestimoFerramenta,
   ItemEstoque,
@@ -484,4 +487,83 @@ export const obrasOndeMovimenta = cache(async (empresaId: string): Promise<Proje
   const admin = empresa?.papel === 'admin' && empresa.id === empresaId;
   const pode = new Set((papeis.data ?? []).filter((p) => p.papel === 'engenheiro' || p.papel === 'almoxarife').map((p) => p.projeto_id));
   return projetos.filter((p) => p.empresa_id === empresaId && p.status !== 'concluido' && (admin || pode.has(p.id)));
+});
+
+// ---------------------------------------------------------------- câmeras (RF-101 a 104)
+
+export const listarAgentes = cache(async (projetoId: string): Promise<AgenteCamera[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('agente_camera')
+    .select('id, nome, ativo, versao, ultimo_contato_em, criado_em')
+    .eq('projeto_id', projetoId)
+    .order('criado_em');
+  if (error) throw new Error(`Não foi possível carregar os agentes: ${error.message}`);
+  return data ?? [];
+});
+
+// Nunca select('*') em camera: o banco não entrega senha_id (fica no Vault).
+const COLUNAS_CAMERA =
+  'id, nome, origem, agente_id, endereco, usuario, tem_senha, horarios, ativa, ultima_foto_em, falhas_seguidas, ultimo_erro, ultimo_erro_em, teste_pedido_em, teste_respondido_em, teste_caminho, teste_erro';
+
+export const listarCameras = cache(async (projetoId: string): Promise<Camera[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('camera').select(COLUNAS_CAMERA).eq('projeto_id', projetoId).order('criado_em');
+  if (error) throw new Error(`Não foi possível carregar as câmeras: ${error.message}`);
+  return (data ?? []).map((c) => ({ ...c, tem_senha: c.tem_senha ?? false }));
+});
+
+/** Fotos das câmeras da obra (sem URL; assine só as que for mostrar). */
+export const listarFotosCamera = cache(
+  async (projetoId: string, filtro: { cameraId?: string; de?: string; ate?: string } = {}): Promise<FotoCamera[]> => {
+    const { supabase } = await exigirUsuario();
+    let q = supabase
+      .from('foto_camera')
+      .select('id, camera_id, caminho, capturada_em, data, origem')
+      .eq('projeto_id', projetoId)
+      .order('capturada_em', { ascending: false })
+      .limit(5000);
+    if (filtro.cameraId) q = q.eq('camera_id', filtro.cameraId);
+    if (filtro.de) q = q.gte('data', filtro.de);
+    if (filtro.ate) q = q.lte('data', filtro.ate);
+    const { data, error } = await q;
+    if (error) throw new Error(`Não foi possível carregar as fotos: ${error.message}`);
+    return (data ?? []).map((f) => ({ ...f, url: null }));
+  },
+);
+
+/** URLs assinadas (1 h) para as fotos, em lotes. */
+export async function assinarFotos<T extends { caminho: string }>(fotos: T[], segundos = 3600): Promise<(T & { url: string | null })[]> {
+  if (fotos.length === 0) return [];
+  const { supabase } = await exigirUsuario();
+  const urls = new Map<string, string>();
+  for (let i = 0; i < fotos.length; i += 200) {
+    const lote = fotos.slice(i, i + 200).map((f) => f.caminho);
+    const { data } = await supabase.storage.from('cameras').createSignedUrls(lote, segundos);
+    for (const d of data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  }
+  return fotos.map((f) => ({ ...f, url: urls.get(f.caminho) ?? null }));
+}
+
+/** A foto mais recente de cada câmera da obra. */
+export const ultimasFotos = cache(async (projetoId: string): Promise<Map<string, FotoCamera>> => {
+  const { supabase } = await exigirUsuario();
+  const { data } = await supabase
+    .from('foto_camera')
+    .select('id, camera_id, caminho, capturada_em, data, origem')
+    .eq('projeto_id', projetoId)
+    .order('capturada_em', { ascending: false })
+    .limit(200);
+  const primeira = new Map<string, FotoCamera>();
+  for (const f of data ?? []) if (!primeira.has(f.camera_id)) primeira.set(f.camera_id, { ...f, url: null });
+  const assinadas = await assinarFotos([...primeira.values()]);
+  return new Map(assinadas.map((f) => [f.camera_id, f]));
+});
+
+/** Dias com foto (para o calendário da galeria), mais recentes primeiro. */
+export const diasComFoto = cache(async (projetoId: string, cameraId?: string): Promise<{ data: string; fotos: number }[]> => {
+  const fotos = await listarFotosCamera(projetoId, cameraId ? { cameraId } : {});
+  const conta = new Map<string, number>();
+  for (const f of fotos) conta.set(f.data, (conta.get(f.data) ?? 0) + 1);
+  return [...conta.entries()].map(([data, n]) => ({ data, fotos: n })).sort((a, b) => b.data.localeCompare(a.data));
 });
