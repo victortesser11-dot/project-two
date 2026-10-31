@@ -37,9 +37,11 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 4. **`audit_log` é imutável**: sem grant de insert/update/delete para `authenticated`.
 5. **Funções `security definer` sempre com `set search_path = ''`** e nomes qualificados (`public.x`).
    As RPCs públicas (`criar_empresa`, `criar_projeto`, `adicionar_membro_empresa`, `adicionar_membro_projeto`,
-   `membros_do_projeto` e as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
-   `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`) checam a permissão por dentro; o aviso
-   "authenticated pode executar security definer" do Supabase é esperado para elas.
+   `membros_do_projeto`, as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
+   `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`, as do cronograma: `salvar_dependencia`,
+   `remover_dependencia`, `definir_linha_base`, e a do campo: `registrar_avanco`) checam a permissão por
+   dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   Aviso para função fora desta lista é problema a investigar.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
    Os enums de `packages/shared/src/dominio.ts` espelham os do banco.
 7. **Datas do dia a dia são datas, não instantes**: guarde `date` e use `hojeIso()` (fuso de Brasília).
@@ -63,6 +65,17 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - O importador (`packages/shared/src/importacao`) roda no navegador: CSV, XLSX (`read-excel-file`) e MS Project XML
   viram uma prévia; só ao confirmar o navegador chama `importar_eap` (tudo ou nada, até 5.000 itens).
   Custos do MS Project XML vêm em centavos (÷100). `.mpp` não é lido: peça "Salvar como XML".
+
+## Cronograma e avanço (sprint 2)
+
+- Dependências TI/II/TT com defasagem em dias corridos (`eap_dependencia`). `app.recalcular_cronograma` só
+  **empurra** sucessoras para frente (mantém a duração); nunca puxa. Roda em `salvar_dependencia` e quando
+  `atualizar_item_eap` muda datas.
+- Linha de base: `inicio_base`/`fim_base`/`custo_base` em `eap_item`, escritos só por `definir_linha_base`.
+- Avanço: `registrar_avanco` (engenheiro e mestre) grava o histórico em `avanco_tarefa`; o id vem do celular
+  (fila offline, reenvio não duplica). O % da tarefa é o do apontamento mais recente pela data do serviço.
+  Etapas ponderam pelo custo quando todas as tarefas têm custo, senão pela duração. O mesmo critério está em
+  `packages/shared/src/avanco.ts` (curva S e projeção de término pelo prazo agregado): mudou um, muda o outro.
 
 ## Interface
 
