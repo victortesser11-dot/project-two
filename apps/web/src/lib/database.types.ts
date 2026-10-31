@@ -17,6 +17,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      agente_camera: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          projeto_id: string
+          token_hash: string
+          ultimo_contato_em: string | null
+          versao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          projeto_id: string
+          token_hash: string
+          ultimo_contato_em?: string | null
+          versao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          projeto_id?: string
+          token_hash?: string
+          ultimo_contato_em?: string | null
+          versao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_camera_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_camera_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apontamento_mao_obra: {
         Row: {
           data: string
@@ -181,6 +235,103 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      camera: {
+        Row: {
+          agente_id: string | null
+          ativa: boolean
+          atualizado_em: string
+          criado_em: string
+          empresa_id: string
+          endereco: string | null
+          falhas_seguidas: number
+          horarios: string[]
+          id: string
+          nome: string
+          origem: Database["public"]["Enums"]["origem_camera"]
+          projeto_id: string
+          senha_id: string | null
+          tem_senha: boolean | null
+          teste_caminho: string | null
+          teste_erro: string | null
+          teste_pedido_em: string | null
+          teste_respondido_em: string | null
+          ultima_foto_em: string | null
+          ultimo_erro: string | null
+          ultimo_erro_em: string | null
+          usuario: string | null
+        }
+        Insert: {
+          agente_id?: string | null
+          ativa?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id: string
+          endereco?: string | null
+          falhas_seguidas?: number
+          horarios?: string[]
+          id?: string
+          nome: string
+          origem: Database["public"]["Enums"]["origem_camera"]
+          projeto_id: string
+          senha_id?: string | null
+          tem_senha?: boolean | null
+          teste_caminho?: string | null
+          teste_erro?: string | null
+          teste_pedido_em?: string | null
+          teste_respondido_em?: string | null
+          ultima_foto_em?: string | null
+          ultimo_erro?: string | null
+          ultimo_erro_em?: string | null
+          usuario?: string | null
+        }
+        Update: {
+          agente_id?: string | null
+          ativa?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id?: string
+          endereco?: string | null
+          falhas_seguidas?: number
+          horarios?: string[]
+          id?: string
+          nome?: string
+          origem?: Database["public"]["Enums"]["origem_camera"]
+          projeto_id?: string
+          senha_id?: string | null
+          tem_senha?: boolean | null
+          teste_caminho?: string | null
+          teste_erro?: string | null
+          teste_pedido_em?: string | null
+          teste_respondido_em?: string | null
+          ultima_foto_em?: string | null
+          ultimo_erro?: string | null
+          ultimo_erro_em?: string | null
+          usuario?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "camera_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agente_camera"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "camera_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "camera_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
             referencedColumns: ["id"]
           },
         ]
@@ -787,6 +938,70 @@ export type Database = {
           },
         ]
       }
+      foto_camera: {
+        Row: {
+          camera_id: string
+          caminho: string
+          capturada_em: string
+          criado_em: string
+          data: string
+          empresa_id: string
+          enviada_por: string | null
+          id: string
+          origem: Database["public"]["Enums"]["origem_camera"]
+          projeto_id: string
+          tamanho_bytes: number | null
+        }
+        Insert: {
+          camera_id: string
+          caminho: string
+          capturada_em: string
+          criado_em?: string
+          data: string
+          empresa_id: string
+          enviada_por?: string | null
+          id?: string
+          origem: Database["public"]["Enums"]["origem_camera"]
+          projeto_id: string
+          tamanho_bytes?: number | null
+        }
+        Update: {
+          camera_id?: string
+          caminho?: string
+          capturada_em?: string
+          criado_em?: string
+          data?: string
+          empresa_id?: string
+          enviada_por?: string | null
+          id?: string
+          origem?: Database["public"]["Enums"]["origem_camera"]
+          projeto_id?: string
+          tamanho_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "foto_camera_camera_id_fkey"
+            columns: ["camera_id"]
+            isOneToOne: false
+            referencedRelation: "camera"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "foto_camera_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "foto_camera_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_estoque: {
         Row: {
           ativo: boolean
@@ -1280,10 +1495,42 @@ export type Database = {
         }
         Returns: string
       }
+      agente_config: {
+        Args: { p_token: string; p_versao?: string }
+        Returns: Json
+      }
+      agente_pasta_camera: {
+        Args: { p_camera_id: string; p_token: string }
+        Returns: string
+      }
+      agente_registrar_falha: {
+        Args: {
+          p_camera_id: string
+          p_erro: string
+          p_teste?: boolean
+          p_token: string
+        }
+        Returns: number
+      }
+      agente_registrar_foto: {
+        Args: {
+          p_camera_id: string
+          p_caminho: string
+          p_capturada_em: string
+          p_tamanho?: number
+          p_teste?: boolean
+          p_token: string
+        }
+        Returns: string
+      }
       assinar_diario: { Args: { p_diario_id: string }; Returns: string }
       atualizar_item_eap: {
         Args: { p_campos: Json; p_id: string }
         Returns: undefined
+      }
+      criar_agente_camera: {
+        Args: { p_nome: string; p_projeto_id: string }
+        Returns: Json
       }
       criar_empresa: { Args: { p_nome: string }; Returns: string }
       criar_item_eap: {
@@ -1377,6 +1624,7 @@ export type Database = {
         }
         Returns: string
       }
+      excluir_foto_camera: { Args: { p_id: string }; Returns: string }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
       importar_eap: {
@@ -1397,6 +1645,7 @@ export type Database = {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
       }
+      pedir_teste_camera: { Args: { p_id: string }; Returns: undefined }
       registrar_ajuste: {
         Args: {
           p_data: string
@@ -1434,6 +1683,16 @@ export type Database = {
         }
         Returns: number
       }
+      registrar_foto_camera: {
+        Args: {
+          p_camera_id: string
+          p_caminho: string
+          p_capturada_em?: string
+          p_id: string
+          p_tamanho?: number
+        }
+        Returns: string
+      }
       registrar_foto_diario: {
         Args: {
           p_caminho: string
@@ -1462,6 +1721,16 @@ export type Database = {
         Args: { p_acao: string; p_id: string }
         Returns: undefined
       }
+      revogar_agente_camera: { Args: { p_id: string }; Returns: undefined }
+      salvar_camera: {
+        Args: {
+          p_campos: Json
+          p_id: string
+          p_projeto_id: string
+          p_senha?: string
+        }
+        Returns: string
+      }
       salvar_dependencia: {
         Args: {
           p_defasagem_dias?: number
@@ -1478,6 +1747,7 @@ export type Database = {
     }
     Enums: {
       clima_periodo: "sol" | "nublado" | "chuva" | "chuva_forte"
+      origem_camera: "agente" | "manual"
       papel_empresa: "admin" | "membro"
       papel_projeto:
         | "engenheiro"
@@ -1620,6 +1890,7 @@ export const Constants = {
   public: {
     Enums: {
       clima_periodo: ["sol", "nublado", "chuva", "chuva_forte"],
+      origem_camera: ["agente", "manual"],
       papel_empresa: ["admin", "membro"],
       papel_projeto: [
         "engenheiro",

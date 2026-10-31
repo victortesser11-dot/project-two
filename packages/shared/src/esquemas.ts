@@ -7,6 +7,7 @@ import {
   TIPOS_DEPENDENCIA,
   TIPOS_ITEM_EAP,
   TIPOS_ITEM_ESTOQUE,
+  ORIGENS_CAMERA,
 } from './dominio';
 import { chaveNfeValida, cnpjValido, cpfValido, somenteDigitos } from './documentos';
 import { lerNumero } from './importacao/valores';
@@ -493,6 +494,36 @@ export const emprestimoSchema = z
     }
   });
 export type EmprestimoValidado = z.output<typeof emprestimoSchema>;
+
+// ---------------------------------------------------------------- câmeras (RF-101 a 102)
+
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Cadastro da câmera. Senha vazia mantém a guardada; "remover_senha" apaga. */
+export const cameraSchema = z
+  .object({
+    nome: z.string().trim().min(2, 'Informe o nome da câmera (ex.: Fachada, Pátio)').max(80, 'Use no máximo 80 caracteres'),
+    origem: z.enum(ORIGENS_CAMERA, { error: 'Escolha como a foto chega' }),
+    agente_id: uuidOpcional,
+    endereco: textoOpcional(500),
+    usuario: textoOpcional(80),
+    senha: z.string().max(128, 'Senha longa demais (até 128 caracteres)').optional().transform((v) => v ?? ''),
+    remover_senha: simNao,
+    horarios: z
+      .array(z.string().trim())
+      .transform((l) => [...new Set(l.filter((h) => h !== ''))].sort())
+      .refine((l) => l.every((h) => HORA.test(h)), 'Horário inválido: use HH:MM')
+      .refine((l) => l.length >= 1 && l.length <= 4, 'Escolha de 1 a 4 horários por dia'),
+    ativa: simNao,
+  })
+  .superRefine((c, ctx) => {
+    if (c.origem !== 'agente') return;
+    if (!c.agente_id) ctx.addIssue({ code: 'custom', path: ['agente_id'], message: 'Escolha o agente da obra' });
+    if (!c.endereco) ctx.addIssue({ code: 'custom', path: ['endereco'], message: 'Informe o endereço da foto' });
+    else if (!/^(https?|rtsp):\/\/\S+$/i.test(c.endereco))
+      ctx.addIssue({ code: 'custom', path: ['endereco'], message: 'O endereço começa com http://, https:// ou rtsp://' });
+  });
+export type CameraValidada = z.output<typeof cameraSchema>;
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {

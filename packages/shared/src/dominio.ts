@@ -285,3 +285,56 @@ export interface VinculoFornecedor {
   codigo_fornecedor: string;
   item_id: string;
 }
+
+// ---------------------------------------------------------------- câmeras (RF-101 a 104)
+
+/** Espelha o enum origem_camera do banco. */
+export const ORIGENS_CAMERA = ['agente', 'manual'] as const;
+export type OrigemCamera = (typeof ORIGENS_CAMERA)[number];
+export const ROTULO_ORIGEM_CAMERA: Record<OrigemCamera, string> = {
+  agente: 'Agente na obra (automático)',
+  manual: 'Foto pelo celular',
+};
+
+export interface AgenteCamera {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  versao: string | null;
+  ultimo_contato_em: string | null;
+  criado_em: string;
+}
+
+/** Câmera como o app enxerga: sem o id da senha (o banco não entrega). */
+export interface Camera {
+  id: string;
+  nome: string;
+  origem: OrigemCamera;
+  agente_id: string | null;
+  endereco: string | null;
+  usuario: string | null;
+  tem_senha: boolean;
+  /** "07:00:00" (time do Postgres). */
+  horarios: string[];
+  ativa: boolean;
+  ultima_foto_em: string | null;
+  falhas_seguidas: number;
+  ultimo_erro: string | null;
+  ultimo_erro_em: string | null;
+  teste_pedido_em: string | null;
+  teste_respondido_em: string | null;
+  teste_caminho: string | null;
+  teste_erro: string | null;
+}
+
+export interface FotoCamera {
+  id: string;
+  camera_id: string;
+  caminho: string;
+  capturada_em: string;
+  /** Dia da captura em Brasília (AAAA-MM-DD). */
+  data: string;
+  origem: OrigemCamera;
+  /** URL assinada (bucket privado), válida por pouco tempo. */
+  url: string | null;
+}
