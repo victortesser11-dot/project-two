@@ -5,8 +5,8 @@ type Variante = 'primario' | 'secundario' | 'discreto';
 
 const ESTILO_BOTAO: Record<Variante, string> = {
   primario:
-    'bg-cianotipia text-white hover:bg-cianotipia-escuro disabled:bg-regua/60 shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)]',
-  secundario: 'bg-papel text-grafite border border-linha hover:border-regua disabled:text-regua',
+    'bg-cianotipia text-white hover:bg-cianotipia-escuro disabled:bg-regua/50',
+  secundario: 'bg-papel text-grafite border border-campo/60 hover:border-grafite hover:bg-concreto/50 disabled:text-regua',
   discreto: 'text-cianotipia hover:underline underline-offset-4 disabled:text-regua',
 };
 
@@ -14,7 +14,7 @@ export function classeBotao(variante: Variante = 'primario', extra = '') {
   const base =
     variante === 'discreto'
       ? 'inline-flex items-center gap-2 font-medium'
-      : 'inline-flex items-center justify-center gap-2 rounded-medio px-4 py-2.5 font-semibold transition-colors';
+      : 'inline-flex min-h-11 items-center justify-center gap-2 rounded-medio px-4 py-2 font-semibold transition-colors';
   return `${base} ${ESTILO_BOTAO[variante]} disabled:cursor-not-allowed ${extra}`;
 }
 
@@ -59,20 +59,20 @@ export function Campo({
 }
 
 export const classeEntrada =
-  'w-full rounded-pequeno border border-linha bg-white px-3 py-2.5 text-grafite placeholder:text-regua/70 ' +
+  'w-full min-h-11 rounded-pequeno border border-campo bg-white px-3 py-2 text-base text-grafite placeholder:text-regua/70 ' +
   'focus:border-cianotipia focus:outline-none focus:ring-2 focus:ring-cianotipia/25 aria-invalid:border-marcador';
 
 const COR_STATUS: Record<StatusProjeto, string> = {
-  planejamento: 'border-regua/50 text-regua',
-  em_andamento: 'border-cianotipia/40 bg-cianotipia-claro text-cianotipia',
-  pausado: 'border-marcador/40 bg-marcador-claro text-marcador',
-  concluido: 'border-obra-ok/40 text-obra-ok',
+  planejamento: 'bg-concreto text-regua',
+  em_andamento: 'bg-cianotipia-claro text-cianotipia',
+  pausado: 'bg-marcador-claro text-marcador',
+  concluido: 'bg-obra-ok/10 text-obra-ok',
 };
 
 export function SeloStatus({ status }: { status: StatusProjeto }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${COR_STATUS[status]}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${COR_STATUS[status]}`}
     >
       {ROTULO_STATUS[status]}
     </span>
@@ -81,7 +81,7 @@ export function SeloStatus({ status }: { status: StatusProjeto }) {
 
 export function AvisoErro({ children }: { children: ReactNode }) {
   return (
-    <div role="alert" className="rounded-medio border border-marcador/40 bg-marcador-claro px-4 py-3 text-sm text-marcador">
+    <div role="alert" className="rounded-medio bg-marcador-claro px-4 py-3 text-sm text-marcador">
       {children}
     </div>
   );

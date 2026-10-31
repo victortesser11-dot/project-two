@@ -39,23 +39,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            **/package.json
+          cache-dependency-path: pnpm-lock.yaml
       - name: Instalar dependências
-        # Enquanto não houver pnpm-lock.yaml no repositório, o CI gera um e o publica como artefato.
-        run: |
-          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi
+        run: pnpm install --frozen-lockfile
       - name: Testes unitários
         run: pnpm -r test
       - name: Build (inclui checagem de tipos)
         run: pnpm --filter @obras/web build
       - name: Checagem de tipos
         run: pnpm -r typecheck
-      - name: Publicar lockfile gerado
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pnpm-lock
-          path: pnpm-lock.yaml
-          if-no-files-found: ignore

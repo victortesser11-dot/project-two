@@ -14,7 +14,7 @@ export default async function Portfolio() {
   if (!empresa) {
     return (
       <section className="mx-auto max-w-lg">
-        <h1 className="text-3xl font-bold">Cadastre sua empresa</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">Cadastre sua empresa</h1>
         <p className="mt-3 mb-8 text-regua">
           Cada obra vira um projeto dentro da empresa. Você fica como administrador e pode convidar a equipe depois.
         </p>
@@ -29,7 +29,7 @@ export default async function Portfolio() {
   if (projetos.length === 0) {
     return (
       <section className="mx-auto max-w-lg py-8">
-        <h1 className="text-3xl font-bold">Nenhuma obra cadastrada</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">Nenhuma obra cadastrada</h1>
         <p className="mt-3 mb-8 text-regua">
           Crie o primeiro projeto com endereço, prazo e orçamento. Cronograma, câmeras, almoxarifado e equipe ficam dentro dele.
         </p>
@@ -47,7 +47,7 @@ export default async function Portfolio() {
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Obras</h1>
+          <h1 className="text-2xl font-semibold sm:text-3xl">Obras</h1>
           <p className="numeros mt-2 text-regua">
             {projetos.length} {projetos.length === 1 ? 'projeto' : 'projetos'}
             {porStatus.map(({ s, n }) => `, ${n} ${ROTULO_STATUS[s].toLowerCase()}`).join('')}.
@@ -73,11 +73,11 @@ function LinhaProjeto({ projeto: p, hoje }: { projeto: Projeto; hoje: string }) 
     <li>
       <Link
         href={`/projetos/${p.id}`}
-        className="grid gap-x-8 gap-y-4 px-5 py-5 transition-colors hover:bg-white sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_auto] sm:items-center"
+        className="grid gap-x-8 gap-y-4 px-5 py-5 transition-colors hover:bg-concreto/60 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_auto] sm:items-center"
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="truncate text-lg font-bold">{p.nome}</h2>
+            <h2 className="truncate text-base font-semibold sm:text-lg">{p.nome}</h2>
             <SeloStatus status={p.status} />
           </div>
           {p.endereco && <p className="mt-1 truncate text-sm text-regua">{p.endereco}</p>}

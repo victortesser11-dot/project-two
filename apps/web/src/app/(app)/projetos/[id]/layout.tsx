@@ -36,7 +36,7 @@ export default async function LayoutProjeto({
       <header className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-end">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold break-words sm:text-4xl">{projeto.nome}</h1>
+            <h1 className="text-2xl font-semibold break-words sm:text-3xl">{projeto.nome}</h1>
             <SeloStatus status={projeto.status} />
           </div>
           {projeto.endereco && <p className="mt-2 text-regua">{projeto.endereco}</p>}
