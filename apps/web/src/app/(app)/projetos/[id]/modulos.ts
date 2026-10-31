@@ -19,7 +19,13 @@ export const MODULOS: Modulo[] = [
     sprint: 2,
     disponivel: true,
   },
-  { slug: 'cameras', nome: 'Câmeras', resumo: 'Fotos diárias das câmeras fixas, comparação entre dias, time-lapse e leitura por IA.', sprint: 5, disponivel: false },
+  {
+    slug: 'cameras',
+    nome: 'Câmeras',
+    resumo: 'Fotos diárias das câmeras fixas pelo agente da obra, galeria, comparação entre dias e time-lapse. Leitura por IA na fase 2.',
+    sprint: 5,
+    disponivel: true,
+  },
   {
     slug: 'almoxarifado',
     nome: 'Almoxarifado',
