@@ -4,10 +4,13 @@ import {
   buscarEap,
   buscarLinhaBase,
   buscarProjeto,
+  custoMaoObra,
   empresaAtual,
   listarMembrosProjeto,
   podeEditarProjeto,
+  podeVerCustos,
 } from '@/lib/dados';
+import { totalMaoObra } from '@obras/shared';
 import { PainelObra } from './PainelObra';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
@@ -16,13 +19,15 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
   if (!dados) notFound();
   const { projeto, papel } = dados;
 
-  const [itens, membros, podeEditar, linhaBase, apontamentos] = await Promise.all([
+  const [itens, membros, podeEditar, linhaBase, apontamentos, verCustos] = await Promise.all([
     buscarEap(id),
     listarMembrosProjeto(id),
     podeEditarProjeto(projeto, papel),
     buscarLinhaBase(id),
     buscarApontamentos(id),
+    podeVerCustos(projeto, papel),
   ]);
+  const linhasMaoObra = verCustos ? await custoMaoObra(id) : null;
 
   return (
     <PainelObra
@@ -34,6 +39,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
       podeEditar={podeEditar}
       linhaBase={linhaBase}
       apontamentos={apontamentos}
+      maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
     />
   );
 }

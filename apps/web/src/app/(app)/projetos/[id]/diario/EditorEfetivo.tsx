@@ -13,7 +13,18 @@ const FUNCOES = [
 type Linha = { funcao: string; empresa_terceira: string; quantidade: string };
 
 /** Equipe do dia por função e empreiteira (manual até a chamada diária do sprint 3). */
-export function EditorEfetivo({ projetoId, data, inicial }: { projetoId: string; data: string; inicial: LinhaEfetivo[] }) {
+export function EditorEfetivo({
+  projetoId,
+  data,
+  inicial,
+  daChamada = [],
+}: {
+  projetoId: string;
+  data: string;
+  inicial: LinhaEfetivo[];
+  /** Presentes da chamada do dia, por função e empreiteira (RF-302). */
+  daChamada?: LinhaEfetivo[];
+}) {
   const [linhas, setLinhas] = useState<Linha[]>(
     inicial.length > 0
       ? inicial.map((l) => ({ funcao: l.funcao, empresa_terceira: l.empresa_terceira ?? '', quantidade: String(l.quantidade) }))
@@ -106,6 +117,18 @@ export function EditorEfetivo({ projetoId, data, inicial }: { projetoId: string;
           </li>
         ))}
       </ul>
+      {daChamada.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setLinhas(daChamada.map((l) => ({ funcao: l.funcao, empresa_terceira: l.empresa_terceira ?? '', quantidade: String(l.quantidade) })));
+            setMensagem({ tipo: 'ok', texto: 'Equipe preenchida com a chamada do dia. Confira e salve.' });
+          }}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-medio border border-cianotipia/40 bg-cianotipia-claro px-4 text-sm font-semibold text-cianotipia hover:border-cianotipia"
+        >
+          Puxar da chamada ({daChamada.reduce((s, l) => s + l.quantidade, 0)} pessoas)
+        </button>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <Botao type="button" variante="secundario" onClick={() => setLinhas((a) => [...a, { funcao: '', empresa_terceira: '', quantidade: '' }])}>
           Adicionar função

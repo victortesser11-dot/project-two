@@ -41,6 +41,7 @@ export function PainelObra({
   podeEditar,
   linhaBase,
   apontamentos,
+  maoDeObra = null,
   hoje = hojeIso(),
 }: {
   projeto: Projeto;
@@ -51,6 +52,8 @@ export function PainelObra({
   podeEditar: boolean;
   linhaBase: LinhaBase | null;
   apontamentos: ApontamentoRegistrado[];
+  /** Gasto com mão de obra (custo calculado no banco). null = sem permissão para ver custos. */
+  maoDeObra?: { custo: number; horas: number; semCusto: number } | null;
   hoje?: string;
 }) {
   const p = montarPainel(itens, apontamentos, linhaBase !== null, hoje);
@@ -119,7 +122,18 @@ export function PainelObra({
               </span>
             )}
           </p>
-          <p className="mt-2 text-xs text-regua">Serviço feito × custo previsto. O gasto real entra com almoxarifado, equipe e despesas.</p>
+          {maoDeObra ? (
+            <p className="numeros mt-2 border-t border-linha pt-2 text-sm">
+              <span className="text-regua">Gasto com mão de obra:</span>{' '}
+              <Link href={`${base}/equipe`} className="font-semibold hover:text-cianotipia">
+                {formatarMoeda(maoDeObra.custo, { compacta: true })}
+              </Link>
+              {maoDeObra.semCusto > 0 && <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>}
+              <span className="block text-xs text-regua">Material e despesas entram com almoxarifado e orçamento.</span>
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-regua">Serviço feito × custo previsto. O gasto real entra com almoxarifado, equipe e despesas.</p>
+          )}
         </Cartao>
         <Cartao rotulo="Hoje na obra">
           <p className="numeros text-3xl font-semibold">

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { diaDaSemana, formatarData, hojeIso, ROTULO_CLIMA, somarDias } from '@obras/shared';
 import { buscarProjeto, listarDiarios, podeApontarCampo } from '@/lib/dados';
+import { feriadosDoAno } from '@/lib/brasilapi';
 
 export const metadata: Metadata = { title: 'Diário de obra' };
 
@@ -15,11 +16,13 @@ export default async function PaginaDiarios({ params }: { params: Promise<{ id: 
 
   const hoje = hojeIso();
   const base = `/projetos/${id}/diario`;
+  const ano = Number(hoje.slice(0, 4));
+  const feriados = new Set([...(await feriadosDoAno(ano - 1)), ...(await feriadosDoAno(ano))].map((f) => f.data));
   const comDiario = new Set(diarios.map((d) => d.data));
-  // Últimos 7 dias (sem domingo) dentro do prazo da obra que ainda não têm diário.
+  // Últimos 7 dias (sem domingos e feriados nacionais) dentro do prazo da obra que ainda não têm diário.
   const faltando = Array.from({ length: 8 }, (_, i) => somarDias(hoje, -i - 1))
     .filter((d) => new Date(`${d}T00:00:00Z`).getUTCDay() !== 0)
-    .filter((d) => !comDiario.has(d) && (!projeto.data_inicio || d >= projeto.data_inicio))
+    .filter((d) => !comDiario.has(d) && !feriados.has(d) && (!projeto.data_inicio || d >= projeto.data_inicio))
     .slice(0, 6);
   const rascunhos = diarios.filter((d) => d.status === 'rascunho' && d.data < hoje).length;
 

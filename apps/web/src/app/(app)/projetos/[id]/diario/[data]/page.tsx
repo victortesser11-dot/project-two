@@ -1,14 +1,23 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { dataIsoValida, formatarDataLonga, hojeIso, somarDias } from '@obras/shared';
-import { buscarDiario, buscarEap, buscarProjeto, podeApontarCampo, podeEditarProjeto } from '@/lib/dados';
+import { dataIsoValida, efetivoDaChamada, formatarDataLonga, hojeIso, somarDias } from '@obras/shared';
+import {
+  buscarChamada,
+  buscarDiario,
+  buscarEap,
+  buscarProjeto,
+  listarEmpreiteiras,
+  listarEquipeProjeto,
+  podeApontarCampo,
+  podeEditarProjeto,
+} from '@/lib/dados';
 import { buscarClimaDoDia } from '@/lib/clima';
 import { DocumentoDiario } from '../DocumentoDiario';
 import { FormularioDiario } from '../FormularioDiario';
 import { EditorEfetivo } from '../EditorEfetivo';
 import { FotosDiario } from '../FotosDiario';
-import { BotaoAssinar, BotaoLocalizacao } from '../AcoesDiario';
+import { BotaoAssinar, BotaoLocalizacao, FormularioCep } from '../AcoesDiario';
 import { conteudoParaExibir, urlsDasFotos } from '../conteudo';
 
 export const metadata: Metadata = { title: 'Diário do dia' };
@@ -39,6 +48,17 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
   const sugestao =
     editavel && !diario?.clima_manha && temCoordenadas ? await buscarClimaDoDia(Number(projeto.latitude), Number(projeto.longitude), data) : null;
   const tarefas = itens.filter((i) => i.tipo === 'tarefa').map((t) => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+
+  // Equipe do diário a partir da chamada do dia (RF-302 → RF-203).
+  let daChamada: { funcao: string; empresa_terceira: string | null; quantidade: number }[] = [];
+  if (editavel) {
+    const [chamada, equipe, empreiteiras] = await Promise.all([buscarChamada(id, data), listarEquipeProjeto(id), listarEmpreiteiras(projeto.empresa_id)]);
+    const presentes = new Set(chamada.doDia.filter((a) => a.presente).map((a) => a.trabalhador_id));
+    const nomeEmp = new Map(empreiteiras.map((e) => [e.id, e.nome]));
+    daChamada = efetivoDaChamada(
+      equipe.filter((p) => presentes.has(p.id)).map((p) => ({ funcao: p.funcao, empreiteira: p.empreiteira_id ? (nomeEmp.get(p.empreiteira_id) ?? null) : null })),
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -99,15 +119,20 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
               <p className="text-cianotipia">
                 <strong className="font-semibold">Clima automático.</strong>{' '}
                 {podeEditar
-                  ? 'Na obra, toque abaixo para gravar a localização: daí em diante o clima de cada dia vem preenchido.'
+                  ? 'Grave a localização da obra (pelo aparelho, na obra, ou pelo CEP): daí em diante o clima de cada dia vem preenchido.'
                   : 'Peça ao engenheiro para gravar a localização da obra: o clima passa a vir preenchido.'}
               </p>
-              {podeEditar && <BotaoLocalizacao projetoId={id} />}
+              {podeEditar && (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+                  <BotaoLocalizacao projetoId={id} />
+                  <FormularioCep projetoId={id} />
+                </div>
+              )}
             </section>
           )}
 
           <FormularioDiario projetoId={id} data={data} diario={diario} sugestao={sugestao} />
-          <EditorEfetivo projetoId={id} data={data} inicial={efetivo} />
+          <EditorEfetivo projetoId={id} data={data} inicial={efetivo} daChamada={daChamada} />
 
           <section aria-labelledby="titulo-servicos" className="flex flex-col gap-3 rounded-medio border border-linha bg-papel p-4 sm:p-5">
             <div className="flex items-baseline justify-between gap-3">

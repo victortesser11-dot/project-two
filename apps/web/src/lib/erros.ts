@@ -16,6 +16,11 @@ const RESTRICOES: Record<string, string> = {
   diario_obra_temperaturas_ck: 'A máxima não pode ser menor que a mínima.',
   diario_efetivo_quantidade_check: 'A quantidade precisa ficar entre 1 e 999.',
   projeto_coordenadas_ck: 'Informe latitude e longitude juntas.',
+  trabalhador_cpf_uk: 'Esse CPF já está cadastrado nesta empresa.',
+  trabalhador_cpf_check: 'CPF inválido: confira os números.',
+  custo_mao_obra_unidade_ck: 'Custo por produção precisa da unidade (ex.: m², m³, un).',
+  custo_mao_obra_valor_check: 'O valor precisa ser maior que zero.',
+  apontamento_mao_obra_presenca_ck: 'Quem veio precisa de horas; quem faltou, não.',
   projeto_datas_ck: 'O fim previsto não pode ser antes do início.',
   projeto_orcamento_ck: 'O orçamento precisa ser maior que zero.',
 };
