@@ -24,6 +24,11 @@ export function hojeIso(fuso = 'America/Sao_Paulo', agora = new Date()): string 
   return new Intl.DateTimeFormat('en-CA', { timeZone: fuso }).format(agora);
 }
 
+/** Dia (AAAA-MM-DD) de um instante (timestamptz) no fuso da obra. */
+export function dataDoInstante(instante: string, fuso = 'America/Sao_Paulo'): string {
+  return hojeIso(fuso, new Date(instante));
+}
+
 /** Dias corridos entre duas datas ISO (fim − início). */
 export function diasEntre(inicioIso: string, fimIso: string): number {
   const ms = Date.parse(`${fimIso.slice(0, 10)}T00:00:00Z`) - Date.parse(`${inicioIso.slice(0, 10)}T00:00:00Z`);

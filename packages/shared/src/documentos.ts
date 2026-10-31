@@ -36,3 +36,27 @@ export function formatarCnpj(cnpj: string | null | undefined): string {
   if (c.length !== 14) return cnpj ?? '—';
   return `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}`;
 }
+
+/**
+ * Chave de acesso da NF-e (44 dígitos) pelo dígito verificador (módulo 11, pesos 2 a 9
+ * da direita para a esquerda).
+ */
+export function chaveNfeValida(entrada: string): boolean {
+  const c = somenteDigitos(entrada);
+  if (c.length !== 44) return false;
+  let soma = 0;
+  let peso = 2;
+  for (let i = 42; i >= 0; i--) {
+    soma += Number(c[i]) * peso;
+    peso = peso === 9 ? 2 : peso + 1;
+  }
+  const resto = soma % 11;
+  const dv = resto < 2 ? 0 : 11 - resto;
+  return dv === Number(c[43]);
+}
+
+/** Chave em blocos de 4 dígitos, como no DANFE. */
+export function formatarChaveNfe(chave: string | null | undefined): string {
+  const c = somenteDigitos(chave ?? '');
+  return c.length === 44 ? c.replace(/(\d{4})(?=\d)/g, '$1 ') : (chave ?? '—');
+}

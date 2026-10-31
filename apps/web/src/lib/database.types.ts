@@ -667,6 +667,80 @@ export type Database = {
         }
         Relationships: []
       }
+      emprestimo_ferramenta: {
+        Row: {
+          devolver_ate: string | null
+          devolvida_em: string | null
+          devolvido_por: string | null
+          empresa_id: string
+          id: string
+          item_id: string
+          observacao: string | null
+          projeto_id: string
+          responsavel: string
+          retirada_em: string
+          retirado_por: string | null
+          trabalhador_id: string | null
+        }
+        Insert: {
+          devolver_ate?: string | null
+          devolvida_em?: string | null
+          devolvido_por?: string | null
+          empresa_id: string
+          id?: string
+          item_id: string
+          observacao?: string | null
+          projeto_id: string
+          responsavel: string
+          retirada_em?: string
+          retirado_por?: string | null
+          trabalhador_id?: string | null
+        }
+        Update: {
+          devolver_ate?: string | null
+          devolvida_em?: string | null
+          devolvido_por?: string | null
+          empresa_id?: string
+          id?: string
+          item_id?: string
+          observacao?: string | null
+          projeto_id?: string
+          responsavel?: string
+          retirada_em?: string
+          retirado_por?: string | null
+          trabalhador_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emprestimo_ferramenta_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprestimo_ferramenta_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprestimo_ferramenta_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprestimo_ferramenta_trabalhador_id_fkey"
+            columns: ["trabalhador_id"]
+            isOneToOne: false
+            referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipe_projeto: {
         Row: {
           ativo: boolean
@@ -709,6 +783,101 @@ export type Database = {
             columns: ["trabalhador_id"]
             isOneToOne: false
             referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_estoque: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          categoria: string | null
+          codigo: string
+          criado_em: string
+          empresa_id: string
+          estoque_minimo: number
+          id: string
+          ncm: string | null
+          nome: string
+          patrimonio: string | null
+          tipo: Database["public"]["Enums"]["tipo_item_estoque"]
+          unidade: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria?: string | null
+          codigo: string
+          criado_em?: string
+          empresa_id: string
+          estoque_minimo?: number
+          id?: string
+          ncm?: string | null
+          nome: string
+          patrimonio?: string | null
+          tipo: Database["public"]["Enums"]["tipo_item_estoque"]
+          unidade: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria?: string | null
+          codigo?: string
+          criado_em?: string
+          empresa_id?: string
+          estoque_minimo?: number
+          id?: string
+          ncm?: string | null
+          nome?: string
+          patrimonio?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_item_estoque"]
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_fornecedor: {
+        Row: {
+          atualizado_em: string
+          cnpj_fornecedor: string
+          codigo_fornecedor: string
+          empresa_id: string
+          item_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cnpj_fornecedor: string
+          codigo_fornecedor: string
+          empresa_id: string
+          item_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          cnpj_fornecedor?: string
+          codigo_fornecedor?: string
+          empresa_id?: string
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_fornecedor_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_fornecedor_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_estoque"
             referencedColumns: ["id"]
           },
         ]
@@ -820,6 +989,108 @@ export type Database = {
           },
         ]
       }
+      movimento_estoque: {
+        Row: {
+          chave_nfe: string | null
+          cnpj_fornecedor: string | null
+          data: string
+          empresa_id: string
+          fornecedor: string | null
+          id: string
+          item_id: string
+          nota_fiscal: string | null
+          observacao: string | null
+          projeto_id: string
+          quantidade: number
+          registrado_em: string
+          registrado_por: string | null
+          responsavel: string | null
+          tarefa_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_movimento_estoque"]
+          trabalhador_id: string | null
+          valor_total: number | null
+          valor_unitario: number
+        }
+        Insert: {
+          chave_nfe?: string | null
+          cnpj_fornecedor?: string | null
+          data: string
+          empresa_id: string
+          fornecedor?: string | null
+          id?: string
+          item_id: string
+          nota_fiscal?: string | null
+          observacao?: string | null
+          projeto_id: string
+          quantidade: number
+          registrado_em?: string
+          registrado_por?: string | null
+          responsavel?: string | null
+          tarefa_id?: string | null
+          tipo: Database["public"]["Enums"]["tipo_movimento_estoque"]
+          trabalhador_id?: string | null
+          valor_total?: number | null
+          valor_unitario: number
+        }
+        Update: {
+          chave_nfe?: string | null
+          cnpj_fornecedor?: string | null
+          data?: string
+          empresa_id?: string
+          fornecedor?: string | null
+          id?: string
+          item_id?: string
+          nota_fiscal?: string | null
+          observacao?: string | null
+          projeto_id?: string
+          quantidade?: number
+          registrado_em?: string
+          registrado_por?: string | null
+          responsavel?: string | null
+          tarefa_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_movimento_estoque"]
+          trabalhador_id?: string | null
+          valor_total?: number | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimento_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimento_estoque_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimento_estoque_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimento_estoque_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimento_estoque_trabalhador_id_fkey"
+            columns: ["trabalhador_id"]
+            isOneToOne: false
+            referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto: {
         Row: {
           atualizado_em: string
@@ -875,6 +1146,58 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saldo_estoque: {
+        Row: {
+          atualizado_em: string
+          custo_medio: number
+          empresa_id: string
+          id: string
+          item_id: string
+          projeto_id: string
+          quantidade: number
+        }
+        Insert: {
+          atualizado_em?: string
+          custo_medio?: number
+          empresa_id: string
+          id?: string
+          item_id: string
+          projeto_id: string
+          quantidade?: number
+        }
+        Update: {
+          atualizado_em?: string
+          custo_medio?: number
+          empresa_id?: string
+          id?: string
+          item_id?: string
+          projeto_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saldo_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldo_estoque_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldo_estoque_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
             referencedColumns: ["id"]
           },
         ]
@@ -1014,6 +1337,10 @@ export type Database = {
         Returns: number
       }
       definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
+      devolver_ferramenta: {
+        Args: { p_item_id: string; p_observacao?: string }
+        Returns: number
+      }
       eap_do_projeto: {
         Args: { p_projeto_id: string }
         Returns: {
@@ -1039,6 +1366,17 @@ export type Database = {
           unidade: string
         }[]
       }
+      emprestar_ferramenta: {
+        Args: {
+          p_devolver_ate?: string
+          p_item_id: string
+          p_observacao?: string
+          p_projeto_id: string
+          p_responsavel?: string
+          p_trabalhador_id?: string
+        }
+        Returns: string
+      }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
       importar_eap: {
@@ -1059,6 +1397,16 @@ export type Database = {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
       }
+      registrar_ajuste: {
+        Args: {
+          p_data: string
+          p_item_id: string
+          p_motivo: string
+          p_projeto_id: string
+          p_quantidade_contada: number
+        }
+        Returns: number
+      }
       registrar_avanco: {
         Args: {
           p_data: string
@@ -1074,6 +1422,18 @@ export type Database = {
         Args: { p_data: string; p_linhas: Json; p_projeto_id: string }
         Returns: number
       }
+      registrar_entradas: {
+        Args: {
+          p_chave_nfe?: string
+          p_cnpj_fornecedor?: string
+          p_data: string
+          p_fornecedor?: string
+          p_itens: Json
+          p_nota_fiscal?: string
+          p_projeto_id: string
+        }
+        Returns: number
+      }
       registrar_foto_diario: {
         Args: {
           p_caminho: string
@@ -1083,6 +1443,19 @@ export type Database = {
           p_tarefa_id?: string
         }
         Returns: string
+      }
+      registrar_saida: {
+        Args: {
+          p_data: string
+          p_item_id: string
+          p_observacao?: string
+          p_projeto_id: string
+          p_quantidade: number
+          p_responsavel?: string
+          p_tarefa_id: string
+          p_trabalhador_id?: string
+        }
+        Returns: number
       }
       remover_dependencia: { Args: { p_id: string }; Returns: undefined }
       reposicionar_item_eap: {
@@ -1117,6 +1490,8 @@ export type Database = {
       tipo_custo_mao_obra: "hora" | "diaria" | "producao"
       tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
+      tipo_item_estoque: "material" | "ferramenta"
+      tipo_movimento_estoque: "entrada" | "saida" | "ajuste"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1258,6 +1633,8 @@ export const Constants = {
       tipo_custo_mao_obra: ["hora", "diaria", "producao"],
       tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],
+      tipo_item_estoque: ["material", "ferramenta"],
+      tipo_movimento_estoque: ["entrada", "saida", "ajuste"],
     },
   },
 } as const

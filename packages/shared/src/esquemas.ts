@@ -1,6 +1,14 @@
 import { z } from 'zod';
-import { CLIMAS, PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_CUSTO_MAO_OBRA, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
-import { cnpjValido, cpfValido, somenteDigitos } from './documentos';
+import {
+  CLIMAS,
+  PAPEIS_PROJETO,
+  STATUS_PROJETO,
+  TIPOS_CUSTO_MAO_OBRA,
+  TIPOS_DEPENDENCIA,
+  TIPOS_ITEM_EAP,
+  TIPOS_ITEM_ESTOQUE,
+} from './dominio';
+import { chaveNfeValida, cnpjValido, cpfValido, somenteDigitos } from './documentos';
 import { lerNumero } from './importacao/valores';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -351,6 +359,140 @@ export const chamadaSchema = z
     });
   });
 export type ChamadaValidada = z.output<typeof chamadaSchema>;
+
+// ---------------------------------------------------------------- almoxarifado (RF-401 a 404)
+
+/** Quantidade digitada no padrão brasileiro ("2,5"), com até 4 casas, como no banco. */
+const quantidade = (mensagem: string, { zeroPode = false } = {}) =>
+  z.union([z.string(), z.number()]).transform((v, ctx) => {
+    const n = lerNumero(v, ',');
+    if (n === null || Number.isNaN(n) || n < 0 || (!zeroPode && n === 0)) {
+      ctx.addIssue({ code: 'custom', message: mensagem });
+      return z.NEVER;
+    }
+    return Math.round(n * 10000) / 10000;
+  });
+
+const uuidOpcional = z
+  .union([z.string().uuid(), z.literal('')])
+  .nullable()
+  .optional()
+  .transform((v) => (v ? v : null));
+
+/** Item do catálogo da empresa. Ferramenta é sempre 1 unidade, sem estoque mínimo. */
+export const itemEstoqueSchema = z
+  .object({
+    codigo: textoOpcional(30),
+    nome: z.string().trim().min(2, 'Informe o nome do item').max(200, 'Use no máximo 200 caracteres'),
+    tipo: z.enum(TIPOS_ITEM_ESTOQUE, { error: 'Escolha material ou ferramenta' }),
+    unidade: z.string().trim().max(20, 'Use no máximo 20 caracteres').default('un'),
+    categoria: textoOpcional(80),
+    estoque_minimo: numeroNaoNegativo(4),
+    patrimonio: textoOpcional(40),
+    ncm: z
+      .string()
+      .optional()
+      .transform((v, ctx) => {
+        const c = somenteDigitos(v ?? '');
+        if (c === '') return null;
+        if (c.length !== 8) {
+          ctx.addIssue({ code: 'custom', message: 'O NCM tem 8 dígitos' });
+          return z.NEVER;
+        }
+        return c;
+      }),
+  })
+  .superRefine((i, ctx) => {
+    if (i.tipo === 'material' && i.unidade === '') {
+      ctx.addIssue({ code: 'custom', path: ['unidade'], message: 'Informe a unidade (ex.: sc, kg, m³)' });
+    }
+  })
+  .transform((i) =>
+    i.tipo === 'ferramenta'
+      ? { ...i, unidade: 'un', estoque_minimo: 0 }
+      : { ...i, estoque_minimo: i.estoque_minimo ?? 0, patrimonio: null },
+  );
+export type ItemEstoqueValidado = z.output<typeof itemEstoqueSchema>;
+
+/** Uma linha de entrada (digitada ou vinda da NF-e). */
+export const linhaEntradaSchema = z.object({
+  item_id: z.string().uuid('Escolha o item do catálogo'),
+  quantidade: quantidade('Quantidade maior que zero'),
+  valor_unitario: quantidade('Valor não pode ser negativo', { zeroPode: true }),
+  codigo_fornecedor: textoOpcional(60),
+});
+
+/** Entrada no almoxarifado: uma nota (ou uma compra avulsa) com uma ou mais linhas. */
+export const entradaSchema = z.object({
+  data: z.string().regex(DATA_ISO, 'Informe a data da entrada'),
+  fornecedor: textoOpcional(160),
+  cnpj_fornecedor: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      const c = somenteDigitos(v ?? '');
+      if (c === '') return null;
+      if (!cnpjValido(c)) {
+        ctx.addIssue({ code: 'custom', message: 'CNPJ do fornecedor inválido' });
+        return z.NEVER;
+      }
+      return c;
+    }),
+  nota_fiscal: textoOpcional(40),
+  chave_nfe: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      const c = somenteDigitos(v ?? '');
+      if (c === '') return null;
+      if (!chaveNfeValida(c)) {
+        ctx.addIssue({ code: 'custom', message: 'Chave da NF-e inválida: confira os 44 dígitos' });
+        return z.NEVER;
+      }
+      return c;
+    }),
+  itens: z.array(linhaEntradaSchema).min(1, 'Inclua pelo menos um item').max(500, 'No máximo 500 linhas por entrada'),
+});
+export type EntradaValidada = z.output<typeof entradaSchema>;
+
+/** Saída de material: sempre para uma tarefa da obra. */
+export const saidaSchema = z.object({
+  item_id: z.string().uuid('Escolha o material'),
+  data: z.string().regex(DATA_ISO, 'Informe a data'),
+  quantidade: quantidade('Quantidade maior que zero'),
+  tarefa_id: z.string({ error: 'Escolha a tarefa que vai usar o material' }).uuid('Escolha a tarefa que vai usar o material'),
+  trabalhador_id: uuidOpcional,
+  responsavel: textoOpcional(160),
+  observacao: textoOpcional(500),
+});
+export type SaidaValidada = z.output<typeof saidaSchema>;
+
+/** Inventário: a quantidade contada substitui o saldo, com motivo. */
+export const ajusteSchema = z.object({
+  item_id: z.string().uuid('Escolha o material'),
+  data: z.string().regex(DATA_ISO, 'Informe a data'),
+  quantidade_contada: quantidade('Informe a quantidade contada (zero ou mais)', { zeroPode: true }),
+  motivo: z.string().trim().min(3, 'Informe o motivo (ex.: inventário, perda, quebra)').max(500, 'Use no máximo 500 caracteres'),
+});
+export type AjusteValidado = z.output<typeof ajusteSchema>;
+
+/** Empréstimo de ferramenta: para uma pessoa da equipe ou um nome livre. */
+export const emprestimoSchema = z
+  .object({
+    item_id: z.string().uuid('Escolha a ferramenta'),
+    trabalhador_id: uuidOpcional,
+    responsavel: textoOpcional(160),
+    devolver_ate: dataOpcional,
+    observacao: textoOpcional(500),
+  })
+  .superRefine((e, ctx) => {
+    if (!e.trabalhador_id && !e.responsavel) {
+      ctx.addIssue({ code: 'custom', path: ['responsavel'], message: 'Escolha a pessoa ou escreva com quem a ferramenta vai ficar' });
+    }
+  });
+export type EmprestimoValidado = z.output<typeof emprestimoSchema>;
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {

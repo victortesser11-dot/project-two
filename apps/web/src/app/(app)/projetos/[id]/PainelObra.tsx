@@ -42,6 +42,7 @@ export function PainelObra({
   linhaBase,
   apontamentos,
   maoDeObra = null,
+  material = null,
   hoje = hojeIso(),
 }: {
   projeto: Projeto;
@@ -54,6 +55,8 @@ export function PainelObra({
   apontamentos: ApontamentoRegistrado[];
   /** Gasto com mão de obra (custo calculado no banco). null = sem permissão para ver custos. */
   maoDeObra?: { custo: number; horas: number; semCusto: number } | null;
+  /** Almoxarifado: aplicado nas tarefas (custo médio; null = sem permissão para ver custos), itens no catálogo e abaixo do mínimo. */
+  material?: { aplicado: number | null; itens: number; abaixoDoMinimo: number } | null;
   hoje?: string;
 }) {
   const p = montarPainel(itens, apontamentos, linhaBase !== null, hoje);
@@ -66,7 +69,10 @@ export function PainelObra({
     'Dados básicos': true,
     'EAP e cronograma': temTarefas,
     'Linha de base': linhaBase !== null,
+    Almoxarifado: (material?.itens ?? 0) > 0,
   };
+  const materialAplicado = material?.aplicado ?? null;
+  const gastoReal = maoDeObra || materialAplicado !== null ? (maoDeObra?.custo ?? 0) + (materialAplicado ?? 0) : null;
   const proximo = !temTarefas
     ? { texto: 'Monte a EAP para o painel ganhar vida.', acao: 'Importar planilha ou MS Project', href: `${base}/cronograma/importar` }
     : !linhaBase
@@ -122,15 +128,28 @@ export function PainelObra({
               </span>
             )}
           </p>
-          {maoDeObra ? (
-            <p className="numeros mt-2 border-t border-linha pt-2 text-sm">
-              <span className="text-regua">Gasto com mão de obra:</span>{' '}
-              <Link href={`${base}/equipe`} className="font-semibold hover:text-cianotipia">
-                {formatarMoeda(maoDeObra.custo, { compacta: true })}
-              </Link>
-              {maoDeObra.semCusto > 0 && <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>}
-              <span className="block text-xs text-regua">Material e despesas entram com almoxarifado e orçamento.</span>
-            </p>
+          {gastoReal !== null ? (
+            <div className="numeros mt-2 border-t border-linha pt-2 text-sm">
+              <p>
+                <span className="text-regua">Gasto real até hoje:</span> <span className="font-semibold">{formatarMoeda(gastoReal, { compacta: true })}</span>
+              </p>
+              <p className="text-xs text-regua">
+                {maoDeObra && (
+                  <Link href={`${base}/equipe`} className="hover:text-cianotipia">
+                    Mão de obra {formatarMoeda(maoDeObra.custo, { compacta: true })}
+                  </Link>
+                )}
+                {maoDeObra && materialAplicado !== null && ' · '}
+                {materialAplicado !== null && (
+                  <Link href={`${base}/almoxarifado`} className="hover:text-cianotipia">
+                    Material {formatarMoeda(materialAplicado, { compacta: true })}
+                  </Link>
+                )}
+              </p>
+              {maoDeObra && maoDeObra.semCusto > 0 && (
+                <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>
+              )}
+            </div>
           ) : (
             <p className="mt-2 text-xs text-regua">Serviço feito × custo previsto. O gasto real entra com almoxarifado, equipe e despesas.</p>
           )}
@@ -149,6 +168,11 @@ export function PainelObra({
             )}
             <span className="text-regua"> · {p.hoje.proximas} nos próximos dias</span>
           </p>
+          {material && material.abaixoDoMinimo > 0 && (
+            <Link href={`${base}/almoxarifado`} className="numeros mt-1 block text-sm font-semibold text-marcador hover:underline underline-offset-4">
+              {material.abaixoDoMinimo} {material.abaixoDoMinimo === 1 ? 'material abaixo' : 'materiais abaixo'} do estoque mínimo
+            </Link>
+          )}
           <Link href={`${base}/hoje`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-cianotipia hover:underline underline-offset-4">
             Ver tarefas de hoje
           </Link>
