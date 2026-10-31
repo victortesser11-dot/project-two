@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import type { ItemEap, MembroProjeto, PapelProjeto, Projeto } from '@obras/shared';
+import type { ApontamentoRegistrado, Dependencia, ItemEap, LinhaBase, MembroProjeto, PapelProjeto, Projeto } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 /** Usuário logado; sem sessão, manda para o login. */
@@ -66,12 +66,52 @@ export async function podeEditarProjeto(projeto: Projeto, papel: PapelProjeto | 
   return empresa?.papel === 'admin' && empresa.id === projeto.empresa_id;
 }
 
+/** Pode apontar avanço no campo? Engenheiro, mestre ou admin. Só para a interface. */
+export async function podeApontarCampo(projeto: Projeto, papel: PapelProjeto | null): Promise<boolean> {
+  if (papel === 'engenheiro' || papel === 'mestre') return true;
+  return podeEditarProjeto(projeto, papel);
+}
+
 export const buscarEap = cache(async (projetoId: string): Promise<ItemEap[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await supabase.rpc('eap_do_projeto', { p_projeto_id: projetoId });
   if (error) throw new Error(`Não foi possível carregar a EAP: ${error.message}`);
   // A função devolve colunas que podem ser nulas; o gerador de tipos não sabe disso.
   return (data ?? []) as unknown as ItemEap[];
+});
+
+export const buscarDependencias = cache(async (projetoId: string): Promise<Dependencia[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('eap_dependencia')
+    .select('id, predecessora_id, sucessora_id, tipo, defasagem_dias')
+    .eq('projeto_id', projetoId);
+  if (error) throw new Error(`Não foi possível carregar as dependências: ${error.message}`);
+  return data ?? [];
+});
+
+export const buscarLinhaBase = cache(async (projetoId: string): Promise<LinhaBase | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('linha_base')
+    .select('definida_em, qtd_tarefas')
+    .eq('projeto_id', projetoId)
+    .maybeSingle();
+  if (error) throw new Error(`Não foi possível carregar a linha de base: ${error.message}`);
+  return data;
+});
+
+/** Histórico de avanço do projeto (para a curva S). */
+export const buscarApontamentos = cache(async (projetoId: string): Promise<ApontamentoRegistrado[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('avanco_tarefa')
+    .select('tarefa_id, data, percentual, registrado_em')
+    .eq('projeto_id', projetoId)
+    .order('data', { ascending: true })
+    .limit(20000);
+  if (error) throw new Error(`Não foi possível carregar o avanço: ${error.message}`);
+  return data ?? [];
 });
 
 /** Quantos itens a EAP já tem (sem montar a árvore). */

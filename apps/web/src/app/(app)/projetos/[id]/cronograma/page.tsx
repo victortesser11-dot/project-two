@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { diasEntre, formatarData, formatarMoeda } from '@obras/shared';
 import { buscarEap, buscarProjeto, podeEditarProjeto, resumirEap } from '@/lib/dados';
 import { ArvoreEap } from './ArvoreEap';
+import { NavCronograma } from './NavCronograma';
 
 export const metadata: Metadata = { title: 'EAP e cronograma' };
 
@@ -30,9 +31,12 @@ export default async function PaginaCronograma({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-xl font-semibold sm:text-2xl">EAP e cronograma</h2>
-        <p className="mt-1 text-regua">Gantt com dependências e linha de base chegam no sprint 2.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold sm:text-2xl">EAP e cronograma</h2>
+          <p className="mt-1 text-regua">Etapas e tarefas com datas e custos. Dependências e linha de base ficam no Gantt.</p>
+        </div>
+        <NavCronograma projetoId={id} ativa="eap" />
       </div>
 
       {qtdImportados > 0 && (

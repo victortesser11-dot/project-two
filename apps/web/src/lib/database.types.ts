@@ -53,19 +53,147 @@ export type Database = {
         }
         Relationships: []
       }
+      avanco_tarefa: {
+        Row: {
+          data: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          percentual: number
+          projeto_id: string
+          quantidade_feita: number | null
+          registrado_em: string
+          registrado_por: string | null
+          tarefa_id: string
+        }
+        Insert: {
+          data: string
+          empresa_id: string
+          id: string
+          observacao?: string | null
+          percentual: number
+          projeto_id: string
+          quantidade_feita?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id: string
+        }
+        Update: {
+          data?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          percentual?: number
+          projeto_id?: string
+          quantidade_feita?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avanco_tarefa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avanco_tarefa_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avanco_tarefa_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eap_dependencia: {
+        Row: {
+          criado_em: string
+          defasagem_dias: number
+          empresa_id: string
+          id: string
+          predecessora_id: string
+          projeto_id: string
+          sucessora_id: string
+          tipo: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Insert: {
+          criado_em?: string
+          defasagem_dias?: number
+          empresa_id: string
+          id?: string
+          predecessora_id: string
+          projeto_id: string
+          sucessora_id: string
+          tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Update: {
+          criado_em?: string
+          defasagem_dias?: number
+          empresa_id?: string
+          id?: string
+          predecessora_id?: string
+          projeto_id?: string
+          sucessora_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eap_dependencia_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eap_dependencia_predecessora_id_fkey"
+            columns: ["predecessora_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eap_dependencia_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eap_dependencia_sucessora_id_fkey"
+            columns: ["sucessora_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eap_item: {
         Row: {
           atualizado_em: string
+          avanco_em: string | null
           codigo_externo: string | null
           criado_em: string
+          custo_base: number | null
           custo_previsto: number | null
           empresa_id: string
+          fim_base: string | null
           fim_previsto: string | null
           id: string
+          inicio_base: string | null
           inicio_previsto: string | null
           nome: string
           ordem: number
           pai_id: string | null
+          percentual_fisico: number
           projeto_id: string
           quantidade: number | null
           tipo: Database["public"]["Enums"]["tipo_item_eap"]
@@ -73,16 +201,21 @@ export type Database = {
         }
         Insert: {
           atualizado_em?: string
+          avanco_em?: string | null
           codigo_externo?: string | null
           criado_em?: string
+          custo_base?: number | null
           custo_previsto?: number | null
           empresa_id: string
+          fim_base?: string | null
           fim_previsto?: string | null
           id?: string
+          inicio_base?: string | null
           inicio_previsto?: string | null
           nome: string
           ordem: number
           pai_id?: string | null
+          percentual_fisico?: number
           projeto_id: string
           quantidade?: number | null
           tipo: Database["public"]["Enums"]["tipo_item_eap"]
@@ -90,16 +223,21 @@ export type Database = {
         }
         Update: {
           atualizado_em?: string
+          avanco_em?: string | null
           codigo_externo?: string | null
           criado_em?: string
+          custo_base?: number | null
           custo_previsto?: number | null
           empresa_id?: string
+          fim_base?: string | null
           fim_previsto?: string | null
           id?: string
+          inicio_base?: string | null
           inicio_previsto?: string | null
           nome?: string
           ordem?: number
           pai_id?: string | null
+          percentual_fisico?: number
           projeto_id?: string
           quantidade?: number | null
           tipo?: Database["public"]["Enums"]["tipo_item_eap"]
@@ -149,6 +287,45 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      linha_base: {
+        Row: {
+          definida_em: string
+          definida_por: string | null
+          empresa_id: string
+          projeto_id: string
+          qtd_tarefas: number
+        }
+        Insert: {
+          definida_em?: string
+          definida_por?: string | null
+          empresa_id: string
+          projeto_id: string
+          qtd_tarefas: number
+        }
+        Update: {
+          definida_em?: string
+          definida_por?: string | null
+          empresa_id?: string
+          projeto_id?: string
+          qtd_tarefas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linha_base_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "linha_base_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: true
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membro_empresa: {
         Row: {
@@ -320,18 +497,24 @@ export type Database = {
         }
         Returns: string
       }
+      definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
       eap_do_projeto: {
         Args: { p_projeto_id: string }
         Returns: {
+          avanco_em: string
           codigo: string
           codigo_externo: string
+          custo_base: number
           custo_previsto: number
+          fim_base: string
           fim_previsto: string
           id: string
+          inicio_base: string
           inicio_previsto: string
           nivel: number
           nome: string
           pai_id: string
+          percentual_fisico: number
           posicao: number
           qtd_filhos: number
           qtd_tarefas: number
@@ -359,9 +542,30 @@ export type Database = {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
       }
+      registrar_avanco: {
+        Args: {
+          p_data: string
+          p_id: string
+          p_observacao?: string
+          p_percentual?: number
+          p_quantidade?: number
+          p_tarefa_id: string
+        }
+        Returns: number
+      }
+      remover_dependencia: { Args: { p_id: string }; Returns: undefined }
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
         Returns: undefined
+      }
+      salvar_dependencia: {
+        Args: {
+          p_defasagem_dias?: number
+          p_predecessora_id: string
+          p_sucessora_id: string
+          p_tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -373,6 +577,7 @@ export type Database = {
         | "financeiro"
         | "leitura"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
+      tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
     }
     CompositeTypes: {
@@ -510,6 +715,7 @@ export const Constants = {
         "leitura",
       ],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
+      tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],
     },
   },

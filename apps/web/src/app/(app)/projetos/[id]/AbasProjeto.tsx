@@ -7,7 +7,11 @@ import { MODULOS } from './modulos';
 export function AbasProjeto({ projetoId }: { projetoId: string }) {
   const caminho = usePathname();
   const base = `/projetos/${projetoId}`;
-  const abas = [{ href: base, nome: 'Painel' }, ...MODULOS.map((m) => ({ href: `${base}/${m.slug}`, nome: m.nome }))];
+  const abas = [
+    { href: base, nome: 'Painel' },
+    { href: `${base}/hoje`, nome: 'Hoje' },
+    ...MODULOS.map((m) => ({ href: `${base}/${m.slug}`, nome: m.nome })),
+  ];
 
   return (
     <nav aria-label="Seções do projeto" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

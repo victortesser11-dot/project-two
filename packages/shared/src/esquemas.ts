@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_ITEM_EAP } from './dominio';
+import { PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
 import { lerNumero } from './importacao/valores';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -135,6 +135,56 @@ export const membroProjetoSchema = z.object({
   email: z.string().trim().toLowerCase().email('Informe um e-mail válido'),
   papel: z.enum(PAPEIS_PROJETO),
 });
+
+/** Dependência entre duas tarefas (RF-201). Defasagem em dias corridos; negativa adianta. */
+export const dependenciaSchema = z
+  .object({
+    predecessora_id: z.string().uuid('Escolha a tarefa anterior'),
+    sucessora_id: z.string().uuid('Tarefa inválida'),
+    tipo: z.enum(TIPOS_DEPENDENCIA, { error: 'Escolha o tipo de ligação' }),
+    defasagem_dias: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v, ctx) => {
+        const texto = String(v ?? '').trim();
+        if (texto === '') return 0;
+        const n = Number(texto.replace(',', '.'));
+        if (!Number.isInteger(n)) {
+          ctx.addIssue({ code: 'custom', message: 'Use um número inteiro de dias' });
+          return z.NEVER;
+        }
+        if (n < -365 || n > 365) {
+          ctx.addIssue({ code: 'custom', message: 'Use entre -365 e 365 dias' });
+          return z.NEVER;
+        }
+        return n;
+      }),
+  })
+  .refine((d) => d.predecessora_id !== d.sucessora_id, {
+    path: ['predecessora_id'],
+    message: 'Uma tarefa não depende dela mesma',
+  });
+export type DependenciaValidada = z.output<typeof dependenciaSchema>;
+
+/**
+ * Apontamento de avanço feito no campo (RF-202). O id é gerado no aparelho
+ * para que reenviar a fila offline não duplique. Informe % ou quantidade.
+ */
+export const apontamentoSchema = z
+  .object({
+    id: z.string().uuid(),
+    tarefa_id: z.string().uuid(),
+    data: z.string().regex(DATA_ISO, 'Data inválida'),
+    percentual: z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').nullable().default(null),
+    quantidade: z.number().min(0, 'Não pode ser negativa').nullable().default(null),
+    observacao: z.string().trim().max(500, 'Use no máximo 500 caracteres').nullable().default(null),
+  })
+  .refine((a) => a.percentual !== null || a.quantidade !== null, {
+    path: ['percentual'],
+    message: 'Informe o avanço em % ou a quantidade feita',
+  });
+export type ApontamentoEntrada = z.input<typeof apontamentoSchema>;
+export type Apontamento = z.output<typeof apontamentoSchema>;
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {

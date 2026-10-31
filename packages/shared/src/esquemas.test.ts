@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { errosPorCampo, itemEapSchema, lerValorEmReais, membroProjetoSchema, projetoSchema } from './esquemas';
+import { dependenciaSchema, errosPorCampo, itemEapSchema, lerValorEmReais, membroProjetoSchema, projetoSchema } from './esquemas';
 import { formatarData, prazoDecorrido } from './formato';
 
 describe('lerValorEmReais', () => {
@@ -132,5 +132,29 @@ describe('formato', () => {
     expect(prazoDecorrido('2026-01-01', '2026-01-11', '2025-12-01')).toBe(0);
     expect(prazoDecorrido('2026-01-01', '2026-01-11', '2026-03-01')).toBe(1);
     expect(prazoDecorrido(null, '2026-01-11', '2026-01-06')).toBeNull();
+  });
+});
+
+describe('dependenciaSchema', () => {
+  const a = '11111111-1111-4111-8111-111111111111';
+  const b = '22222222-2222-4222-8222-222222222222';
+
+  it('defasagem vazia vira zero', () => {
+    const r = dependenciaSchema.parse({ predecessora_id: a, sucessora_id: b, tipo: 'ti', defasagem_dias: '' });
+    expect(r.defasagem_dias).toBe(0);
+  });
+
+  it('aceita defasagem negativa (adianta)', () => {
+    expect(dependenciaSchema.parse({ predecessora_id: a, sucessora_id: b, tipo: 'ii', defasagem_dias: '-3' }).defasagem_dias).toBe(-3);
+  });
+
+  it('recusa tarefa dependendo dela mesma', () => {
+    const r = dependenciaSchema.safeParse({ predecessora_id: a, sucessora_id: a, tipo: 'ti' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(errosPorCampo(r.error).predecessora_id).toBe('Uma tarefa não depende dela mesma');
+  });
+
+  it.each([['1.5'], ['400'], ['dois']])('recusa defasagem %s', (d) => {
+    expect(dependenciaSchema.safeParse({ predecessora_id: a, sucessora_id: b, tipo: 'tt', defasagem_dias: d }).success).toBe(false);
   });
 });
