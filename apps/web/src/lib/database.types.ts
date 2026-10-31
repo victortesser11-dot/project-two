@@ -276,6 +276,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adicionar_membro_empresa: {
+        Args: {
+          p_email: string
+          p_empresa_id: string
+          p_papel?: Database["public"]["Enums"]["papel_empresa"]
+        }
+        Returns: string
+      }
       adicionar_membro_projeto: {
         Args: {
           p_email: string
@@ -288,6 +296,7 @@ export type Database = {
         Args: { p_campos: Json; p_id: string }
         Returns: undefined
       }
+      criar_empresa: { Args: { p_nome: string }; Returns: string }
       criar_item_eap: {
         Args: {
           p_campos?: Json
@@ -296,6 +305,18 @@ export type Database = {
           p_posicao?: number
           p_projeto_id: string
           p_tipo: Database["public"]["Enums"]["tipo_item_eap"]
+        }
+        Returns: string
+      }
+      criar_projeto: {
+        Args: {
+          p_data_fim_prevista?: string
+          p_data_inicio?: string
+          p_empresa_id: string
+          p_endereco?: string
+          p_nome: string
+          p_orcamento_total?: number
+          p_status?: Database["public"]["Enums"]["status_projeto"]
         }
         Returns: string
       }
@@ -341,27 +362,6 @@ export type Database = {
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
         Returns: undefined
-      }
-      adicionar_membro_empresa: {
-        Args: {
-          p_email: string
-          p_empresa_id: string
-          p_papel?: Database["public"]["Enums"]["papel_empresa"]
-        }
-        Returns: string
-      }
-      criar_empresa: { Args: { p_nome: string }; Returns: string }
-      criar_projeto: {
-        Args: {
-          p_data_fim_prevista?: string
-          p_data_inicio?: string
-          p_empresa_id: string
-          p_endereco?: string
-          p_nome: string
-          p_orcamento_total?: number
-          p_status?: Database["public"]["Enums"]["status_projeto"]
-        }
-        Returns: string
       }
     }
     Enums: {
@@ -414,6 +414,56 @@ export type Tables<
       : never
     : never
 
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -430,3 +480,37 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      papel_empresa: ["admin", "membro"],
+      papel_projeto: [
+        "engenheiro",
+        "mestre",
+        "almoxarife",
+        "financeiro",
+        "leitura",
+      ],
+      status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
+      tipo_item_eap: ["etapa", "tarefa"],
+    },
+  },
+} as const
