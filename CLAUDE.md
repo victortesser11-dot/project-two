@@ -42,9 +42,11 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `remover_dependencia`, `definir_linha_base`, a do campo: `registrar_avanco`, e as do diário: `salvar_diario`,
    `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`, e as da equipe:
    `definir_custo_mao_obra`, `registrar_chamada`, `custo_mao_obra_projeto`, e as do almoxarifado:
-   `registrar_entradas`, `registrar_saida`, `registrar_ajuste`, `emprestar_ferramenta`, `devolver_ferramenta`)
-   checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
-   Aviso para função fora desta lista é problema a investigar.
+   `registrar_entradas`, `registrar_saida`, `registrar_ajuste`, `emprestar_ferramenta`, `devolver_ferramenta`, e as das
+   câmeras: `criar_agente_camera`, `revogar_agente_camera`, `salvar_camera`, `pedir_teste_camera`,
+   `registrar_foto_camera`, `excluir_foto_camera`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
+   `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
    Os enums de `packages/shared/src/dominio.ts` espelham os do banco.
 7. **Datas do dia a dia são datas, não instantes**: guarde `date` e use `hojeIso()` (fuso de Brasília).
@@ -116,6 +118,22 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   prévia e só ao confirmar chama `registrar_entradas`. Consulta pela chave (sem XML) exige serviço pago ou certificado A1.
 - Ferramenta é patrimônio único: `emprestar_ferramenta`/`devolver_ferramenta`, no máximo um empréstimo aberto.
   A etiqueta tem QR com o código do item; o celular lê com `BarcodeDetector` e cai para digitar o código.
+
+## Câmeras (sprint 5)
+
+- A foto chega por um **agente na obra** (`apps/agente`, Node sem dependências): pede a foto pela rede local
+  (`/cgi-bin/snapshot.cgi` com Digest, ou um quadro do RTSP pelo FFmpeg) e envia por HTTPS para a função de borda
+  `supabase/functions/agente-cameras` (publicar com `verify_jwt = false`; o token do agente é a autenticação).
+  **Nunca** peça para abrir porta da câmera para a internet.
+- O token do agente é mostrado uma vez; o banco guarda só o SHA-256 (`agente_camera.token_hash`, fora do grant).
+  As funções `agente_*` conferem o token e só rodam como `service_role`.
+- Senha da câmera no **Vault** (`vault.create_secret`); `camera.senha_id` fora do grant. Nunca `select('*')` em
+  `camera`: use as colunas de `COLUNAS_CAMERA` em `lib/dados.ts`. Só o agente recebe a senha (em memória).
+- `foto_camera.data` é o dia de Brasília da captura. Bucket privado `cameras`, caminho `<projeto>/<camera>/<arquivo>`.
+- Alerta (RF-102): `falhas_seguidas >= 2` ou agente sem contato há mais de 3 min (`situacaoCamera` no shared).
+  O estado operacional da câmera (última foto, falhas, teste) não entra no `audit_log`.
+- Time-lapse sem servidor: uma foto por dia, a mais perto do horário-alvo (`quadrosTimelapse`), tocada no navegador.
+  MP4 gerado e link público com expiração ficam para quando houver VPS (ou o próprio agente gerar).
 
 ## Interface
 
