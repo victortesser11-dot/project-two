@@ -1,5 +1,6 @@
 import { montarEap } from './hierarquia';
 import type { LinhaOrigem, Problema, ResultadoImportacao } from './tipos';
+import { campoXml as campo } from '../xml';
 
 // Leitura do XML do MS Project (MSPDI: "Salvar como → XML"). O ProjectLibre
 // exporta no mesmo formato. Só os campos simples de cada <Task> interessam;
@@ -7,23 +8,6 @@ import type { LinhaOrigem, Problema, ResultadoImportacao } from './tipos';
 // antes, porque repetem nomes como <Start> e <Cost>.
 
 const BLOCOS_ANINHADOS = /<(PredecessorLink|ExtendedAttribute|Baseline|TimephasedData|OutlineCode)\b[\s\S]*?<\/\1>/g;
-
-function decodificar(texto: string): string {
-  return texto
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(parseInt(d, 10)))
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
-}
-
-function campo(bloco: string, nome: string): string | null {
-  const m = bloco.match(new RegExp(`<${nome}>([\\s\\S]*?)</${nome}>`));
-  return m ? decodificar(m[1]!).trim() : null;
-}
 
 /** Parece um XML do MS Project? */
 export function ehXmlMsProject(texto: string): boolean {

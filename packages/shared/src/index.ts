@@ -7,3 +7,5 @@ export * from './clima';
 export * from './documentos';
 export * from './maoDeObra';
 export * from './integracoes/brasilapi';
+export * from './almoxarifado';
+export * from './integracoes/nfe';

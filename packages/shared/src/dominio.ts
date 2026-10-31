@@ -210,3 +210,78 @@ export interface LinhaCustoMaoObra {
   valor_unitario: number | null;
   custo: number | null;
 }
+
+// ---------------------------------------------------------------- almoxarifado (RF-401 a 404)
+
+/** Espelha o enum tipo_item_estoque do banco. */
+export const TIPOS_ITEM_ESTOQUE = ['material', 'ferramenta'] as const;
+export type TipoItemEstoque = (typeof TIPOS_ITEM_ESTOQUE)[number];
+
+/** Espelha o enum tipo_movimento_estoque do banco. */
+export const TIPOS_MOVIMENTO_ESTOQUE = ['entrada', 'saida', 'ajuste'] as const;
+export type TipoMovimentoEstoque = (typeof TIPOS_MOVIMENTO_ESTOQUE)[number];
+export const ROTULO_MOVIMENTO: Record<TipoMovimentoEstoque, string> = {
+  entrada: 'Entrada',
+  saida: 'Saída',
+  ajuste: 'Ajuste',
+};
+
+/** Unidades mais usadas na obra (o campo aceita outras). */
+export const UNIDADES_ESTOQUE = ['un', 'sc', 'kg', 't', 'm', 'm²', 'm³', 'L', 'pç', 'cx', 'rl', 'br', 'gl', 'lata', 'milheiro', 'pct', 'jg'] as const;
+
+export interface ItemEstoque {
+  id: string;
+  codigo: string;
+  nome: string;
+  tipo: TipoItemEstoque;
+  unidade: string;
+  categoria: string | null;
+  estoque_minimo: number;
+  patrimonio: string | null;
+  ncm: string | null;
+  ativo: boolean;
+}
+
+export interface SaldoEstoque {
+  item_id: string;
+  quantidade: number;
+  custo_medio: number;
+}
+
+export interface MovimentoEstoque {
+  id: string;
+  item_id: string;
+  tipo: TipoMovimentoEstoque;
+  data: string;
+  /** Entrada e saída: positiva. Ajuste: a diferença contada (pode ser negativa). */
+  quantidade: number;
+  valor_unitario: number;
+  valor_total: number;
+  fornecedor: string | null;
+  nota_fiscal: string | null;
+  chave_nfe: string | null;
+  tarefa_id: string | null;
+  trabalhador_id: string | null;
+  responsavel: string | null;
+  observacao: string | null;
+  registrado_em: string;
+}
+
+export interface EmprestimoFerramenta {
+  id: string;
+  projeto_id: string;
+  item_id: string;
+  trabalhador_id: string | null;
+  responsavel: string;
+  retirada_em: string;
+  devolver_ate: string | null;
+  devolvida_em: string | null;
+  observacao: string | null;
+}
+
+/** Vínculo "código do produto na nota do fornecedor → item do catálogo". */
+export interface VinculoFornecedor {
+  cnpj_fornecedor: string;
+  codigo_fornecedor: string;
+  item_id: string;
+}
