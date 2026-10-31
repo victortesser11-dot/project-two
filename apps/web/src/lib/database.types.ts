@@ -53,6 +53,45 @@ export type Database = {
         }
         Relationships: []
       }
+      avanco_tarefa: {
+        Row: {
+          data: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          percentual: number
+          projeto_id: string
+          quantidade_feita: number | null
+          registrado_em: string
+          registrado_por: string | null
+          tarefa_id: string
+        }
+        Insert: {
+          data: string
+          empresa_id: string
+          id: string
+          observacao?: string | null
+          percentual: number
+          projeto_id: string
+          quantidade_feita?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id: string
+        }
+        Update: {
+          data?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          percentual?: number
+          projeto_id?: string
+          quantidade_feita?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string
+        }
+        Relationships: []
+      }
       eap_dependencia: {
         Row: {
           criado_em: string
@@ -89,6 +128,7 @@ export type Database = {
       eap_item: {
         Row: {
           atualizado_em: string
+          avanco_em: string | null
           codigo_externo: string | null
           criado_em: string
           custo_base: number | null
@@ -101,6 +141,7 @@ export type Database = {
           inicio_previsto: string | null
           nome: string
           ordem: number
+          percentual_fisico: number
           pai_id: string | null
           projeto_id: string
           quantidade: number | null
@@ -109,6 +150,7 @@ export type Database = {
         }
         Insert: {
           atualizado_em?: string
+          avanco_em?: string | null
           codigo_externo?: string | null
           criado_em?: string
           custo_base?: number | null
@@ -121,6 +163,7 @@ export type Database = {
           inicio_previsto?: string | null
           nome: string
           ordem: number
+          percentual_fisico?: number
           pai_id?: string | null
           projeto_id: string
           quantidade?: number | null
@@ -129,6 +172,7 @@ export type Database = {
         }
         Update: {
           atualizado_em?: string
+          avanco_em?: string | null
           codigo_externo?: string | null
           criado_em?: string
           custo_base?: number | null
@@ -141,6 +185,7 @@ export type Database = {
           inicio_previsto?: string | null
           nome?: string
           ordem?: number
+          percentual_fisico?: number
           pai_id?: string | null
           projeto_id?: string
           quantidade?: number | null
@@ -394,6 +439,7 @@ export type Database = {
           codigo_externo: string
           custo_base: number
           custo_previsto: number
+          avanco_em: string
           fim_base: string
           fim_previsto: string
           id: string
@@ -402,6 +448,7 @@ export type Database = {
           nivel: number
           nome: string
           pai_id: string
+          percentual_fisico: number
           posicao: number
           qtd_filhos: number
           qtd_tarefas: number
@@ -428,6 +475,17 @@ export type Database = {
       mover_item_eap: {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
+      }
+      registrar_avanco: {
+        Args: {
+          p_data: string
+          p_id: string
+          p_observacao?: string
+          p_percentual?: number
+          p_quantidade?: number
+          p_tarefa_id: string
+        }
+        Returns: number
       }
       remover_dependencia: { Args: { p_id: string }; Returns: undefined }
       reposicionar_item_eap: {

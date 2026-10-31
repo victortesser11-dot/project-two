@@ -166,6 +166,26 @@ export const dependenciaSchema = z
   });
 export type DependenciaValidada = z.output<typeof dependenciaSchema>;
 
+/**
+ * Apontamento de avanço feito no campo (RF-202). O id é gerado no aparelho
+ * para que reenviar a fila offline não duplique. Informe % ou quantidade.
+ */
+export const apontamentoSchema = z
+  .object({
+    id: z.string().uuid(),
+    tarefa_id: z.string().uuid(),
+    data: z.string().regex(DATA_ISO, 'Data inválida'),
+    percentual: z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').nullable().default(null),
+    quantidade: z.number().min(0, 'Não pode ser negativa').nullable().default(null),
+    observacao: z.string().trim().max(500, 'Use no máximo 500 caracteres').nullable().default(null),
+  })
+  .refine((a) => a.percentual !== null || a.quantidade !== null, {
+    path: ['percentual'],
+    message: 'Informe o avanço em % ou a quantidade feita',
+  });
+export type ApontamentoEntrada = z.input<typeof apontamentoSchema>;
+export type Apontamento = z.output<typeof apontamentoSchema>;
+
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {
   const saida: Record<string, string> = {};

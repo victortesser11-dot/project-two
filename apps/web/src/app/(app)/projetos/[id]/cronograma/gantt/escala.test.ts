@@ -6,7 +6,7 @@ function tarefa(p: Partial<ItemEap>): ItemEap {
   return {
     id: 'x', pai_id: null, posicao: 1, nivel: 1, codigo: '1', tipo: 'tarefa', nome: 't',
     unidade: null, quantidade: null, custo_previsto: null, inicio_previsto: null, fim_previsto: null,
-    codigo_externo: null, qtd_filhos: 0, qtd_tarefas: 1, inicio_base: null, fim_base: null, custo_base: null,
+    codigo_externo: null, qtd_filhos: 0, qtd_tarefas: 1, inicio_base: null, fim_base: null, custo_base: null, percentual_fisico: 0, avanco_em: null,
     ...p,
   };
 }

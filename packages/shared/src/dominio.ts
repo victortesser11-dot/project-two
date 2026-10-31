@@ -49,6 +49,10 @@ export interface ItemEap {
   inicio_base: string | null;
   fim_base: string | null;
   custo_base: number | null;
+  /** % físico (0–100). Etapas: média ponderada das tarefas de dentro. */
+  percentual_fisico: number;
+  /** Data do serviço do último apontamento. */
+  avanco_em: string | null;
 }
 
 /** Tipos de dependência: término→início, início→início, término→término. */

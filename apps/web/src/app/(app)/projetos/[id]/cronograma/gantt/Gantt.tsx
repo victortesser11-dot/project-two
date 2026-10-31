@@ -328,7 +328,7 @@ function Barra({
 
   const x = posicao(inicioJanela, ini, px);
   const w = Math.max(largura(ini, fim, px), 4);
-  const titulo = `${item.nome}: ${formatarData(ini)} a ${formatarData(fim)}${
+  const titulo = `${item.nome}: ${formatarData(ini)} a ${formatarData(fim)}, ${Math.round(Number(item.percentual_fisico))}% feito${
     item.custo_previsto !== null ? `, ${formatarMoeda(item.custo_previsto)}` : ''
   }${desvio ? (desvio > 0 ? `, ${desvio} dias depois da base` : `, ${-desvio} dias antes da base`) : ''}`;
 
@@ -357,10 +357,11 @@ function Barra({
         title={titulo}
         aria-label={titulo}
         tabIndex={-1}
-        className={`absolute top-[8px] h-4 overflow-hidden rounded-[4px] bg-cianotipia ${ativo ? 'ring-2 ring-cianotipia/35 ring-offset-1' : ''}`}
+        className={`absolute top-[8px] h-4 overflow-hidden rounded-[4px] bg-cianotipia/35 ${ativo ? 'ring-2 ring-cianotipia/35 ring-offset-1' : ''}`}
         style={{ left: x, width: w }}
       >
-        {atraso > 0 && <span className="absolute inset-y-0 right-0 bg-marcador" style={{ width: atraso }} />}
+        <span className="absolute inset-y-0 left-0 bg-cianotipia" style={{ width: `${Number(item.percentual_fisico)}%` }} />
+        {atraso > 0 && <span className="absolute inset-y-0 right-0 bg-marcador/85" style={{ width: atraso }} />}
       </button>
       {desvio !== null && desvio > 0 && (
         <span className="numeros absolute top-[8px] text-[11px] leading-4 font-semibold text-marcador" style={{ left: x + w + 4 }}>
@@ -412,7 +413,10 @@ function Legenda({ temBase }: { temBase: boolean }) {
   return (
     <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-regua">
       <li className="flex items-center gap-2">
-        <span className="h-3 w-6 rounded-[3px] bg-cianotipia" /> Previsto
+        <span className="flex h-3 w-6 overflow-hidden rounded-[3px] bg-cianotipia/35">
+          <span className="w-1/2 bg-cianotipia" />
+        </span>{' '}
+        Previsto (cheio = feito)
       </li>
       {temBase && (
         <>
