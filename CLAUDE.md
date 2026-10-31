@@ -41,8 +41,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`, as do cronograma: `salvar_dependencia`,
    `remover_dependencia`, `definir_linha_base`, a do campo: `registrar_avanco`, e as do diário: `salvar_diario`,
    `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`, e as da equipe:
-   `definir_custo_mao_obra`, `registrar_chamada`, `custo_mao_obra_projeto`) checam a permissão por
-   dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   `definir_custo_mao_obra`, `registrar_chamada`, `custo_mao_obra_projeto`, e as do almoxarifado:
+   `registrar_entradas`, `registrar_saida`, `registrar_ajuste`, `emprestar_ferramenta`, `devolver_ferramenta`)
+   checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
    Os enums de `packages/shared/src/dominio.ts` espelham os do banco.
@@ -100,6 +101,21 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   dia, produção × valor, pelo custo vigente no dia.
 - Integrações abertas (sem chave): BrasilAPI (CNPJ, feriados, CEP) e Open-Meteo, sempre com preenchimento manual
   como alternativa quando a API falha.
+
+## Almoxarifado (sprint 4)
+
+- Catálogo da empresa em `item_estoque` (material ou ferramenta; código automático `MAT-0001`/`FER-0001`).
+  Cadastra quem `app.pode_gerir_estoque` (admin, engenheiro ou almoxarife de alguma obra); escrita direta com RLS.
+- Saldo e custo médio por obra em `saldo_estoque`; movimentos imutáveis em `movimento_estoque`. Só mudam por
+  `registrar_entradas` (várias linhas, tudo ou nada; mesma chave de NF-e não entra duas vezes na empresa),
+  `registrar_saida` (sempre para uma **tarefa** da obra, nunca deixa saldo negativo, sai pelo custo médio) e
+  `registrar_ajuste` (inventário, com motivo). Movimenta quem `app.pode_movimentar_estoque` (engenheiro e almoxarife).
+- Custo médio ponderado no banco: `(saldo × médio + qtd × preço) ÷ (saldo + qtd)`; correção é ajuste, nunca edição.
+- `item_fornecedor` lembra "CNPJ + código do produto na nota → item do catálogo" para casar a próxima NF-e.
+- XML da NF-e lido no navegador (`packages/shared/src/integracoes/nfe.ts`), como o importador da EAP: vira uma
+  prévia e só ao confirmar chama `registrar_entradas`. Consulta pela chave (sem XML) exige serviço pago ou certificado A1.
+- Ferramenta é patrimônio único: `emprestar_ferramenta`/`devolver_ferramenta`, no máximo um empréstimo aberto.
+  A etiqueta tem QR com o código do item; o celular lê com `BarcodeDetector` e cai para digitar o código.
 
 ## Interface
 
