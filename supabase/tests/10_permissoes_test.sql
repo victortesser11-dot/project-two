@@ -100,6 +100,13 @@ select tests.entrar('00000000-0000-0000-0000-00000000000e');
 select tests.afirmar((select count(*) from projeto) = 0, 'usuário sem empresa não vê projetos');
 select tests.afirmar((select count(*) from empresa) = 0, 'usuário sem empresa não vê empresas');
 
+-- Funções de permissão devolvem false (nunca NULL) para quem não tem papel:
+-- "if not NULL" em PL/pgSQL não bloqueia nada.
+select tests.afirmar(app.pode_editar_projeto(current_setting('t.projeto')::uuid) is false, 'pode_editar_projeto é false (não NULL) sem papel');
+select tests.afirmar(app.pode_ver_projeto(current_setting('t.projeto')::uuid) is false, 'pode_ver_projeto é false (não NULL) sem papel');
+select tests.afirmar(app.e_membro_empresa(current_setting('t.empresa_a')::uuid) is false, 'e_membro_empresa é false (não NULL) para quem é de fora');
+select tests.afirmar(app.e_admin_empresa(current_setting('t.empresa_a')::uuid) is false, 'e_admin_empresa é false (não NULL) para quem é de fora');
+
 -- ---------------------------------------------------------------- membros do projeto
 select tests.entrar('00000000-0000-0000-0000-00000000000c');
 select tests.afirmar((select count(*) from projeto) = 0, 'membro da empresa sem vínculo não vê o projeto');
