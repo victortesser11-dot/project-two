@@ -204,7 +204,7 @@ export function montarEap(linhas: LinhaOrigem[], problemasAnteriores: Problema[]
     if (Math.abs(calculado - declarado) > Math.max(1, Math.abs(declarado) * 0.005)) {
       aviso(
         item.linha,
-        `Na planilha, "${item.nome}" soma ${reais.format(declarado)}, mas as tarefas de dentro somam ${reais.format(calculado)}. Vale a soma das tarefas.`,
+        `No arquivo, "${item.nome}" soma ${reais.format(declarado)}, mas as tarefas de dentro somam ${reais.format(calculado)}. Vale a soma das tarefas.`,
       );
     }
   });
