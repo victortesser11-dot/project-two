@@ -17,6 +17,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      apontamento_mao_obra: {
+        Row: {
+          data: string
+          empresa_id: string
+          horas: number | null
+          id: string
+          presente: boolean
+          projeto_id: string
+          quantidade: number | null
+          registrado_em: string
+          registrado_por: string | null
+          tarefa_id: string | null
+          trabalhador_id: string
+        }
+        Insert: {
+          data: string
+          empresa_id: string
+          horas?: number | null
+          id?: string
+          presente: boolean
+          projeto_id: string
+          quantidade?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string | null
+          trabalhador_id: string
+        }
+        Update: {
+          data?: string
+          empresa_id?: string
+          horas?: number | null
+          id?: string
+          presente?: boolean
+          projeto_id?: string
+          quantidade?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string | null
+          trabalhador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apontamento_mao_obra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamento_mao_obra_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamento_mao_obra_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamento_mao_obra_trabalhador_id_fkey"
+            columns: ["trabalhador_id"]
+            isOneToOne: false
+            referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           acao: string
@@ -110,6 +181,57 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custo_mao_obra: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          empresa_id: string
+          id: string
+          tipo: Database["public"]["Enums"]["tipo_custo_mao_obra"]
+          trabalhador_id: string
+          unidade_producao: string | null
+          valor: number
+          vigente_desde: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id: string
+          id?: string
+          tipo: Database["public"]["Enums"]["tipo_custo_mao_obra"]
+          trabalhador_id: string
+          unidade_producao?: string | null
+          valor: number
+          vigente_desde: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_custo_mao_obra"]
+          trabalhador_id?: string
+          unidade_producao?: string | null
+          valor?: number
+          vigente_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custo_mao_obra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custo_mao_obra_trabalhador_id_fkey"
+            columns: ["trabalhador_id"]
+            isOneToOne: false
+            referencedRelation: "trabalhador"
             referencedColumns: ["id"]
           },
         ]
@@ -480,6 +602,50 @@ export type Database = {
           },
         ]
       }
+      empreiteira: {
+        Row: {
+          ativa: boolean
+          atualizado_em: string
+          cnpj: string | null
+          criado_em: string
+          empresa_id: string
+          id: string
+          nome: string
+          situacao_cnpj: string | null
+          telefone: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          atualizado_em?: string
+          cnpj?: string | null
+          criado_em?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          situacao_cnpj?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          atualizado_em?: string
+          cnpj?: string | null
+          criado_em?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          situacao_cnpj?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empreiteira_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa: {
         Row: {
           atualizado_em: string
@@ -500,6 +666,52 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      equipe_projeto: {
+        Row: {
+          ativo: boolean
+          empresa_id: string
+          incluido_em: string
+          projeto_id: string
+          trabalhador_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          empresa_id: string
+          incluido_em?: string
+          projeto_id: string
+          trabalhador_id: string
+        }
+        Update: {
+          ativo?: boolean
+          empresa_id?: string
+          incluido_em?: string
+          projeto_id?: string
+          trabalhador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipe_projeto_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipe_projeto_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipe_projeto_trabalhador_id_fkey"
+            columns: ["trabalhador_id"]
+            isOneToOne: false
+            referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       linha_base: {
         Row: {
@@ -667,6 +879,63 @@ export type Database = {
           },
         ]
       }
+      trabalhador: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          cpf: string | null
+          cpf_mascarado: string | null
+          criado_em: string
+          empreiteira_id: string | null
+          empresa_id: string
+          funcao: string
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          cpf?: string | null
+          cpf_mascarado?: string | null
+          criado_em?: string
+          empreiteira_id?: string | null
+          empresa_id: string
+          funcao: string
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          cpf?: string | null
+          cpf_mascarado?: string | null
+          criado_em?: string
+          empreiteira_id?: string | null
+          empresa_id?: string
+          funcao?: string
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabalhador_empreiteira_id_fkey"
+            columns: ["empreiteira_id"]
+            isOneToOne: false
+            referencedRelation: "empreiteira"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabalhador_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -714,6 +983,29 @@ export type Database = {
           p_nome: string
           p_orcamento_total?: number
           p_status?: Database["public"]["Enums"]["status_projeto"]
+        }
+        Returns: string
+      }
+      custo_mao_obra_projeto: {
+        Args: { p_ate?: string; p_de?: string; p_projeto_id: string }
+        Returns: {
+          custo: number
+          data: string
+          horas: number
+          quantidade: number
+          tarefa_id: string
+          tipo: Database["public"]["Enums"]["tipo_custo_mao_obra"]
+          trabalhador_id: string
+          valor_unitario: number
+        }[]
+      }
+      definir_custo_mao_obra: {
+        Args: {
+          p_tipo: Database["public"]["Enums"]["tipo_custo_mao_obra"]
+          p_trabalhador_id: string
+          p_unidade_producao?: string
+          p_valor: number
+          p_vigente_desde: string
         }
         Returns: string
       }
@@ -778,6 +1070,10 @@ export type Database = {
         }
         Returns: number
       }
+      registrar_chamada: {
+        Args: { p_data: string; p_linhas: Json; p_projeto_id: string }
+        Returns: number
+      }
       registrar_foto_diario: {
         Args: {
           p_caminho: string
@@ -818,6 +1114,7 @@ export type Database = {
         | "leitura"
       status_diario: "rascunho" | "assinado"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
+      tipo_custo_mao_obra: "hora" | "diaria" | "producao"
       tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
     }
@@ -958,6 +1255,7 @@ export const Constants = {
       ],
       status_diario: ["rascunho", "assinado"],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
+      tipo_custo_mao_obra: ["hora", "diaria", "producao"],
       tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],
     },

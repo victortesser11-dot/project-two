@@ -40,7 +40,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `membros_do_projeto`, as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
    `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`, as do cronograma: `salvar_dependencia`,
    `remover_dependencia`, `definir_linha_base`, a do campo: `registrar_avanco`, e as do diário: `salvar_diario`,
-   `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`) checam a permissão por
+   `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`, e as da equipe:
+   `definir_custo_mao_obra`, `registrar_chamada`, `custo_mao_obra_projeto`) checam a permissão por
    dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
@@ -86,6 +87,19 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Fotos no bucket privado `diario`, caminho `<projeto_id>/<diario_id>/<arquivo>`; as políticas de
   `storage.objects` leem o projeto e o diário do caminho. O shim de testes imita o mínimo do Storage.
 - Clima automático: `packages/shared/src/clima.ts` (Open-Meteo, sem chave) a partir de `projeto.latitude/longitude`.
+
+## Equipe e mão de obra (sprint 3)
+
+- `empreiteira` e `trabalhador` são da empresa (valem para todas as obras); gere quem `app.pode_gerir_equipe`
+  (admin ou engenheiro de alguma obra). **O cliente não lê `trabalhador.cpf`** (grant por coluna): selecione
+  colunas explícitas e mostre `cpf_mascarado`. Nunca `select('*')` em `trabalhador`.
+- Custo com vigência em `custo_mao_obra`, só por `definir_custo_mao_obra`; lido por quem `app.pode_ver_custos`.
+- Chamada: `registrar_chamada` (engenheiro e mestre) em `apontamento_mao_obra`, só para quem está em
+  `equipe_projeto`; o dia de uma pessoa pode ser dividido entre tarefas.
+- Custo de mão de obra só por `custo_mao_obra_projeto` (no banco): hora × valor, diária rateada pelas horas do
+  dia, produção × valor, pelo custo vigente no dia.
+- Integrações abertas (sem chave): BrasilAPI (CNPJ, feriados, CEP) e Open-Meteo, sempre com preenchimento manual
+  como alternativa quando a API falha.
 
 ## Interface
 
