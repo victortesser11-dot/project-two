@@ -10,7 +10,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-linha bg-papel">
+      <header className="border-b border-linha bg-papel print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
           <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 font-semibold">
             <svg aria-hidden viewBox="0 0 32 32" className="size-7 shrink-0">
@@ -30,7 +30,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10">{children}</div>
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10 print:max-w-none print:p-0">{children}</div>
     </div>
   );
 }

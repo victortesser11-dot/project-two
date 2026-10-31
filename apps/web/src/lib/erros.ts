@@ -13,6 +13,9 @@ const RESTRICOES: Record<string, string> = {
   eap_item_posicao_uk: 'Outra pessoa mexeu na EAP ao mesmo tempo. Atualize a página e tente de novo.',
   eap_dependencia_distintas_ck: 'Uma tarefa não depende dela mesma.',
   eap_dependencia_defasagem_dias_check: 'A defasagem precisa ficar entre -365 e 365 dias.',
+  diario_obra_temperaturas_ck: 'A máxima não pode ser menor que a mínima.',
+  diario_efetivo_quantidade_check: 'A quantidade precisa ficar entre 1 e 999.',
+  projeto_coordenadas_ck: 'Informe latitude e longitude juntas.',
   projeto_datas_ck: 'O fim previsto não pode ser antes do início.',
   projeto_orcamento_ck: 'O orçamento precisa ser maior que zero.',
 };

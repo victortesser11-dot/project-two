@@ -23,7 +23,7 @@ export const MODULOS: Modulo[] = [
   { slug: 'almoxarifado', nome: 'Almoxarifado', resumo: 'Entradas, saídas por tarefa, estoque mínimo e ferramentas com QR code.', sprint: 4, disponivel: false },
   { slug: 'equipe', nome: 'Equipe', resumo: 'Pessoas e empreiteiras, chamada diária e custo de mão de obra por tarefa.', sprint: 3, disponivel: false },
   { slug: 'orcamento', nome: 'Orçamento', resumo: 'Orçamento por etapa, físico-financeiro, orçado × realizado e curva S.', sprint: 6, disponivel: false },
-  { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, ocorrências e fotos do celular, com PDF assinado.', sprint: 2, disponivel: false },
+  { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, equipe, serviços, ocorrências e fotos do dia, com assinatura e PDF.', sprint: 2, disponivel: true },
 ];
 
 export function moduloPorSlug(slug: string) {

@@ -1,7 +1,20 @@
 import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import type { ApontamentoRegistrado, Dependencia, ItemEap, LinhaBase, MembroProjeto, PapelProjeto, Projeto } from '@obras/shared';
+import type {
+  ApontamentoRegistrado,
+  Clima,
+  Dependencia,
+  Diario,
+  FotoDiario,
+  ItemEap,
+  LinhaBase,
+  LinhaEfetivo,
+  MembroProjeto,
+  PapelProjeto,
+  Projeto,
+  StatusDiario,
+} from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 /** Usuário logado; sem sessão, manda para o login. */
@@ -47,7 +60,7 @@ export const buscarProjeto = cache(async (id: string) => {
   const [projeto, papel] = await Promise.all([
     supabase
       .from('projeto')
-      .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em')
+      .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em, latitude, longitude')
       .eq('id', id)
       .maybeSingle(),
     supabase.from('membro_projeto').select('papel').eq('projeto_id', id).eq('usuario_id', usuario.id).maybeSingle(),
@@ -148,3 +161,100 @@ export function resumirEap(itens: ItemEap[]) {
     tarefasSemData: tarefas.filter((t) => !t.inicio_previsto || !t.fim_previsto).length,
   };
 }
+
+// ---------------------------------------------------------------- diário de obra (RF-203)
+
+export interface AvancoDoDia {
+  tarefa: string;
+  unidade: string | null;
+  percentual: number;
+  quantidade: number | null;
+  observacao: string | null;
+}
+
+export interface ResumoDiario {
+  id: string;
+  data: string;
+  status: StatusDiario;
+  clima_manha: Clima | null;
+  clima_tarde: Clima | null;
+  pessoas: number;
+  fotos: number;
+}
+
+/** Diários da obra, do mais recente para o mais antigo. */
+export const listarDiarios = cache(async (projetoId: string): Promise<ResumoDiario[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('diario_obra')
+    .select('id, data, status, clima_manha, clima_tarde, diario_efetivo(quantidade), diario_foto(id)')
+    .eq('projeto_id', projetoId)
+    .order('data', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(`Não foi possível carregar os diários: ${error.message}`);
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    data: d.data,
+    status: d.status,
+    clima_manha: d.clima_manha,
+    clima_tarde: d.clima_tarde,
+    pessoas: d.diario_efetivo.reduce((s, e) => s + e.quantidade, 0),
+    fotos: d.diario_foto.length,
+  }));
+});
+
+/** Diário de um dia com equipe, fotos (URLs assinadas por 1 hora) e avanços apontados no dia. */
+export const buscarDiario = cache(async (projetoId: string, data: string) => {
+  const { supabase } = await exigirUsuario();
+  const [diario, avancos] = await Promise.all([
+    supabase
+      .from('diario_obra')
+      .select(
+        'id, data, clima_manha, clima_tarde, praticavel_manha, praticavel_tarde, temp_min, temp_max, chuva_mm, clima_automatico, ' +
+          'ocorrencias, observacoes, status, assinado_nome, assinado_em, hash_conteudo, conteudo_assinado',
+      )
+      .eq('projeto_id', projetoId)
+      .eq('data', data)
+      .maybeSingle(),
+    supabase
+      .from('avanco_tarefa')
+      .select('percentual, quantidade_feita, observacao, registrado_em, tarefa:tarefa_id (nome, unidade)')
+      .eq('projeto_id', projetoId)
+      .eq('data', data)
+      .order('registrado_em', { ascending: true }),
+  ]);
+  if (diario.error) throw new Error(`Não foi possível carregar o diário: ${diario.error.message}`);
+  if (avancos.error) throw new Error(`Não foi possível carregar os avanços do dia: ${avancos.error.message}`);
+
+  const avancosDoDia: AvancoDoDia[] = (avancos.data ?? []).map((a) => ({
+    tarefa: a.tarefa?.nome ?? 'Tarefa removida',
+    unidade: a.tarefa?.unidade ?? null,
+    percentual: Number(a.percentual),
+    quantidade: a.quantidade_feita === null ? null : Number(a.quantidade_feita),
+    observacao: a.observacao,
+  }));
+
+  const d = diario.data as unknown as Diario | null;
+  if (!d) return { diario: null, efetivo: [] as LinhaEfetivo[], fotos: [] as FotoDiario[], avancos: avancosDoDia };
+
+  const [efetivo, fotos] = await Promise.all([
+    supabase.from('diario_efetivo').select('funcao, empresa_terceira, quantidade').eq('diario_id', d.id).order('ordem'),
+    supabase.from('diario_foto').select('id, caminho, legenda, tarefa_id').eq('diario_id', d.id).order('criado_em'),
+  ]);
+  if (efetivo.error) throw new Error(`Não foi possível carregar a equipe: ${efetivo.error.message}`);
+  if (fotos.error) throw new Error(`Não foi possível carregar as fotos: ${fotos.error.message}`);
+
+  const caminhos = (fotos.data ?? []).map((f) => f.caminho);
+  const urls = new Map<string, string>();
+  if (caminhos.length > 0) {
+    const { data: assinadas } = await supabase.storage.from('diario').createSignedUrls(caminhos, 3600);
+    for (const a of assinadas ?? []) if (a.path && a.signedUrl) urls.set(a.path, a.signedUrl);
+  }
+
+  return {
+    diario: d,
+    efetivo: (efetivo.data ?? []) as LinhaEfetivo[],
+    fotos: (fotos.data ?? []).map((f) => ({ ...f, url: urls.get(f.caminho) ?? null })) as FotoDiario[],
+    avancos: avancosDoDia,
+  };
+});
