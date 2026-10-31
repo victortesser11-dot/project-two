@@ -1,0 +1,21 @@
+{
+  "name": "@obras/agente",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agente da obra: pede a foto às câmeras Intelbras pela rede local e envia para a plataforma.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "agente-obra": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "testar-camera": "node src/testar-camera.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  }
+}

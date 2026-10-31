@@ -65,10 +65,26 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 
 ## Câmeras (sprint 5)
 
-- [ ] Modelo exato da câmera Intelbras (e se a obra tem gravador NVR).
-- [ ] Internet e energia na obra-piloto (fibra, 4G, rádio; tomada ou solar).
-- [ ] Qual VPS usar (ou peça uma recomendação).
-- [ ] Uma câmera na sua rede para testar o endereço de foto (`/cgi-bin/snapshot.cgi`) do modelo.
+Decidido (31/10): câmeras Intelbras, ligadas direto ou por um NVR. A foto chega por um **agente
+na obra** (programa num computador da rede da obra) que pede a foto pela rede local e envia por
+HTTPS. **Não precisa abrir porta** no roteador, e a câmera não fica exposta na internet. Sem VPS
+por enquanto: a nuvem é o Supabase que já usamos.
+
+- [ ] **Aplicar a migração `cameras` no Supabase** (bloqueia publicar o módulo). O conector pede
+      aprovação num cartão que expira em ~4 min; me avise quando estiver com o app aberto que eu
+      repito o pedido. Ou rode `supabase/migrations/20261031100000_cameras.sql` no SQL Editor e me avise.
+- [ ] **Aprovar a publicação da função `agente-cameras`** no Supabase (mesmo tipo de cartão, logo
+      depois da migração). É ela que recebe as fotos do agente.
+- [ ] **Computador para o agente na obra-piloto**, ligado 24 h na mesma rede das câmeras:
+      Raspberry Pi 4/5 (com fonte e cartão de 32 GB), mini PC ou o PC do escritório da obra.
+      Nobreak ajuda (a câmera e o roteador também precisam).
+- [ ] **Endereço local de cada câmera ou do NVR** (ex.: `192.168.1.108`) e, no NVR, o número do
+      canal de cada câmera.
+- [ ] **Usuário só de visualização** criado na câmera/NVR para a plataforma (não use o admin).
+- [ ] Modelo exato quando comprar/instalar, para eu conferir o endereço de foto do modelo
+      (`/cgi-bin/snapshot.cgi`) e o RTSP.
+- [ ] Energia na obra-piloto (tomada fixa ou solar) e onde fixar: alta, fixa, mesma posição a obra toda.
+- [ ] Aviso de câmera na obra (LGPD): placa "ambiente monitorado por câmeras".
 
 ## Feito
 
