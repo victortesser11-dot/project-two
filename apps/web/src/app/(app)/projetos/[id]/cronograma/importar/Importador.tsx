@@ -225,7 +225,7 @@ export function Importador({
 
           <div className="grid gap-4 text-sm sm:grid-cols-2">
             <div className="rounded-medio border border-linha bg-papel p-4">
-              <h3 className="font-semibold [font-stretch:100%]">Orçamento ou cronograma em planilha</h3>
+              <h3 className="font-semibold">Orçamento ou cronograma em planilha</h3>
               <p className="mt-1 text-regua">
                 Uma linha por item, com descrição e, de preferência, o código (1, 1.1, 1.1.1) que diz o que fica dentro de cada etapa.
                 Unidade, quantidade, preço, total e datas entram se existirem.
@@ -235,7 +235,7 @@ export function Importador({
               </button>
             </div>
             <div className="rounded-medio border border-linha bg-papel p-4">
-              <h3 className="font-semibold [font-stretch:100%]">MS Project ou ProjectLibre</h3>
+              <h3 className="font-semibold">MS Project ou ProjectLibre</h3>
               <p className="mt-1 text-regua">
                 Salve como XML (Arquivo → Salvar como → XML). Vêm tarefas-resumo como etapas, tarefas, datas e custos. Dependências
                 entram no sprint 2, com o Gantt.
@@ -393,7 +393,7 @@ function MapeamentoColunas({
       </fieldset>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold [font-stretch:100%]">Primeiras linhas de dados</h3>
+        <h3 className="mb-2 text-sm font-semibold">Primeiras linhas de dados</h3>
         <div className="overflow-x-auto rounded-medio border border-linha bg-white">
           <table className="numeros w-full min-w-max text-left text-xs">
             <thead>
@@ -502,7 +502,7 @@ function Previa({
 
       {problemas.length > 0 && (
         <div className={`rounded-medio border px-4 py-3 ${erros.length > 0 ? 'border-marcador/40 bg-marcador-claro' : 'border-linha bg-papel'}`}>
-          <h3 className={`font-semibold [font-stretch:100%] ${erros.length > 0 ? 'text-marcador' : ''}`}>
+          <h3 className={`font-semibold ${erros.length > 0 ? 'text-marcador' : ''}`}>
             {erros.length > 0
               ? `${erros.length} ${erros.length === 1 ? 'problema impede' : 'problemas impedem'} a importação. Corrija no arquivo e envie de novo.`
               : `${avisos.length} ${avisos.length === 1 ? 'aviso' : 'avisos'}: a importação pode seguir, mas vale conferir.`}
@@ -529,11 +529,11 @@ function Previa({
             {r.itens.slice(0, LIMITE_PREVIA).map((item, i) => (
               <li
                 key={item.chave}
-                className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-2 text-sm ${item.tipo === 'etapa' ? 'bg-concreto/40' : ''}`}
+                className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-2 text-sm ${item.tipo === 'etapa' ? 'bg-concreto/70' : ''}`}
               >
                 <p className="min-w-0" style={{ paddingLeft: `${Math.min(item.nivel - 1, 5) * 0.9}rem` }}>
                   <span className="numeros mr-2 text-regua">{codigos[i]}</span>
-                  <span className={item.tipo === 'etapa' ? 'font-bold' : ''}>{item.nome}</span>
+                  <span className={item.tipo === 'etapa' ? 'font-semibold' : ''}>{item.nome}</span>
                   {item.tipo === 'tarefa' && item.inicio_previsto && (
                     <span className="numeros block text-xs text-regua">
                       {formatarData(item.inicio_previsto)} a {formatarData(item.fim_previsto)}

@@ -98,7 +98,7 @@ export function ArvoreEap({
   if (itens.length === 0 && !formulario) {
     return (
       <section className="rounded-medio border border-dashed border-regua/50 bg-papel px-5 py-10 sm:px-8">
-        <h2 className="text-2xl font-bold">Monte a EAP da obra</h2>
+        <h2 className="text-xl font-semibold sm:text-2xl">Monte a EAP da obra</h2>
         <p className="mt-3 max-w-xl text-regua">
           A EAP organiza a obra em etapas e tarefas. Cada tarefa leva quantidade, custo previsto e datas; as etapas somam tudo
           que está dentro delas. Equipe, materiais e fotos vão se ligar a essas tarefas.
@@ -263,7 +263,7 @@ function Linha({
   return (
     <li
       className={`relative grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 px-4 py-2.5 md:grid-cols-[minmax(0,1fr)_7rem_8.5rem_5.5rem_5.5rem_3.5rem_2.75rem] md:items-center ${
-        etapa ? 'bg-concreto/40' : ''
+        etapa ? 'bg-concreto/70' : ''
       } ${ocupado ? 'opacity-60' : ''}`}
       aria-busy={ocupado}
     >
@@ -287,7 +287,7 @@ function Linha({
         <div className="min-w-0 py-0.5">
           <p className="leading-snug">
             <span className="numeros mr-2 text-sm text-regua">{item.codigo}</span>
-            <span className={etapa ? 'font-bold' : ''}>{item.nome}</span>
+            <span className={etapa ? 'font-semibold' : ''}>{item.nome}</span>
           </p>
           {/* Resumo em telas estreitas */}
           <p className="numeros mt-0.5 flex flex-wrap gap-x-3 text-sm text-regua md:hidden">
@@ -307,7 +307,7 @@ function Linha({
       <span className="numeros hidden text-right text-sm md:block">
         {!etapa && item.quantidade !== null ? `${quantidadeBr.format(Number(item.quantidade))} ${item.unidade ?? ''}` : ''}
       </span>
-      <span className={`numeros hidden text-right text-sm md:block ${etapa ? 'font-bold' : ''}`}>{custo === null ? '' : formatarMoeda(custo)}</span>
+      <span className={`numeros hidden text-right text-sm md:block ${etapa ? 'font-semibold' : ''}`}>{custo === null ? '' : formatarMoeda(custo)}</span>
       <span className="numeros hidden text-sm md:block">{item.inicio_previsto ? formatarData(item.inicio_previsto) : ''}</span>
       <span className="numeros hidden text-sm md:block">{item.fim_previsto ? formatarData(item.fim_previsto) : ''}</span>
       <span className="numeros hidden text-right text-sm text-regua md:block">{dias ?? ''}</span>
@@ -389,7 +389,7 @@ function MenuItem({
           <circle cx="13" cy="8" r="1.5" />
         </svg>
       </summary>
-      <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-medio border border-linha bg-white py-1 shadow-[0_8px_24px_rgb(30_33_36/0.14)]">
+      <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-medio border border-linha bg-white py-1 shadow-[0_6px_20px_rgb(26_29_33/0.10)]">
         <button type="button" className={opcao} onClick={fecharE(onEditar)}>
           Editar
         </button>

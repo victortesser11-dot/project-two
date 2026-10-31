@@ -23,7 +23,7 @@ export default async function PaginaImportarEap({ params }: { params: Promise<{ 
     return (
       <div className="flex max-w-xl flex-col gap-4">
         {voltar}
-        <h2 className="text-2xl font-bold">Importar EAP</h2>
+        <h2 className="text-xl font-semibold sm:text-2xl">Importar EAP</h2>
         <p className="text-regua">
           Só o engenheiro do projeto ou um administrador da empresa importa a EAP. Peça a um deles para mudar o seu papel no
           painel do projeto.
@@ -38,7 +38,7 @@ export default async function PaginaImportarEap({ params }: { params: Promise<{ 
     <div className="flex max-w-4xl flex-col gap-6">
       {voltar}
       <div>
-        <h2 className="text-2xl font-bold">Importar EAP</h2>
+        <h2 className="text-xl font-semibold sm:text-2xl">Importar EAP</h2>
         <p className="mt-1 text-regua">
           Traga etapas e tarefas de uma planilha de orçamento ou do MS Project. Você confere tudo na prévia antes de gravar. Até{' '}
           <span className="numeros">{LIMITE_ITENS_IMPORTACAO.toLocaleString('pt-BR')}</span> itens e {LIMITE_NIVEIS_EAP} níveis.

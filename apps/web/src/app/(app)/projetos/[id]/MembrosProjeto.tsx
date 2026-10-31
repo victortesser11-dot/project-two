@@ -30,7 +30,7 @@ export function MembrosProjeto({
 
   return (
     <section className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-pessoas">
-      <h2 id="titulo-pessoas" className="border-b border-linha px-5 py-4 text-base font-bold">
+      <h2 id="titulo-pessoas" className="border-b border-linha px-5 py-4 text-base font-semibold">
         Pessoas com acesso
       </h2>
 
@@ -94,7 +94,7 @@ export function MembrosProjeto({
 
       <div aria-live="polite" className="empty:hidden px-5 pb-1">
         {mensagem && (
-          <p className={`rounded-pequeno px-3 py-2 text-sm ${mensagem.ok ? 'bg-white text-obra-ok' : 'bg-marcador-claro text-marcador'}`}>
+          <p className={`rounded-pequeno px-3 py-2 text-sm ${mensagem.ok ? 'bg-obra-ok/10 text-obra-ok' : 'bg-marcador-claro text-marcador'}`}>
             {mensagem.texto}
           </p>
         )}

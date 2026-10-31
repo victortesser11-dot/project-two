@@ -15,7 +15,7 @@ export function FormularioLogin({ voltar, erroInicial }: { voltar?: string; erro
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold">{modo === 'entrar' ? 'Entrar' : 'Criar conta'}</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">{modo === 'entrar' ? 'Entrar' : 'Criar conta'}</h1>
         <p className="mt-2 text-regua">
           {modo === 'entrar' ? 'Acesse as obras da sua empresa.' : 'Comece cadastrando sua empresa e a primeira obra.'}
         </p>

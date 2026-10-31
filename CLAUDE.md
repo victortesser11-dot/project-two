@@ -66,11 +66,14 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## Interface
 
-Linguagem visual de planta técnica sobre concreto (tokens em `apps/web/src/app/globals.css`):
-fundo `concreto`, superfícies `papel`, texto `grafite`, ações em `cianotipia`, alertas em `marcador`.
-Fonte única Archivo; títulos com largura expandida; números com a utilidade `numeros` (tabulares).
+Claro e limpo, legível sob sol no canteiro (escolha do cliente; tokens em `apps/web/src/app/globals.css`):
+fundo e cartões brancos (`papel`) com borda fina `linha`, preenchimentos sutis em `concreto` (cinza claro),
+texto `grafite`/`regua`, borda de campo `campo` (3:1), ações e progresso em `cianotipia`, alertas em `marcador`.
+Sem sombras nem texturas; hierarquia por peso (títulos semibold) e espaço. Fonte única Archivo em largura normal;
+números com a utilidade `numeros` (tabulares). A régua de prazo (`components/Regua.tsx`) é o elemento marcante.
 Textos em linguagem de obra, voz ativa, botões dizem o que fazem ("Criar projeto", não "Enviar").
-Mobile primeiro para as telas de campo; foco visível e `prefers-reduced-motion` respeitado.
+Mobile primeiro: corpo 16px no celular, campos com 16px (iPhone não dá zoom) e alvos de toque de 44px;
+foco visível e `prefers-reduced-motion` respeitado.
 
 ## Glossário
 

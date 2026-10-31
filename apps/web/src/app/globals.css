@@ -1,27 +1,29 @@
 @import 'tailwindcss';
 
 /*
- * Linguagem visual: planta técnica sobre concreto.
- * Fundo cinza-concreto frio, superfícies papel, texto grafite,
- * azul cianotipia para ações e laranja-marcador só para alertas.
+ * Linguagem visual: claro e limpo, legível sob sol no canteiro.
+ * Fundo branco, cartões brancos com borda fina, preenchimentos sutis em
+ * concreto claro. Azul cianotipia só em ações e progresso; laranja-marcador
+ * só em alertas. Sem sombras nem texturas: hierarquia por peso e espaço.
  */
 @theme {
-  --color-concreto: #e9e8e4;
-  --color-papel: #f8f8f6;
-  --color-grafite: #1e2124;
-  --color-regua: #6b7076;
-  --color-linha: #d3d2cd;
+  --color-concreto: #f3f4f6;
+  --color-papel: #ffffff;
+  --color-grafite: #1a1d21;
+  --color-regua: #5f6670;
+  --color-linha: #e3e5e8;
+  --color-campo: #878d96;
   --color-cianotipia: #2346a0;
   --color-cianotipia-escuro: #1a3578;
-  --color-cianotipia-claro: #dfe5f4;
-  --color-marcador: #d4622a;
-  --color-marcador-claro: #f8e4d9;
+  --color-cianotipia-claro: #e8edf8;
+  --color-marcador: #b9461a;
+  --color-marcador-claro: #fbeee7;
   --color-obra-ok: #2f7d4f;
 
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-pequeno: 3px;
-  --radius-medio: 6px;
+  --radius-pequeno: 6px;
+  --radius-medio: 10px;
 }
 
 @layer base {
@@ -30,21 +32,27 @@
   }
 
   body {
-    background: var(--color-concreto);
+    background: var(--color-papel);
     color: var(--color-grafite);
     font-family: var(--font-sans);
-    font-size: 15px;
+    /* 16px no celular: leitura no canteiro e sem zoom do iPhone ao tocar num campo. */
+    font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Títulos com a largura expandida da Archivo, como placa técnica. */
+  @media (min-width: 40rem) {
+    body {
+      font-size: 15px;
+    }
+  }
+
   h1,
   h2,
   h3 {
-    font-stretch: 112%;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    text-wrap: balance;
   }
 
   :focus-visible {
@@ -64,19 +72,4 @@
 
 @utility numeros {
   font-variant-numeric: tabular-nums;
-}
-
-/* Quadriculado de papel milimetrado, usado no painel do login. */
-@utility milimetrado {
-  background-color: var(--color-cianotipia);
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.14) 1px, transparent 1px),
-    linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
-  background-size:
-    80px 80px,
-    80px 80px,
-    16px 16px,
-    16px 16px;
 }

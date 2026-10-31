@@ -57,30 +57,30 @@ export function Regua({
 
   return (
     <figure className="w-full" aria-label={`Prazo de ${formatarData(inicio)} a ${formatarData(fim)}: ${texto}`}>
-      <div className={`relative ${compacta ? 'h-3' : 'h-5'} border-b-2 border-grafite`}>
+      <div className={`relative ${compacta ? 'h-1.5' : 'h-2.5'} rounded-full bg-linha`}>
         {/* trecho decorrido */}
         <div
-          className={`absolute bottom-0 left-0 ${compacta ? 'h-1.5' : 'h-2.5'} ${atrasado ? 'bg-marcador' : 'bg-cianotipia'}`}
+          className={`absolute inset-y-0 left-0 rounded-full ${atrasado ? 'bg-marcador' : 'bg-cianotipia'}`}
           style={{ width: `${decorrido * 100}%` }}
         />
-        {/* marcas de mês */}
+        {/* virada de mês: um corte fino na barra, como a régua de um cronograma */}
         {marcas.map((m) => (
           <span
             key={m.pos}
-            className={`absolute bottom-0 w-px bg-grafite ${m.ano ? (compacta ? 'h-3' : 'h-5') : compacta ? 'h-1.5' : 'h-2.5'}`}
+            className={`absolute inset-y-0 bg-white ${m.ano ? 'w-0.5' : 'w-px'}`}
             style={{ left: `${m.pos * 100}%` }}
           />
         ))}
         {/* hoje */}
         {decorrido > 0 && decorrido < 1 && (
           <span
-            className={`absolute -bottom-1 w-0.5 bg-marcador ${compacta ? 'h-5' : 'h-8'}`}
+            className={`absolute -translate-x-1/2 rounded-full bg-grafite ring-2 ring-white ${compacta ? '-top-1 h-3.5 w-1' : '-top-1.5 h-5.5 w-1'}`}
             style={{ left: `${decorrido * 100}%` }}
           />
         )}
       </div>
       {!compacta && (
-        <div className="relative mt-1 h-4 text-[11px] text-regua">
+        <div className="relative mt-1.5 h-4 text-xs text-regua">
           {marcas.map((m, i) =>
             i % passo === 0 ? (
               <span key={m.pos} className="absolute -translate-x-1/2" style={{ left: `${m.pos * 100}%` }}>

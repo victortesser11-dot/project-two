@@ -39,7 +39,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <section>
-        <h2 className="text-xl font-bold">Configuração do projeto</h2>
+        <h2 className="text-lg font-semibold sm:text-xl">Configuração do projeto</h2>
         <p className="mt-2 text-regua">Cada etapa abre um módulo. Os que ainda não chegaram mostram quando entram.</p>
         <ol className="mt-6 flex flex-col">
           {PASSOS.map((passo, i) => {
@@ -67,7 +67,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
                   )}
                 </span>
                 <div className="min-w-0 pt-1">
-                  <h3 className="font-semibold [font-stretch:100%]">
+                  <h3 className="font-semibold">
                     {href ? (
                       <Link href={href} className="hover:text-cianotipia">
                         {passo.titulo}
@@ -108,7 +108,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
 
       <div className="flex flex-col gap-6">
         <aside className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-resumo">
-          <h2 id="titulo-resumo" className="border-b border-linha px-5 py-4 text-base font-bold">
+          <h2 id="titulo-resumo" className="border-b border-linha px-5 py-4 text-base font-semibold">
             Resumo
           </h2>
           <dl className="numeros divide-y divide-linha text-sm">

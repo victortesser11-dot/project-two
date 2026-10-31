@@ -31,12 +31,12 @@ export default async function PaginaCronograma({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl font-bold">EAP e cronograma</h2>
+        <h2 className="text-xl font-semibold sm:text-2xl">EAP e cronograma</h2>
         <p className="mt-1 text-regua">Gantt com dependências e linha de base chegam no sprint 2.</p>
       </div>
 
       {qtdImportados > 0 && (
-        <div role="status" className="rounded-medio border border-obra-ok/30 bg-white px-4 py-3 text-sm text-obra-ok">
+        <div role="status" className="rounded-medio bg-obra-ok/10 px-4 py-3 text-sm text-obra-ok">
           {qtdImportados === 1 ? '1 item importado.' : `${qtdImportados} itens importados.`} Confira a árvore abaixo.
         </div>
       )}
