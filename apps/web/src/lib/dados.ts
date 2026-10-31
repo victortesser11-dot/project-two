@@ -3,6 +3,11 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type {
   ApontamentoRegistrado,
+  EmprestimoFerramenta,
+  ItemEstoque,
+  MovimentoEstoque,
+  SaldoEstoque,
+  VinculoFornecedor,
   Clima,
   CustoVigente,
   Empreiteira,
@@ -387,3 +392,96 @@ export async function podeVerCustos(projeto: Projeto, papel: PapelProjeto | null
   if (papel === 'engenheiro' || papel === 'financeiro') return true;
   return podeEditarProjeto(projeto, papel);
 }
+
+// ---------------------------------------------------------------- almoxarifado (RF-401 a 404)
+
+const COLUNAS_ITEM = 'id, codigo, nome, tipo, unidade, categoria, estoque_minimo, patrimonio, ncm, ativo';
+
+/** Catálogo da empresa (materiais e ferramentas), por nome. */
+export const listarItensEstoque = cache(async (empresaId: string): Promise<ItemEstoque[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('item_estoque').select(COLUNAS_ITEM).eq('empresa_id', empresaId).order('nome');
+  if (error) throw new Error(`Não foi possível carregar o catálogo: ${error.message}`);
+  return (data ?? []).map((i) => ({ ...i, estoque_minimo: Number(i.estoque_minimo) }));
+});
+
+export const buscarItemEstoque = cache(async (id: string): Promise<(ItemEstoque & { empresa_id: string }) | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('item_estoque').select(`${COLUNAS_ITEM}, empresa_id`).eq('id', id).maybeSingle();
+  if (error) throw new Error(`Não foi possível carregar o item: ${error.message}`);
+  return data ? { ...data, estoque_minimo: Number(data.estoque_minimo) } : null;
+});
+
+export const listarSaldos = cache(async (projetoId: string): Promise<SaldoEstoque[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('saldo_estoque').select('item_id, quantidade, custo_medio').eq('projeto_id', projetoId);
+  if (error) throw new Error(`Não foi possível carregar o estoque: ${error.message}`);
+  return (data ?? []).map((s) => ({ item_id: s.item_id, quantidade: Number(s.quantidade), custo_medio: Number(s.custo_medio) }));
+});
+
+const COLUNAS_MOVIMENTO =
+  'id, item_id, tipo, data, quantidade, valor_unitario, valor_total, fornecedor, nota_fiscal, chave_nfe, tarefa_id, trabalhador_id, responsavel, observacao, registrado_em';
+
+/** Movimentos da obra, do mais recente para o mais antigo. */
+export const listarMovimentos = cache(async (projetoId: string, limite = 5000): Promise<MovimentoEstoque[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('movimento_estoque')
+    .select(COLUNAS_MOVIMENTO)
+    .eq('projeto_id', projetoId)
+    .order('data', { ascending: false })
+    .order('registrado_em', { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`Não foi possível carregar os movimentos: ${error.message}`);
+  return (data ?? []).map((m) => ({
+    ...m,
+    quantidade: Number(m.quantidade),
+    valor_unitario: Number(m.valor_unitario),
+    valor_total: Number(m.valor_total),
+  }));
+});
+
+const COLUNAS_EMPRESTIMO = 'id, projeto_id, item_id, trabalhador_id, responsavel, retirada_em, devolver_ate, devolvida_em, observacao';
+
+/** Empréstimos de ferramenta que a pessoa enxerga (das obras dela). */
+export const listarEmprestimos = cache(async (filtro: { projetoId?: string; itemId?: string; abertos?: boolean }): Promise<EmprestimoFerramenta[]> => {
+  const { supabase } = await exigirUsuario();
+  let q = supabase.from('emprestimo_ferramenta').select(COLUNAS_EMPRESTIMO).order('retirada_em', { ascending: false }).limit(1000);
+  if (filtro.projetoId) q = q.eq('projeto_id', filtro.projetoId);
+  if (filtro.itemId) q = q.eq('item_id', filtro.itemId);
+  if (filtro.abertos) q = q.is('devolvida_em', null);
+  const { data, error } = await q;
+  if (error) throw new Error(`Não foi possível carregar os empréstimos: ${error.message}`);
+  return data ?? [];
+});
+
+/** Códigos de produto de fornecedores já ligados ao catálogo (para casar a próxima NF-e). */
+export const listarVinculosFornecedor = cache(async (empresaId: string): Promise<VinculoFornecedor[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('item_fornecedor')
+    .select('cnpj_fornecedor, codigo_fornecedor, item_id')
+    .eq('empresa_id', empresaId)
+    .limit(10000);
+  if (error) throw new Error(`Não foi possível carregar os códigos de fornecedor: ${error.message}`);
+  return data ?? [];
+});
+
+/** Pode dar entrada, saída, ajuste e emprestar? Engenheiro, almoxarife ou admin. Só para a interface. */
+export async function podeMovimentarEstoque(projeto: Projeto, papel: PapelProjeto | null): Promise<boolean> {
+  if (papel === 'engenheiro' || papel === 'almoxarife') return true;
+  return podeEditarProjeto(projeto, papel);
+}
+
+/** Obras da empresa em que a pessoa movimenta o almoxarifado (engenheiro, almoxarife ou admin). */
+export const obrasOndeMovimenta = cache(async (empresaId: string): Promise<Projeto[]> => {
+  const { supabase, usuario } = await exigirUsuario();
+  const [projetos, empresa, papeis] = await Promise.all([
+    listarProjetos(),
+    empresaAtual(),
+    supabase.from('membro_projeto').select('projeto_id, papel').eq('usuario_id', usuario.id),
+  ]);
+  const admin = empresa?.papel === 'admin' && empresa.id === empresaId;
+  const pode = new Set((papeis.data ?? []).filter((p) => p.papel === 'engenheiro' || p.papel === 'almoxarife').map((p) => p.projeto_id));
+  return projetos.filter((p) => p.empresa_id === empresaId && p.status !== 'concluido' && (admin || pode.has(p.id)));
+});

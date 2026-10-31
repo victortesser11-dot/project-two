@@ -1,5 +1,5 @@
 import type { EmprestimoFerramenta, ItemEstoque, MovimentoEstoque, SaldoEstoque, VinculoFornecedor } from './dominio';
-import { diasEntre } from './formato';
+import { dataDoInstante, diasEntre } from './formato';
 import { normalizarTexto } from './importacao/valores';
 import type { LinhaNfe } from './integracoes/nfe';
 
@@ -162,6 +162,27 @@ export interface SituacaoEmprestimo {
 
 /** Dias fora (pela data de Brasília) e se passou da data combinada. */
 export function situacaoEmprestimo(e: Pick<EmprestimoFerramenta, 'retirada_em' | 'devolver_ate'>, hoje: string): SituacaoEmprestimo {
-  const retirada = new Date(e.retirada_em).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const retirada = dataDoInstante(e.retirada_em);
   return { diasFora: Math.max(0, diasEntre(retirada, hoje)), atrasado: e.devolver_ate !== null && e.devolver_ate < hoje };
+}
+
+const MINUSCULAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'com', 'para', 'em', 'p/', 'c/', 's/']);
+
+/**
+ * Nome do produto da nota (quase sempre em CAIXA ALTA) num formato legível para o
+ * catálogo: "TUBO PVC SOLDAVEL 25MM BARRA 6M" → "Tubo PVC soldavel 25MM barra 6M".
+ * Siglas curtas e medidas ficam como vieram.
+ */
+export function nomeDoProdutoNfe(descricao: string): string {
+  const texto = descricao.replace(/\s+/g, ' ').trim();
+  if (texto !== texto.toUpperCase()) return texto; // já veio com caixa mista
+  return texto
+    .split(' ')
+    .map((p, i) => {
+      const min = p.toLowerCase();
+      if (MINUSCULAS.has(min)) return i === 0 ? min[0]!.toUpperCase() + min.slice(1) : min;
+      if (/\d/.test(p) || (p.length <= 3 && /^\p{L}+$/u.test(p))) return p;
+      return i === 0 ? min[0]!.toUpperCase() + min.slice(1) : min;
+    })
+    .join(' ');
 }

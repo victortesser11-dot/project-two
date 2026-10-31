@@ -6,6 +6,7 @@ import {
   itensComSaldo,
   lerCodigoFerramenta,
   linkQrFerramenta,
+  nomeDoProdutoNfe,
   normalizarUnidade,
   resumoMaterial,
   situacaoEmprestimo,
@@ -154,6 +155,16 @@ describe('NF-e → catálogo', () => {
     expect(converterLinhaNfe(nota!.linhas[2]!, 6)).toEqual({ quantidade: 72, valor_unitario: 3.3075 });
     expect(converterLinhaNfe(nota!.linhas[0]!, 1)).toEqual({ quantidade: 100, valor_unitario: 30.4 });
     expect(converterLinhaNfe(nota!.linhas[0]!, 0)).toEqual({ quantidade: 100, valor_unitario: 30.4 }); // fator inválido = 1
+  });
+
+  it('nome do produto legível para o catálogo', () => {
+    expect(nota!.linhas.map((l) => nomeDoProdutoNfe(l.descricao))).toEqual([
+      'Cimento CP II-E-32 50KG',
+      'Areia media lavada',
+      'Tubo PVC soldavel 25MM barra 6M',
+    ]);
+    expect(nomeDoProdutoNfe('BLOCO DE CONCRETO 14X19X39')).toBe('Bloco de concreto 14X19X39');
+    expect(nomeDoProdutoNfe('Argamassa AC-II Quartzolit')).toBe('Argamassa AC-II Quartzolit');
   });
 
   it('unidades da nota na grafia do catálogo', () => {

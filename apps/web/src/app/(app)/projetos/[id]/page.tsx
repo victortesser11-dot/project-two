@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation';
 import {
+  listarItensEstoque,
+  listarMovimentos,
+  listarSaldos,
   buscarApontamentos,
   buscarEap,
   buscarLinhaBase,
@@ -10,7 +13,7 @@ import {
   podeEditarProjeto,
   podeVerCustos,
 } from '@/lib/dados';
-import { totalMaoObra } from '@obras/shared';
+import { itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
 import { PainelObra } from './PainelObra';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
@@ -19,15 +22,26 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
   if (!dados) notFound();
   const { projeto, papel } = dados;
 
-  const [itens, membros, podeEditar, linhaBase, apontamentos, verCustos] = await Promise.all([
+  const [itens, membros, podeEditar, linhaBase, apontamentos, verCustos, catalogo, saldos, movimentos] = await Promise.all([
     buscarEap(id),
     listarMembrosProjeto(id),
     podeEditarProjeto(projeto, papel),
     buscarLinhaBase(id),
     buscarApontamentos(id),
     podeVerCustos(projeto, papel),
+    listarItensEstoque(projeto.empresa_id),
+    listarSaldos(id),
+    listarMovimentos(id),
   ]);
   const linhasMaoObra = verCustos ? await custoMaoObra(id) : null;
+  const material =
+    catalogo.length > 0
+      ? {
+          aplicado: verCustos && movimentos.length > 0 ? resumoMaterial(movimentos).aplicado : null,
+          itens: catalogo.length,
+          abaixoDoMinimo: itensComSaldo(catalogo, saldos).filter((i) => i.abaixoDoMinimo).length,
+        }
+      : null;
 
   return (
     <PainelObra
@@ -40,6 +54,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
       linhaBase={linhaBase}
       apontamentos={apontamentos}
       maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
+      material={material}
     />
   );
 }

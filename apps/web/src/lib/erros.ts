@@ -21,6 +21,13 @@ const RESTRICOES: Record<string, string> = {
   custo_mao_obra_unidade_ck: 'Custo por produção precisa da unidade (ex.: m², m³, un).',
   custo_mao_obra_valor_check: 'O valor precisa ser maior que zero.',
   apontamento_mao_obra_presenca_ck: 'Quem veio precisa de horas; quem faltou, não.',
+  item_estoque_codigo_uk: 'Já existe um item com esse código no catálogo.',
+  item_estoque_nome_check: 'O nome do item precisa ter entre 2 e 200 caracteres.',
+  item_estoque_ncm_check: 'O NCM tem 8 dígitos.',
+  item_estoque_unidade_check: 'Informe a unidade (até 20 caracteres).',
+  saldo_estoque_quantidade_check: 'O saldo não pode ficar negativo.',
+  emprestimo_ferramenta_aberto_uk: 'Esta ferramenta acabou de ser emprestada por outra pessoa. Atualize a página.',
+  emprestimo_ferramenta_responsavel_check: 'Informe com quem a ferramenta vai ficar.',
   projeto_datas_ck: 'O fim previsto não pode ser antes do início.',
   projeto_orcamento_ck: 'O orçamento precisa ser maior que zero.',
 };
