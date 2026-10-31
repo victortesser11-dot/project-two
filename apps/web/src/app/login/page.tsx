@@ -44,9 +44,9 @@ export default async function PaginaLogin({
           <path d="M190 154a22 22 0 0 1 22 22" strokeDasharray="3 4" />
           <path d="M80 300v12M150 300v12M20 312h440" strokeWidth="1" />
           <g fill="currentColor" stroke="none" fontSize="13">
-            <text x="78" y="88">Sala 24,6 m²</text>
-            <text x="300" y="82">Cozinha 12,1 m²</text>
-            <text x="60" y="226">Dorm. 1</text>
+            <text x="78" y="84">Sala 24,6 m²</text>
+            <text x="300" y="84">Cozinha 12,1 m²</text>
+            <text x="60" y="228">Dorm. 1</text>
             <text x="370" y="228">Dorm. 2</text>
           </g>
         </svg>
