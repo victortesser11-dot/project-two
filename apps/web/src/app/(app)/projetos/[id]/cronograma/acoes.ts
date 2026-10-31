@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { errosPorCampo, itemEapSchema, TIPOS_ITEM_EAP } from '@obras/shared';
+import { dependenciaSchema, errosPorCampo, itemEapSchema, TIPOS_ITEM_EAP } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { mensagemDoBanco } from '@/lib/erros';
 
@@ -106,4 +106,63 @@ export async function alterarTipoItem(
   if (error) return { ok: false, erro: mensagemDoBanco(error) };
   revalidar(projetoId);
   return { ok: true, mensagem: tipo === 'etapa' ? 'Agora é uma etapa.' : 'Agora é uma tarefa.' };
+}
+
+// ---------------------------------------------------------------- RF-201
+
+export type EstadoDependencia = {
+  ok?: boolean;
+  mensagem?: string;
+  erros?: Record<string, string>;
+  erroGeral?: string;
+};
+
+function textoEmpurradas(qtd: number) {
+  if (qtd === 0) return 'Ligação salva. Nenhuma data precisou mudar.';
+  return qtd === 1
+    ? 'Ligação salva. 1 tarefa foi empurrada para respeitar a dependência.'
+    : `Ligação salva. ${qtd} tarefas foram empurradas para respeitar a dependência.`;
+}
+
+/** Cria ou ajusta a ligação entre duas tarefas; o banco recalcula as sucessoras. */
+export async function salvarDependencia(_: EstadoDependencia, form: FormData): Promise<EstadoDependencia> {
+  const valores = Object.fromEntries([...form.entries()].map(([k, v]) => [k, String(v)]));
+  const projetoId = uuid.safeParse(valores.projeto_id);
+  if (!projetoId.success) return { erroGeral: 'Projeto inválido.' };
+
+  const dados = dependenciaSchema.safeParse(valores);
+  if (!dados.success) return { erros: errosPorCampo(dados.error) };
+  const d = dados.data;
+
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('salvar_dependencia', {
+    p_predecessora_id: d.predecessora_id,
+    p_sucessora_id: d.sucessora_id,
+    p_tipo: d.tipo,
+    p_defasagem_dias: d.defasagem_dias,
+  });
+  if (error) return { erroGeral: mensagemDoBanco(error) };
+  revalidar(projetoId.data);
+  return { ok: true, mensagem: textoEmpurradas(data ?? 0) };
+}
+
+export async function removerDependencia(projetoId: string, dependenciaId: string): Promise<ResultadoAcao> {
+  const ids = z.object({ projetoId: uuid, dependenciaId: uuid }).safeParse({ projetoId, dependenciaId });
+  if (!ids.success) return { ok: false, erro: 'Pedido inválido.' };
+
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('remover_dependencia', { p_id: dependenciaId });
+  if (error) return { ok: false, erro: mensagemDoBanco(error) };
+  revalidar(projetoId);
+  return { ok: true, mensagem: 'Ligação removida. As datas continuam como estão.' };
+}
+
+export async function definirLinhaBase(projetoId: string): Promise<ResultadoAcao> {
+  if (!uuid.safeParse(projetoId).success) return { ok: false, erro: 'Projeto inválido.' };
+
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('definir_linha_base', { p_projeto_id: projetoId });
+  if (error) return { ok: false, erro: mensagemDoBanco(error) };
+  revalidar(projetoId);
+  return { ok: true, mensagem: `Linha de base definida com ${data} ${data === 1 ? 'tarefa' : 'tarefas'}.` };
 }

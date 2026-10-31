@@ -53,15 +53,51 @@ export type Database = {
         }
         Relationships: []
       }
+      eap_dependencia: {
+        Row: {
+          criado_em: string
+          defasagem_dias: number
+          empresa_id: string
+          id: string
+          predecessora_id: string
+          projeto_id: string
+          sucessora_id: string
+          tipo: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Insert: {
+          criado_em?: string
+          defasagem_dias?: number
+          empresa_id: string
+          id?: string
+          predecessora_id: string
+          projeto_id: string
+          sucessora_id: string
+          tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Update: {
+          criado_em?: string
+          defasagem_dias?: number
+          empresa_id?: string
+          id?: string
+          predecessora_id?: string
+          projeto_id?: string
+          sucessora_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Relationships: []
+      }
       eap_item: {
         Row: {
           atualizado_em: string
           codigo_externo: string | null
           criado_em: string
+          custo_base: number | null
           custo_previsto: number | null
           empresa_id: string
+          fim_base: string | null
           fim_previsto: string | null
           id: string
+          inicio_base: string | null
           inicio_previsto: string | null
           nome: string
           ordem: number
@@ -75,10 +111,13 @@ export type Database = {
           atualizado_em?: string
           codigo_externo?: string | null
           criado_em?: string
+          custo_base?: number | null
           custo_previsto?: number | null
           empresa_id: string
+          fim_base?: string | null
           fim_previsto?: string | null
           id?: string
+          inicio_base?: string | null
           inicio_previsto?: string | null
           nome: string
           ordem: number
@@ -92,10 +131,13 @@ export type Database = {
           atualizado_em?: string
           codigo_externo?: string | null
           criado_em?: string
+          custo_base?: number | null
           custo_previsto?: number | null
           empresa_id?: string
+          fim_base?: string | null
           fim_previsto?: string | null
           id?: string
+          inicio_base?: string | null
           inicio_previsto?: string | null
           nome?: string
           ordem?: number
@@ -147,6 +189,30 @@ export type Database = {
           criado_em?: string
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      linha_base: {
+        Row: {
+          definida_em: string
+          definida_por: string | null
+          empresa_id: string
+          projeto_id: string
+          qtd_tarefas: number
+        }
+        Insert: {
+          definida_em?: string
+          definida_por?: string | null
+          empresa_id: string
+          projeto_id: string
+          qtd_tarefas: number
+        }
+        Update: {
+          definida_em?: string
+          definida_por?: string | null
+          empresa_id?: string
+          projeto_id?: string
+          qtd_tarefas?: number
         }
         Relationships: []
       }
@@ -308,6 +374,7 @@ export type Database = {
         }
         Returns: string
       }
+      definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
       criar_projeto: {
         Args: {
           p_data_fim_prevista?: string
@@ -325,9 +392,12 @@ export type Database = {
         Returns: {
           codigo: string
           codigo_externo: string
+          custo_base: number
           custo_previsto: number
+          fim_base: string
           fim_previsto: string
           id: string
+          inicio_base: string
           inicio_previsto: string
           nivel: number
           nome: string
@@ -359,9 +429,19 @@ export type Database = {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
       }
+      remover_dependencia: { Args: { p_id: string }; Returns: undefined }
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
         Returns: undefined
+      }
+      salvar_dependencia: {
+        Args: {
+          p_defasagem_dias?: number
+          p_predecessora_id: string
+          p_sucessora_id: string
+          p_tipo?: Database["public"]["Enums"]["tipo_dependencia"]
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -373,6 +453,7 @@ export type Database = {
         | "financeiro"
         | "leitura"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
+      tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
     }
     CompositeTypes: {
@@ -510,6 +591,7 @@ export const Constants = {
         "leitura",
       ],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
+      tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],
     },
   },

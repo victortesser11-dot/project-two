@@ -11,6 +11,8 @@ const RESTRICOES: Record<string, string> = {
   eap_item_custo_previsto_check: 'O custo não pode ser negativo.',
   eap_item_codigo_externo_check: 'O código de origem pode ter no máximo 40 caracteres.',
   eap_item_posicao_uk: 'Outra pessoa mexeu na EAP ao mesmo tempo. Atualize a página e tente de novo.',
+  eap_dependencia_distintas_ck: 'Uma tarefa não depende dela mesma.',
+  eap_dependencia_defasagem_dias_check: 'A defasagem precisa ficar entre -365 e 365 dias.',
   projeto_datas_ck: 'O fim previsto não pode ser antes do início.',
   projeto_orcamento_ck: 'O orçamento precisa ser maior que zero.',
 };

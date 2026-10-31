@@ -45,6 +45,35 @@ export interface ItemEap {
   codigo_externo: string | null;
   qtd_filhos: number;
   qtd_tarefas: number;
+  /** Linha de base (congelada). Etapas somam as tarefas de dentro. */
+  inicio_base: string | null;
+  fim_base: string | null;
+  custo_base: number | null;
+}
+
+/** Tipos de dependência: término→início, início→início, término→término. */
+export const TIPOS_DEPENDENCIA = ['ti', 'ii', 'tt'] as const;
+export type TipoDependencia = (typeof TIPOS_DEPENDENCIA)[number];
+
+export const SIGLA_DEPENDENCIA: Record<TipoDependencia, string> = { ti: 'TI', ii: 'II', tt: 'TT' };
+
+export const ROTULO_DEPENDENCIA: Record<TipoDependencia, string> = {
+  ti: 'Começa após ela terminar (TI)',
+  ii: 'Começa junto com ela (II)',
+  tt: 'Termina junto com ela (TT)',
+};
+
+export interface Dependencia {
+  id: string;
+  predecessora_id: string;
+  sucessora_id: string;
+  tipo: TipoDependencia;
+  defasagem_dias: number;
+}
+
+export interface LinhaBase {
+  definida_em: string;
+  qtd_tarefas: number;
 }
 
 export interface MembroProjeto {

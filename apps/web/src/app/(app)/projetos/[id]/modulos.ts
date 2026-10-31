@@ -15,7 +15,7 @@ export const MODULOS: Modulo[] = [
   {
     slug: 'cronograma',
     nome: 'Cronograma',
-    resumo: 'EAP montada na tela ou importada. Gantt, dependências e linha de base chegam no sprint 2.',
+    resumo: 'EAP montada na tela ou importada, Gantt com dependências e linha de base.',
     sprint: 2,
     disponivel: true,
   },
