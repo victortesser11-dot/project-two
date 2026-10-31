@@ -114,6 +114,219 @@ export type Database = {
           },
         ]
       }
+      diario_efetivo: {
+        Row: {
+          diario_id: string
+          empresa_id: string
+          empresa_terceira: string | null
+          funcao: string
+          id: string
+          ordem: number
+          projeto_id: string
+          quantidade: number
+        }
+        Insert: {
+          diario_id: string
+          empresa_id: string
+          empresa_terceira?: string | null
+          funcao: string
+          id?: string
+          ordem: number
+          projeto_id: string
+          quantidade: number
+        }
+        Update: {
+          diario_id?: string
+          empresa_id?: string
+          empresa_terceira?: string | null
+          funcao?: string
+          id?: string
+          ordem?: number
+          projeto_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diario_efetivo_diario_id_fkey"
+            columns: ["diario_id"]
+            isOneToOne: false
+            referencedRelation: "diario_obra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_efetivo_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_efetivo_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diario_foto: {
+        Row: {
+          caminho: string
+          criado_em: string
+          diario_id: string
+          empresa_id: string
+          enviado_por: string | null
+          id: string
+          legenda: string | null
+          projeto_id: string
+          tarefa_id: string | null
+        }
+        Insert: {
+          caminho: string
+          criado_em?: string
+          diario_id: string
+          empresa_id: string
+          enviado_por?: string | null
+          id: string
+          legenda?: string | null
+          projeto_id: string
+          tarefa_id?: string | null
+        }
+        Update: {
+          caminho?: string
+          criado_em?: string
+          diario_id?: string
+          empresa_id?: string
+          enviado_por?: string | null
+          id?: string
+          legenda?: string | null
+          projeto_id?: string
+          tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diario_foto_diario_id_fkey"
+            columns: ["diario_id"]
+            isOneToOne: false
+            referencedRelation: "diario_obra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_foto_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_foto_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_foto_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diario_obra: {
+        Row: {
+          assinado_em: string | null
+          assinado_nome: string | null
+          assinado_por: string | null
+          atualizado_em: string
+          chuva_mm: number | null
+          clima_automatico: boolean
+          clima_manha: Database["public"]["Enums"]["clima_periodo"] | null
+          clima_tarde: Database["public"]["Enums"]["clima_periodo"] | null
+          conteudo_assinado: Json | null
+          criado_em: string
+          criado_por: string | null
+          data: string
+          empresa_id: string
+          hash_conteudo: string | null
+          id: string
+          observacoes: string | null
+          ocorrencias: string | null
+          praticavel_manha: boolean
+          praticavel_tarde: boolean
+          projeto_id: string
+          status: Database["public"]["Enums"]["status_diario"]
+          temp_max: number | null
+          temp_min: number | null
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinado_nome?: string | null
+          assinado_por?: string | null
+          atualizado_em?: string
+          chuva_mm?: number | null
+          clima_automatico?: boolean
+          clima_manha?: Database["public"]["Enums"]["clima_periodo"] | null
+          clima_tarde?: Database["public"]["Enums"]["clima_periodo"] | null
+          conteudo_assinado?: Json | null
+          criado_em?: string
+          criado_por?: string | null
+          data: string
+          empresa_id: string
+          hash_conteudo?: string | null
+          id?: string
+          observacoes?: string | null
+          ocorrencias?: string | null
+          praticavel_manha?: boolean
+          praticavel_tarde?: boolean
+          projeto_id: string
+          status?: Database["public"]["Enums"]["status_diario"]
+          temp_max?: number | null
+          temp_min?: number | null
+        }
+        Update: {
+          assinado_em?: string | null
+          assinado_nome?: string | null
+          assinado_por?: string | null
+          atualizado_em?: string
+          chuva_mm?: number | null
+          clima_automatico?: boolean
+          clima_manha?: Database["public"]["Enums"]["clima_periodo"] | null
+          clima_tarde?: Database["public"]["Enums"]["clima_periodo"] | null
+          conteudo_assinado?: Json | null
+          criado_em?: string
+          criado_por?: string | null
+          data?: string
+          empresa_id?: string
+          hash_conteudo?: string | null
+          id?: string
+          observacoes?: string | null
+          ocorrencias?: string | null
+          praticavel_manha?: boolean
+          praticavel_tarde?: boolean
+          projeto_id?: string
+          status?: Database["public"]["Enums"]["status_diario"]
+          temp_max?: number | null
+          temp_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diario_obra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diario_obra_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eap_dependencia: {
         Row: {
           criado_em: string
@@ -405,6 +618,8 @@ export type Database = {
           empresa_id: string
           endereco: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           orcamento_total: number | null
           responsavel_id: string | null
@@ -419,6 +634,8 @@ export type Database = {
           empresa_id: string
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           orcamento_total?: number | null
           responsavel_id?: string | null
@@ -433,6 +650,8 @@ export type Database = {
           empresa_id?: string
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           orcamento_total?: number | null
           responsavel_id?: string | null
@@ -469,6 +688,7 @@ export type Database = {
         }
         Returns: string
       }
+      assinar_diario: { Args: { p_diario_id: string }; Returns: string }
       atualizar_item_eap: {
         Args: { p_campos: Json; p_id: string }
         Returns: undefined
@@ -497,6 +717,10 @@ export type Database = {
         }
         Returns: string
       }
+      definir_efetivo: {
+        Args: { p_diario_id: string; p_linhas: Json }
+        Returns: number
+      }
       definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
       eap_do_projeto: {
         Args: { p_projeto_id: string }
@@ -523,6 +747,7 @@ export type Database = {
           unidade: string
         }[]
       }
+      excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
       importar_eap: {
         Args: { p_itens: Json; p_projeto_id: string; p_substituir?: boolean }
@@ -553,6 +778,16 @@ export type Database = {
         }
         Returns: number
       }
+      registrar_foto_diario: {
+        Args: {
+          p_caminho: string
+          p_diario_id: string
+          p_id: string
+          p_legenda?: string
+          p_tarefa_id?: string
+        }
+        Returns: string
+      }
       remover_dependencia: { Args: { p_id: string }; Returns: undefined }
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
@@ -567,8 +802,13 @@ export type Database = {
         }
         Returns: number
       }
+      salvar_diario: {
+        Args: { p_campos?: Json; p_data: string; p_projeto_id: string }
+        Returns: string
+      }
     }
     Enums: {
+      clima_periodo: "sol" | "nublado" | "chuva" | "chuva_forte"
       papel_empresa: "admin" | "membro"
       papel_projeto:
         | "engenheiro"
@@ -576,6 +816,7 @@ export type Database = {
         | "almoxarife"
         | "financeiro"
         | "leitura"
+      status_diario: "rascunho" | "assinado"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
       tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
@@ -706,6 +947,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      clima_periodo: ["sol", "nublado", "chuva", "chuva_forte"],
       papel_empresa: ["admin", "membro"],
       papel_projeto: [
         "engenheiro",
@@ -714,6 +956,7 @@ export const Constants = {
         "financeiro",
         "leitura",
       ],
+      status_diario: ["rascunho", "assinado"],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
       tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],

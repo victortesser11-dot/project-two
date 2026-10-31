@@ -105,4 +105,57 @@ export interface Projeto {
   responsavel_id: string | null;
   criado_em: string;
   atualizado_em: string;
+  /** Localização da obra (clima automático do diário). */
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+// ---------------------------------------------------------------- diário de obra (RF-203)
+
+/** Clima de cada período. Espelha o enum clima_periodo do banco. */
+export const CLIMAS = ['sol', 'nublado', 'chuva', 'chuva_forte'] as const;
+export type Clima = (typeof CLIMAS)[number];
+export const ROTULO_CLIMA: Record<Clima, string> = {
+  sol: 'Sol',
+  nublado: 'Nublado',
+  chuva: 'Chuva',
+  chuva_forte: 'Chuva forte',
+};
+
+export const STATUS_DIARIO = ['rascunho', 'assinado'] as const;
+export type StatusDiario = (typeof STATUS_DIARIO)[number];
+
+export interface Diario {
+  id: string;
+  data: string;
+  clima_manha: Clima | null;
+  clima_tarde: Clima | null;
+  praticavel_manha: boolean;
+  praticavel_tarde: boolean;
+  temp_min: number | null;
+  temp_max: number | null;
+  chuva_mm: number | null;
+  clima_automatico: boolean;
+  ocorrencias: string | null;
+  observacoes: string | null;
+  status: StatusDiario;
+  assinado_nome: string | null;
+  assinado_em: string | null;
+  hash_conteudo: string | null;
+  conteudo_assinado: unknown;
+}
+
+export interface LinhaEfetivo {
+  funcao: string;
+  empresa_terceira: string | null;
+  quantidade: number;
+}
+
+export interface FotoDiario {
+  id: string;
+  caminho: string;
+  legenda: string | null;
+  tarefa_id: string | null;
+  /** URL assinada, válida por pouco tempo (o bucket é privado). */
+  url: string | null;
 }

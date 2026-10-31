@@ -39,7 +39,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    As RPCs públicas (`criar_empresa`, `criar_projeto`, `adicionar_membro_empresa`, `adicionar_membro_projeto`,
    `membros_do_projeto`, as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
    `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`, as do cronograma: `salvar_dependencia`,
-   `remover_dependencia`, `definir_linha_base`, e a do campo: `registrar_avanco`) checam a permissão por
+   `remover_dependencia`, `definir_linha_base`, a do campo: `registrar_avanco`, e as do diário: `salvar_diario`,
+   `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`) checam a permissão por
    dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
@@ -76,6 +77,15 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   (fila offline, reenvio não duplica). O % da tarefa é o do apontamento mais recente pela data do serviço.
   Etapas ponderam pelo custo quando todas as tarefas têm custo, senão pela duração. O mesmo critério está em
   `packages/shared/src/avanco.ts` (curva S e projeção de término pelo prazo agregado): mudou um, muda o outro.
+
+## Diário de obra (RF-203)
+
+- `diario_obra` (um por obra e dia), `diario_efetivo` e `diario_foto`. Engenheiro e mestre preenchem; só o
+  engenheiro assina. `assinar_diario` congela `conteudo_assinado` (inclui os avanços do dia) e o SHA-256 dele;
+  depois disso triggers barram qualquer mudança no diário e nos filhos.
+- Fotos no bucket privado `diario`, caminho `<projeto_id>/<diario_id>/<arquivo>`; as políticas de
+  `storage.objects` leem o projeto e o diário do caminho. O shim de testes imita o mínimo do Storage.
+- Clima automático: `packages/shared/src/clima.ts` (Open-Meteo, sem chave) a partir de `projeto.latitude/longitude`.
 
 ## Interface
 

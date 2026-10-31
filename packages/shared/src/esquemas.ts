@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
+import { CLIMAS, PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
 import { lerNumero } from './importacao/valores';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -185,6 +185,71 @@ export const apontamentoSchema = z
   });
 export type ApontamentoEntrada = z.input<typeof apontamentoSchema>;
 export type Apontamento = z.output<typeof apontamentoSchema>;
+
+// Número opcional digitado no padrão brasileiro, dentro de um intervalo.
+const numeroEntre = (min: number, max: number, casas: number, mensagem: string) =>
+  z
+    .union([z.string(), z.number()])
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      if (v === null || v === undefined) return null;
+      const n = lerNumero(v, ',');
+      if (n === null) return null;
+      if (Number.isNaN(n) || n < min || n > max) {
+        ctx.addIssue({ code: 'custom', message: mensagem });
+        return z.NEVER;
+      }
+      const f = 10 ** casas;
+      return Math.round(n * f) / f;
+    });
+
+const climaOpcional = z
+  .union([z.enum(CLIMAS), z.literal('')])
+  .nullable()
+  .optional()
+  .transform((v) => (v ? v : null));
+
+const simNao = z
+  .union([z.boolean(), z.string()])
+  .optional()
+  .transform((v) => v === true || v === 'true' || v === 'on' || v === '1');
+
+/** Formulário do diário do dia (RF-203). */
+export const diarioSchema = z
+  .object({
+    clima_manha: climaOpcional,
+    clima_tarde: climaOpcional,
+    praticavel_manha: simNao,
+    praticavel_tarde: simNao,
+    temp_min: numeroEntre(-20, 55, 1, 'Use uma temperatura entre -20 e 55 °C'),
+    temp_max: numeroEntre(-20, 55, 1, 'Use uma temperatura entre -20 e 55 °C'),
+    chuva_mm: numeroEntre(0, 1000, 1, 'Use de 0 a 1.000 mm'),
+    clima_automatico: simNao,
+    ocorrencias: textoOpcional(4000),
+    observacoes: textoOpcional(4000),
+  })
+  .superRefine((d, ctx) => {
+    if (d.temp_min !== null && d.temp_max !== null && d.temp_max < d.temp_min) {
+      ctx.addIssue({ code: 'custom', path: ['temp_max'], message: 'A máxima não pode ser menor que a mínima' });
+    }
+  });
+export type DiarioValidado = z.output<typeof diarioSchema>;
+
+/** Equipe do dia: função, empreiteira (opcional) e quantidade. */
+export const efetivoSchema = z
+  .array(
+    z.object({
+      funcao: z.string().trim().min(1, 'Informe a função').max(80, 'Use no máximo 80 caracteres'),
+      empresa_terceira: textoOpcional(120),
+      quantidade: z.coerce
+        .number({ error: 'Informe a quantidade' })
+        .int('Use um número inteiro')
+        .min(1, 'Mínimo 1')
+        .max(999, 'Máximo 999'),
+    }),
+  )
+  .max(100, 'Use no máximo 100 linhas');
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {
