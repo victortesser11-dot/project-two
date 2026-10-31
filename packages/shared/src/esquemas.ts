@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { CLIMAS, PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
+import { CLIMAS, PAPEIS_PROJETO, STATUS_PROJETO, TIPOS_CUSTO_MAO_OBRA, TIPOS_DEPENDENCIA, TIPOS_ITEM_EAP } from './dominio';
+import { cnpjValido, cpfValido, somenteDigitos } from './documentos';
 import { lerNumero } from './importacao/valores';
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -250,6 +251,106 @@ export const efetivoSchema = z
     }),
   )
   .max(100, 'Use no máximo 100 linhas');
+
+// ---------------------------------------------------------------- equipe (RF-301 a 303)
+
+const telefoneOpcional = textoOpcional(30);
+
+/** Pessoa da obra. CPF é opcional, mas, se vier, precisa ser válido. */
+export const trabalhadorSchema = z.object({
+  nome: z.string().trim().min(2, 'Informe o nome').max(160, 'Use no máximo 160 caracteres'),
+  cpf: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      const c = somenteDigitos(v ?? '');
+      if (c === '') return null;
+      if (!cpfValido(c)) {
+        ctx.addIssue({ code: 'custom', message: 'CPF inválido: confira os números' });
+        return z.NEVER;
+      }
+      return c;
+    }),
+  funcao: z.string().trim().min(1, 'Informe a função').max(80, 'Use no máximo 80 caracteres'),
+  empreiteira_id: z
+    .union([z.string().uuid(), z.literal('')])
+    .optional()
+    .transform((v) => (v ? v : null)),
+  telefone: telefoneOpcional,
+});
+export type TrabalhadorValidado = z.output<typeof trabalhadorSchema>;
+
+export const empreiteiraSchema = z.object({
+  nome: z.string().trim().min(2, 'Informe o nome da empreiteira').max(160, 'Use no máximo 160 caracteres'),
+  cnpj: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      const c = somenteDigitos(v ?? '');
+      if (c === '') return null;
+      if (!cnpjValido(c)) {
+        ctx.addIssue({ code: 'custom', message: 'CNPJ inválido: confira os números' });
+        return z.NEVER;
+      }
+      return c;
+    }),
+  telefone: telefoneOpcional,
+});
+export type EmpreiteiraValidada = z.output<typeof empreiteiraSchema>;
+
+/** Custo de mão de obra a partir de uma data. Produção exige a unidade. */
+export const custoMaoObraSchema = z
+  .object({
+    tipo: z.enum(TIPOS_CUSTO_MAO_OBRA, { error: 'Escolha como a pessoa é paga' }),
+    valor: z
+      .union([z.string(), z.number()])
+      .transform((v, ctx) => {
+        const n = typeof v === 'number' ? v : lerValorEmReais(v);
+        if (n === null || Number.isNaN(n) || n <= 0) {
+          ctx.addIssue({ code: 'custom', message: 'Informe um valor maior que zero' });
+          return z.NEVER;
+        }
+        return Math.round(n * 100) / 100;
+      }),
+    vigente_desde: z.string().regex(DATA_ISO, 'Informe a data'),
+    unidade_producao: textoOpcional(20),
+  })
+  .superRefine((c, ctx) => {
+    if (c.tipo === 'producao' && !c.unidade_producao) {
+      ctx.addIssue({ code: 'custom', path: ['unidade_producao'], message: 'Informe a unidade (ex.: m², m³, un)' });
+    }
+  })
+  .transform((c) => (c.tipo === 'producao' ? c : { ...c, unidade_producao: null }));
+export type CustoMaoObraValidado = z.output<typeof custoMaoObraSchema>;
+
+/** Chamada do dia: cada pessoa presente com uma ou mais tarefas; ausente sem tarefa. */
+export const chamadaSchema = z
+  .array(
+    z.object({
+      trabalhador_id: z.string().uuid(),
+      presente: z.boolean(),
+      alocacoes: z
+        .array(
+          z.object({
+            tarefa_id: z.string().uuid('Escolha a tarefa'),
+            horas: z.number().gt(0, 'Horas maiores que zero').max(24, 'No máximo 24 h'),
+            quantidade: z.number().min(0).nullable().default(null),
+          }),
+        )
+        .default([]),
+    }),
+  )
+  .min(1, 'A chamada está vazia')
+  .max(500)
+  .superRefine((linhas, ctx) => {
+    linhas.forEach((l, i) => {
+      if (!l.presente) return;
+      if (l.alocacoes.length === 0) ctx.addIssue({ code: 'custom', path: [i, 'alocacoes'], message: 'Escolha a tarefa de quem veio' });
+      const horas = l.alocacoes.reduce((s, a) => s + a.horas, 0);
+      if (horas > 24) ctx.addIssue({ code: 'custom', path: [i, 'alocacoes'], message: 'Mais de 24 h no dia' });
+    });
+  });
+export type ChamadaValidada = z.output<typeof chamadaSchema>;
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {

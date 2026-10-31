@@ -4,6 +4,10 @@ import { redirect } from 'next/navigation';
 import type {
   ApontamentoRegistrado,
   Clima,
+  CustoVigente,
+  Empreiteira,
+  LinhaCustoMaoObra,
+  Trabalhador,
   Dependencia,
   Diario,
   FotoDiario,
@@ -258,3 +262,128 @@ export const buscarDiario = cache(async (projetoId: string, data: string) => {
     avancos: avancosDoDia,
   };
 });
+
+// ---------------------------------------------------------------- equipe (RF-301 a 303)
+
+// Nunca select('*') em trabalhador: o banco não entrega a coluna cpf (LGPD).
+const COLUNAS_TRABALHADOR = 'id, nome, cpf_mascarado, funcao, empreiteira_id, telefone, ativo';
+
+export const listarEmpreiteiras = cache(async (empresaId: string): Promise<Empreiteira[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('empreiteira')
+    .select('id, nome, cnpj, situacao_cnpj, telefone, ativa')
+    .eq('empresa_id', empresaId)
+    .order('nome');
+  if (error) throw new Error(`Não foi possível carregar as empreiteiras: ${error.message}`);
+  return data ?? [];
+});
+
+export const listarTrabalhadores = cache(async (empresaId: string): Promise<Trabalhador[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('trabalhador').select(COLUNAS_TRABALHADOR).eq('empresa_id', empresaId).order('nome');
+  if (error) throw new Error(`Não foi possível carregar as pessoas: ${error.message}`);
+  return data ?? [];
+});
+
+export const buscarTrabalhador = cache(async (id: string): Promise<(Trabalhador & { empresa_id: string }) | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('trabalhador').select(`${COLUNAS_TRABALHADOR}, empresa_id`).eq('id', id).maybeSingle();
+  if (error) throw new Error(`Não foi possível carregar a pessoa: ${error.message}`);
+  return data;
+});
+
+/** Pessoas na equipe da obra (ativas primeiro). */
+export const listarEquipeProjeto = cache(async (projetoId: string): Promise<(Trabalhador & { na_obra: boolean })[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('equipe_projeto')
+    .select(`ativo, trabalhador:trabalhador_id (${COLUNAS_TRABALHADOR})`)
+    .eq('projeto_id', projetoId);
+  if (error) throw new Error(`Não foi possível carregar a equipe da obra: ${error.message}`);
+  return (data ?? [])
+    .filter((e) => e.trabalhador)
+    .map((e) => ({ ...(e.trabalhador as Trabalhador), na_obra: e.ativo }))
+    .sort((a, b) => Number(b.na_obra) - Number(a.na_obra) || a.nome.localeCompare(b.nome, 'pt-BR'));
+});
+
+/** Custos lançados (só quem pode ver custos recebe linhas; para os outros, vazio). */
+export const listarCustos = cache(async (empresaId: string): Promise<CustoVigente[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data } = await supabase
+    .from('custo_mao_obra')
+    .select('trabalhador_id, tipo, valor, unidade_producao, vigente_desde')
+    .eq('empresa_id', empresaId)
+    .order('vigente_desde', { ascending: false });
+  return (data ?? []).map((c) => ({ ...c, valor: Number(c.valor) }));
+});
+
+/** Custo vigente de cada pessoa numa data (o mais recente com vigente_desde ≤ data). */
+export function custosVigentesEm(custos: CustoVigente[], data: string): Map<string, CustoVigente> {
+  const m = new Map<string, CustoVigente>();
+  for (const c of custos) if (c.vigente_desde <= data && !m.has(c.trabalhador_id)) m.set(c.trabalhador_id, c);
+  return m;
+}
+
+export interface ApontamentoDia {
+  trabalhador_id: string;
+  presente: boolean;
+  tarefa_id: string | null;
+  horas: number | null;
+  quantidade: number | null;
+}
+
+/** Chamada de um dia e a do último dia anterior com chamada (para sugerir as tarefas). */
+export const buscarChamada = cache(async (projetoId: string, data: string) => {
+  const { supabase } = await exigirUsuario();
+  const doDia = await supabase
+    .from('apontamento_mao_obra')
+    .select('trabalhador_id, presente, tarefa_id, horas, quantidade')
+    .eq('projeto_id', projetoId)
+    .eq('data', data);
+  if (doDia.error) throw new Error(`Não foi possível carregar a chamada: ${doDia.error.message}`);
+
+  const anterior = await supabase
+    .from('apontamento_mao_obra')
+    .select('data')
+    .eq('projeto_id', projetoId)
+    .lt('data', data)
+    .order('data', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let ultimo: ApontamentoDia[] = [];
+  if (anterior.data) {
+    const r = await supabase
+      .from('apontamento_mao_obra')
+      .select('trabalhador_id, presente, tarefa_id, horas, quantidade')
+      .eq('projeto_id', projetoId)
+      .eq('data', anterior.data.data);
+    ultimo = (r.data ?? []) as ApontamentoDia[];
+  }
+  const num = (a: ApontamentoDia) => ({ ...a, horas: a.horas === null ? null : Number(a.horas), quantidade: a.quantidade === null ? null : Number(a.quantidade) });
+  return {
+    doDia: ((doDia.data ?? []) as ApontamentoDia[]).map(num),
+    anterior: ultimo.map(num),
+    dataAnterior: anterior.data?.data ?? null,
+  };
+});
+
+/** Custo de mão de obra calculado no banco. null para quem não pode ver custos. */
+export const custoMaoObra = cache(async (projetoId: string, de?: string, ate?: string): Promise<LinhaCustoMaoObra[] | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.rpc('custo_mao_obra_projeto', { p_projeto_id: projetoId, p_de: de, p_ate: ate });
+  if (error) return null;
+  return (data ?? []).map((l) => ({
+    ...l,
+    horas: Number(l.horas),
+    quantidade: l.quantidade === null ? null : Number(l.quantidade),
+    valor_unitario: l.valor_unitario === null ? null : Number(l.valor_unitario),
+    custo: l.custo === null ? null : Number(l.custo),
+  })) as LinhaCustoMaoObra[];
+});
+
+/** Pode ver custos nesta obra? Engenheiro, financeiro ou admin. Só para a interface. */
+export async function podeVerCustos(projeto: Projeto, papel: PapelProjeto | null): Promise<boolean> {
+  if (papel === 'engenheiro' || papel === 'financeiro') return true;
+  return podeEditarProjeto(projeto, papel);
+}

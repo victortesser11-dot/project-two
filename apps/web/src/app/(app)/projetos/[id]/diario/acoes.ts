@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { dataIsoValida, diarioSchema, efetivoSchema, errosPorCampo } from '@obras/shared';
+import { dataIsoValida, diarioSchema, efetivoSchema, enderecoDoCep, errosPorCampo, somenteDigitos } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { mensagemDoBanco } from '@/lib/erros';
+import { consultarCep } from '@/lib/brasilapi';
 
 export type Resultado<T = undefined> = { ok: true; mensagem?: string; valor?: T } | { ok: false; erro: string };
 
@@ -128,4 +129,29 @@ export async function definirLocalizacao(projetoId: string, latitude: number, lo
   if (!linhas || linhas.length === 0) return { ok: false, erro: 'Só o engenheiro da obra define a localização.' };
   revalidar(projetoId);
   return { ok: true, mensagem: 'Localização salva. O clima passa a vir sozinho.' };
+}
+
+/** Localização pela CEP (BrasilAPI): grava as coordenadas e, se a obra não tiver, o endereço. */
+export async function definirLocalizacaoPorCep(projetoId: string, cep: string): Promise<Resultado> {
+  if (!uuid.safeParse(projetoId).success || somenteDigitos(cep).length !== 8) return { ok: false, erro: 'Informe um CEP com 8 números.' };
+  const dados = await consultarCep(cep);
+  if (!dados) return { ok: false, erro: 'Não foi possível consultar o CEP agora. Tente pela localização do aparelho.' };
+  if (dados.latitude === null || dados.longitude === null) {
+    return { ok: false, erro: `CEP de ${dados.cidade ?? 'cidade desconhecida'} encontrado, mas sem coordenadas. Use a localização do aparelho na obra.` };
+  }
+  const supabase = await criarClienteServidor();
+  const { data: atual } = await supabase.from('projeto').select('endereco').eq('id', projetoId).maybeSingle();
+  const { data: linhas, error } = await supabase
+    .from('projeto')
+    .update({
+      latitude: Math.round(dados.latitude * 1e6) / 1e6,
+      longitude: Math.round(dados.longitude * 1e6) / 1e6,
+      ...(atual && !atual.endereco ? { endereco: enderecoDoCep(dados) } : {}),
+    })
+    .eq('id', projetoId)
+    .select('id');
+  if (error) return { ok: false, erro: mensagemDoBanco(error) };
+  if (!linhas || linhas.length === 0) return { ok: false, erro: 'Só o engenheiro da obra define a localização.' };
+  revalidar(projetoId);
+  return { ok: true, mensagem: `Localização de ${dados.cidade}/${dados.uf} salva. O clima passa a vir sozinho.` };
 }

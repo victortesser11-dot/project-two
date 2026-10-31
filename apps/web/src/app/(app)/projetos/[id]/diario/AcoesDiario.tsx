@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { assinarDiario, definirLocalizacao } from './acoes';
-import { Botao } from '@/components/ui';
+import { assinarDiario, definirLocalizacao, definirLocalizacaoPorCep } from './acoes';
+import { Botao, classeEntrada } from '@/components/ui';
 
 /** Assinatura do engenheiro, com confirmação: depois de assinado, o diário não muda. */
 export function BotaoAssinar({ projetoId, diarioId, prontoParaAssinar }: { projetoId: string; diarioId: string; prontoParaAssinar: boolean }) {
@@ -100,5 +100,47 @@ export function BotaoImprimir() {
     <Botao type="button" onClick={() => window.print()} className="print:hidden">
       Imprimir ou salvar em PDF
     </Botao>
+  );
+}
+
+/** Alternativa à localização do aparelho: o CEP da obra (BrasilAPI traz as coordenadas). */
+export function FormularioCep({ projetoId }: { projetoId: string }) {
+  const [cep, setCep] = useState('');
+  const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
+  const [ocupado, iniciar] = useTransition();
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="cep-obra" className="text-sm font-semibold text-grafite">
+        Ou pelo CEP da obra
+      </label>
+      <div className="flex gap-2">
+        <input
+          id="cep-obra"
+          inputMode="numeric"
+          placeholder="00000-000"
+          value={cep}
+          onChange={(e) => setCep(e.target.value)}
+          className={`${classeEntrada} numeros max-w-40`}
+        />
+        <Botao
+          type="button"
+          variante="secundario"
+          disabled={ocupado || cep.replace(/\D/g, '').length !== 8}
+          onClick={() =>
+            iniciar(async () => {
+              const r = await definirLocalizacaoPorCep(projetoId, cep);
+              setMensagem(r.ok ? { tipo: 'ok', texto: r.mensagem ?? 'Localização salva.' } : { tipo: 'erro', texto: r.erro });
+            })
+          }
+        >
+          {ocupado ? 'Buscando…' : 'Usar o CEP'}
+        </Botao>
+      </div>
+      {mensagem && (
+        <p role={mensagem.tipo === 'erro' ? 'alert' : 'status'} className={`text-sm ${mensagem.tipo === 'erro' ? 'text-marcador' : 'text-obra-ok'}`}>
+          {mensagem.texto}
+        </p>
+      )}
+    </div>
   );
 }

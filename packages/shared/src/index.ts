@@ -4,3 +4,6 @@ export * from './formato';
 export * from './importacao';
 export * from './avanco';
 export * from './clima';
+export * from './documentos';
+export * from './maoDeObra';
+export * from './integracoes/brasilapi';

@@ -159,3 +159,54 @@ export interface FotoDiario {
   /** URL assinada, válida por pouco tempo (o bucket é privado). */
   url: string | null;
 }
+
+// ---------------------------------------------------------------- equipe (RF-301 a 303)
+
+/** Espelha o enum tipo_custo_mao_obra do banco. */
+export const TIPOS_CUSTO_MAO_OBRA = ['hora', 'diaria', 'producao'] as const;
+export type TipoCustoMaoObra = (typeof TIPOS_CUSTO_MAO_OBRA)[number];
+export const ROTULO_TIPO_CUSTO: Record<TipoCustoMaoObra, string> = {
+  hora: 'Por hora',
+  diaria: 'Por diária',
+  producao: 'Por produção',
+};
+
+export interface Empreiteira {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  situacao_cnpj: string | null;
+  telefone: string | null;
+  ativa: boolean;
+}
+
+/** Pessoa como o app enxerga: sem o CPF completo (o banco não entrega). */
+export interface Trabalhador {
+  id: string;
+  nome: string;
+  cpf_mascarado: string | null;
+  funcao: string;
+  empreiteira_id: string | null;
+  telefone: string | null;
+  ativo: boolean;
+}
+
+export interface CustoVigente {
+  trabalhador_id: string;
+  tipo: TipoCustoMaoObra;
+  valor: number;
+  unidade_producao: string | null;
+  vigente_desde: string;
+}
+
+/** Linha da função custo_mao_obra_projeto (custo calculado no banco). */
+export interface LinhaCustoMaoObra {
+  data: string;
+  trabalhador_id: string;
+  tarefa_id: string | null;
+  horas: number;
+  quantidade: number | null;
+  tipo: TipoCustoMaoObra | null;
+  valor_unitario: number | null;
+  custo: number | null;
+}
