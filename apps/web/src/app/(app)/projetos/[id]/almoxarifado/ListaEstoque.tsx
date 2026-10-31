@@ -40,7 +40,7 @@ export function ListaEstoque({ materiais }: { materiais: ItemComSaldo[] }) {
             type="search"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, código ou categoria"
+            placeholder="Buscar material"
             className={`${classeEntrada} sm:w-72`}
           />
         </div>
@@ -90,11 +90,13 @@ export function ListaEstoque({ materiais }: { materiais: ItemComSaldo[] }) {
               </div>
               <p className={`numeros text-right font-semibold ${i.abaixoDoMinimo ? 'text-marcador' : ''}`}>{formatarQuantidade(i.quantidade, i.unidade)}</p>
               <p className="numeros col-span-2 text-sm text-regua sm:col-span-1 sm:text-right sm:text-base sm:text-grafite">
-                <span className="sm:hidden">Mínimo </span>
-                {i.estoque_minimo > 0 ? formatarQuantidade(i.estoque_minimo, i.unidade) : '—'}
-                <span className="sm:hidden">
-                  {' · '}médio {formatarMoeda(i.custo_medio)} · {formatarMoeda(i.valor)}
-                </span>
+                <span className="sm:hidden">{i.estoque_minimo > 0 ? 'Mínimo ' : 'Sem mínimo'}</span>
+                {i.estoque_minimo > 0 ? formatarQuantidade(i.estoque_minimo, i.unidade) : <span className="hidden sm:inline">—</span>}
+                {i.quantidade > 0 && (
+                  <span className="sm:hidden">
+                    {' · '}médio {formatarMoeda(i.custo_medio)} · {formatarMoeda(i.valor)}
+                  </span>
+                )}
               </p>
               <p className="numeros hidden text-right sm:block">{i.quantidade > 0 || i.custo_medio > 0 ? formatarMoeda(i.custo_medio) : '—'}</p>
               <p className="numeros hidden text-right font-semibold sm:block">{i.valor > 0 ? formatarMoeda(i.valor) : '—'}</p>

@@ -78,7 +78,7 @@ export function Inventario({ projetoId, materiais, hoje }: { projetoId: string; 
           return (
             <li key={m.id} className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_9rem_10rem] sm:px-5">
               <div className="min-w-0">
-                <label htmlFor={`inv-${m.id}`} className="block truncate font-semibold">
+                <label htmlFor={`inv-${m.id}`} className="block font-semibold break-words">
                   {m.nome}
                 </label>
                 <p className="numeros text-sm text-regua">
@@ -94,15 +94,19 @@ export function Inventario({ projetoId, materiais, hoje }: { projetoId: string; 
                 aria-invalid={d && Number.isNaN(d.dif) ? true : undefined}
                 className={`${classeEntrada} numeros text-right`}
               />
-              <p className={`numeros col-span-2 text-sm sm:col-span-1 sm:text-right ${d && !Number.isNaN(d.dif) ? (d.dif < 0 ? 'font-semibold text-marcador' : 'font-semibold text-obra-ok') : 'text-regua'}`}>
-                {d
-                  ? Number.isNaN(d.dif)
-                    ? 'Número inválido'
-                    : `${d.dif > 0 ? '+' : '−'}${formatarQuantidade(Math.abs(d.dif), m.unidade)} (${formatarMoeda(Math.abs(d.dif) * m.custo_medio)})`
-                  : contagem[m.id]
-                    ? 'Confere'
-                    : ''}
-              </p>
+              {(d || contagem[m.id]) && (
+                <p
+                  className={`numeros col-span-2 text-sm sm:col-span-1 sm:text-right ${
+                    d && !Number.isNaN(d.dif) ? (d.dif < 0 ? 'font-semibold text-marcador' : 'font-semibold text-obra-ok') : 'text-regua'
+                  }`}
+                >
+                  {d
+                    ? Number.isNaN(d.dif)
+                      ? 'Número inválido'
+                      : `${d.dif > 0 ? '+' : '−'}${formatarQuantidade(Math.abs(d.dif), m.unidade)} (${formatarMoeda(Math.abs(d.dif) * m.custo_medio)})`
+                    : 'Confere'}
+                </p>
+              )}
             </li>
           );
         })}

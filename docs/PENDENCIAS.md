@@ -43,9 +43,25 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Diária rateada pelas horas** entre as tarefas do dia (6 h + 2 h de uma diária de R$ 180 =
       R$ 135 + R$ 45). Confirme se é assim que a obra apropria.
 - [ ] **NF-e pela chave de acesso** (sem o XML): precisa de um serviço pago de consulta ou do
-      certificado digital A1 da empresa. A leitura do **XML** já entra no sprint 4 sem nada disso.
+      certificado digital A1 da empresa. A leitura do **XML** já funciona (sprint 4) sem nada disso.
+- [ ] **Quem vê preço de material?** Hoje, todos que veem a obra (inclusive mestre e "leitura") veem
+      valores no almoxarifado; o custo de mão de obra continua só para engenheiro, financeiro e admin.
+      Se quiser esconder os preços de material também, é uma regra no banco.
+- [ ] **Estoque mínimo**: hoje é um número por item, que vale para cada obra. Se obras de tamanhos
+      muito diferentes precisarem de mínimos diferentes, dá para ter o mínimo por obra.
+- [ ] **Custo da NF-e**: lancei o custo da linha com frete, seguro, IPI e ICMS-ST, menos desconto
+      (a construtora em geral não aproveita crédito de ICMS). Confirme com a contabilidade.
 - [ ] Perguntas em aberto do PRD: produto interno ou SaaS; obra-piloto; de onde vem o orçamento hoje
       (planilha, OrçaFascio, Sienge…); integrar com ERP no MVP ou só exportar planilha.
+
+## Almoxarifado (sprint 4)
+
+- [ ] **Um XML de NF-e real** de um fornecedor da obra (pode mandar por aqui). Testei a leitura com uma
+      nota de exemplo no layout 4.00; uma real confirma os campos do seu fornecedor.
+- [ ] **Etiquetas**: papel adesivo A4 (tipo Pimaco, 3 colunas) serve; se preferir impressora térmica de
+      etiquetas, me diga o modelo e o tamanho para eu ajustar a página de impressão.
+- [ ] O leitor de QR dentro do app usa a câmera pelo navegador (Chrome no Android funciona; no iPhone,
+      a câmera nativa abre o link da etiqueta direto). Teste num celular da obra quando puder.
 
 ## Câmeras (sprint 5)
 
@@ -59,3 +75,4 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [x] Liberar o Supabase na rede do ambiente (31/10).
 - [x] Trocar o install da Vercel para `pnpm install --frozen-lockfile` (31/10).
 - [x] Aprovar e publicar sprints 1, 2 e 3 (31/10).
+- [x] Migração do almoxarifado aplicada no Supabase (31/10).

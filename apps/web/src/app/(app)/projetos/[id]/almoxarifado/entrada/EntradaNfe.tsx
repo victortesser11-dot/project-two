@@ -224,7 +224,7 @@ export function EntradaNfe({
               </div>
               <div>
                 <dt className="text-regua">Chave de acesso</dt>
-                <dd className="break-all">{formatarChaveNfe(nota.chave)}</dd>
+                <dd>{formatarChaveNfe(nota.chave)}</dd>
               </div>
             </dl>
             <div className="mt-4 max-w-xs">

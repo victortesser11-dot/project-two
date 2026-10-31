@@ -240,7 +240,7 @@ export function ListaFerramentas({
                       <p className={`mt-0.5 text-sm ${!e ? 'text-obra-ok' : s?.atrasado ? 'font-semibold text-marcador' : 'text-grafite'}`}>
                         {!e
                           ? 'Disponível'
-                          : `Com ${e.responsavel} desde ${formatarData(dataDoInstante(e.retirada_em))} · ${s!.diasFora} ${s!.diasFora === 1 ? 'dia' : 'dias'}${
+                          : `Com ${e.responsavel} ${s!.diasFora === 0 ? 'desde hoje' : `desde ${formatarData(dataDoInstante(e.retirada_em))} · ${s!.diasFora} ${s!.diasFora === 1 ? 'dia' : 'dias'}`}${
                               e.devolver_ate ? (s!.atrasado ? ` · devolução atrasada (era ${formatarData(e.devolver_ate)})` : ` · devolver até ${formatarData(e.devolver_ate)}`) : ''
                             }${nestaObra ? '' : ` · na obra ${nomeObra[e.projeto_id] ?? 'outra'}`}`}
                       </p>
