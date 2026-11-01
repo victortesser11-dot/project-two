@@ -1,8 +1,9 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { criarAgente } from '../src/agente.js';
+import { capturarFoto } from '../src/captura.js';
 import { criarFila } from '../src/fila.js';
 import { ErroPlataforma } from '../src/plataforma.js';
 
@@ -18,7 +19,9 @@ function plataformaFalsa(cameras) {
       if (!p.online) throw new TypeError('fetch failed');
       return { fuso: 'America/Sao_Paulo', cameras };
     },
-    async enviarFoto(cameraId, quando, jpeg, teste = false) {
+    ids: [],
+    async enviarFoto(cameraId, quando, jpeg, teste = false, id = null) {
+      p.ids.push(id);
       if (!p.online) throw new TypeError('fetch failed');
       p.enviadas.push({ cameraId, quando: quando.toISOString(), teste });
       return { ok: true };
@@ -33,10 +36,11 @@ function plataformaFalsa(cameras) {
 
 async function montar({ cameras, capturar = async () => JPEG, relogio }) {
   const plataforma = plataformaFalsa(cameras);
-  const fila = criarFila(await mkdtemp(join(tmpdir(), 'agente-')));
+  const pasta = await mkdtemp(join(tmpdir(), 'agente-'));
+  const fila = criarFila(pasta);
   const estado = {};
   const agente = criarAgente({ plataforma, fila, estado, salvarEstado: async () => {}, log: silencio, capturar, relogio });
-  return { plataforma, fila, estado, agente };
+  return { plataforma, fila, estado, agente, pasta };
 }
 
 // 07:01 em Brasília
@@ -63,6 +67,61 @@ describe('ciclo do agente', () => {
     await agente.ciclo();
     expect(await fila.itens()).toEqual([]);
     expect(plataforma.enviadas.map((e) => e.cameraId)).toEqual(['c2']);
+  });
+
+  it('o reenvio da fila usa o mesmo id da captura (a plataforma não duplica a foto)', async () => {
+    const { plataforma, agente } = await montar({ cameras: [{ id: 'c2', nome: 'Pátio', horarios: ['07:00'] }], relogio: as0701 });
+    const enviar = plataforma.enviarFoto;
+    plataforma.enviarFoto = async (...args) => {
+      plataforma.enviarFoto = enviar;
+      await enviar(...args); // a plataforma gravou...
+      throw new TypeError('fetch failed'); // ...mas a resposta se perdeu
+    };
+    await agente.ciclo(); // foto tirada, "falhou", foi para a fila e saiu dela no mesmo ciclo
+    expect(plataforma.ids).toHaveLength(2);
+    const [primeiro, reenvio] = plataforma.ids;
+    expect(primeiro).toMatch(/^[0-9a-f-]{36}$/);
+    expect(reenvio).toBe(primeiro);
+  });
+
+  it('item da fila pela metade é descartado e não trava os outros', async () => {
+    const { plataforma, fila, agente, pasta } = await montar({ cameras: [], relogio: as0701 });
+    await fila.guardar('c1', new Date('2026-10-30T10:00:00Z'), JPEG, '7f0e0c1a-1111-4222-8333-944445555666');
+    await writeFile(join(pasta, 'fila', '2026-10-29T10-00-00-000Z_c1.json'), '{"cameraId":"c1","qua'); // energia caiu
+    await writeFile(join(pasta, 'fila', '2026-10-29T11-00-00-000Z_c1.json'), '{"cameraId":"c1","quando":"2026-10-29T11:00:00Z"}'); // sem .jpg
+    await agente.ciclo();
+    expect(plataforma.enviadas).toEqual([{ cameraId: 'c1', quando: '2026-10-30T10:00:00.000Z', teste: false }]);
+    expect(plataforma.ids).toEqual(['7f0e0c1a-1111-4222-8333-944445555666']);
+    expect(await fila.itens()).toEqual([]);
+    expect(await readdir(join(pasta, 'fila'))).toEqual([]);
+  });
+
+  it('vários horários vencidos de uma vez: uma foto só', async () => {
+    let n = 0;
+    const { plataforma, estado, agente } = await montar({
+      cameras: [{ id: 'c1', nome: 'Fachada', horarios: ['07:00', '07:30'] }],
+      capturar: async () => {
+        n++;
+        return JPEG;
+      },
+      relogio: () => new Date('2026-10-31T10:40:00Z'), // 07:40: as duas estão na janela
+    });
+    await agente.ciclo();
+    await agente.ciclo();
+    expect(n).toBe(1);
+    expect(plataforma.enviadas).toHaveLength(1);
+    expect(estado['c1|2026-10-31|07:00'].feito).toBe(true);
+    expect(estado['c1|2026-10-31|07:30'].feito).toBe(true);
+  });
+
+  it('foto recusada pela regra (4xx) conta como falha e não vai para a fila', async () => {
+    const { plataforma, fila, agente } = await montar({ cameras: [{ id: 'c1', nome: 'Fachada', horarios: ['07:00'] }], relogio: as0701 });
+    plataforma.enviarFoto = async () => {
+      throw new ErroPlataforma('Horário da foto inválido', 422);
+    };
+    await agente.ciclo();
+    expect(await fila.itens()).toEqual([]);
+    expect(plataforma.falhas).toEqual([{ cameraId: 'c1', erro: 'Horário da foto inválido', teste: false }]);
   });
 
   it('plataforma fora do ar: segue com a última configuração; sem nenhuma, espera', async () => {
@@ -115,6 +174,17 @@ describe('ciclo do agente', () => {
     await agente.ciclo();
     expect(plataforma.enviadas).toEqual([{ cameraId: 'boa', quando: '2026-10-31T10:01:00.000Z', teste: true }]);
     expect(plataforma.falhas).toEqual([{ cameraId: 'ruim', erro: 'Usuário ou senha da câmera recusados (401).', teste: true }]);
+  });
+
+  it('endereço RTSP:// em maiúsculas também vai pelo FFmpeg', async () => {
+    const antes = process.env.FFMPEG;
+    process.env.FFMPEG = '/nao/existe/ffmpeg';
+    try {
+      await expect(capturarFoto({ endereco: 'RTSP://192.168.1.108:554/cam/realmonitor?channel=1' })).rejects.toThrow(/FFmpeg não instalado/);
+    } finally {
+      if (antes === undefined) delete process.env.FFMPEG;
+      else process.env.FFMPEG = antes;
+    }
   });
 
   it('foto recusada pela plataforma (câmera removida) sai da fila', async () => {

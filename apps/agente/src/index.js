@@ -10,7 +10,7 @@ import { criarAgente } from './agente.js';
 import { criarFila } from './fila.js';
 import { criarPlataforma, PLATAFORMA_PADRAO } from './plataforma.js';
 
-const VERSAO = '1.0.0';
+const VERSAO = '1.1.0';
 const token = process.env.AGENTE_TOKEN?.trim();
 if (!token || !/^obra_[0-9a-f]{48}$/.test(token)) {
   console.error('Defina AGENTE_TOKEN com o token gerado na plataforma (começa com "obra_").');
