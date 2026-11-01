@@ -97,4 +97,5 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Liberar o Supabase na rede do ambiente (31/10).
 - [x] Trocar o install da Vercel para `pnpm install --frozen-lockfile` (31/10).
 - [x] Aprovar e publicar sprints 1, 2 e 3 (31/10).
-- [x] Migração do almoxarifado aplicada no Supabase (31/10).
+- [x] Migração do almoxarifado aplicada no Supabase e sprint 4 publicado (31/10).
+- [x] Câmeras: Intelbras, link dedicado, sem VPS por enquanto; agente na obra em vez de abrir portas (31/10).
