@@ -34,6 +34,7 @@ import type {
   StatusDiario,
 } from '@obras/shared';
 import { REGRA_SEMAFORO_PADRAO } from '@obras/shared';
+import { emPaginas } from '@/lib/paginas';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 /** Usuário logado; sem sessão, manda para o login. */
@@ -106,7 +107,9 @@ export async function podeApontarCampo(projeto: Projeto, papel: PapelProjeto | n
 
 export const buscarEap = cache(async (projetoId: string): Promise<ItemEap[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.rpc('eap_do_projeto', { p_projeto_id: projetoId });
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.rpc('eap_do_projeto', { p_projeto_id: projetoId }).order('posicao').range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar a EAP: ${error.message}`);
   // A função devolve colunas que podem ser nulas; o gerador de tipos não sabe disso.
   return (data ?? []) as unknown as ItemEap[];
@@ -114,10 +117,14 @@ export const buscarEap = cache(async (projetoId: string): Promise<ItemEap[]> => 
 
 export const buscarDependencias = cache(async (projetoId: string): Promise<Dependencia[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('eap_dependencia')
-    .select('id, predecessora_id, sucessora_id, tipo, defasagem_dias')
-    .eq('projeto_id', projetoId);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('eap_dependencia')
+      .select('id, predecessora_id, sucessora_id, tipo, defasagem_dias')
+      .eq('projeto_id', projetoId)
+      .order('id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar as dependências: ${error.message}`);
   return data ?? [];
 });
@@ -136,12 +143,15 @@ export const buscarLinhaBase = cache(async (projetoId: string): Promise<LinhaBas
 /** Histórico de avanço do projeto (para a curva S). */
 export const buscarApontamentos = cache(async (projetoId: string): Promise<ApontamentoRegistrado[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('avanco_tarefa')
-    .select('tarefa_id, data, percentual, registrado_em')
-    .eq('projeto_id', projetoId)
-    .order('data', { ascending: true })
-    .limit(20000);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('avanco_tarefa')
+      .select('tarefa_id, data, percentual, registrado_em')
+      .eq('projeto_id', projetoId)
+      .order('data', { ascending: true })
+      .order('id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar o avanço: ${error.message}`);
   return data ?? [];
 });
@@ -204,12 +214,14 @@ export interface ResumoDiario {
 /** Diários da obra, do mais recente para o mais antigo. */
 export const listarDiarios = cache(async (projetoId: string): Promise<ResumoDiario[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('diario_obra')
-    .select('id, data, status, clima_manha, clima_tarde, diario_efetivo(quantidade), diario_foto(id)')
-    .eq('projeto_id', projetoId)
-    .order('data', { ascending: false })
-    .limit(200);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('diario_obra')
+      .select('id, data, status, clima_manha, clima_tarde, diario_efetivo(quantidade), diario_foto(id)')
+      .eq('projeto_id', projetoId)
+      .order('data', { ascending: false })
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar os diários: ${error.message}`);
   return (data ?? []).map((d) => ({
     id: d.id,
@@ -285,18 +297,24 @@ const COLUNAS_TRABALHADOR = 'id, nome, cpf_mascarado, funcao, empreiteira_id, te
 
 export const listarEmpreiteiras = cache(async (empresaId: string): Promise<Empreiteira[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('empreiteira')
-    .select('id, nome, cnpj, situacao_cnpj, telefone, ativa')
-    .eq('empresa_id', empresaId)
-    .order('nome');
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('empreiteira')
+      .select('id, nome, cnpj, situacao_cnpj, telefone, ativa')
+      .eq('empresa_id', empresaId)
+      .order('nome')
+      .order('id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar as empreiteiras: ${error.message}`);
   return data ?? [];
 });
 
 export const listarTrabalhadores = cache(async (empresaId: string): Promise<Trabalhador[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.from('trabalhador').select(COLUNAS_TRABALHADOR).eq('empresa_id', empresaId).order('nome');
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.from('trabalhador').select(COLUNAS_TRABALHADOR).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar as pessoas: ${error.message}`);
   return data ?? [];
 });
@@ -311,10 +329,14 @@ export const buscarTrabalhador = cache(async (id: string): Promise<(Trabalhador 
 /** Pessoas na equipe da obra (ativas primeiro). */
 export const listarEquipeProjeto = cache(async (projetoId: string): Promise<(Trabalhador & { na_obra: boolean })[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('equipe_projeto')
-    .select(`ativo, trabalhador:trabalhador_id (${COLUNAS_TRABALHADOR})`)
-    .eq('projeto_id', projetoId);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('equipe_projeto')
+      .select(`ativo, trabalhador:trabalhador_id (${COLUNAS_TRABALHADOR})`)
+      .eq('projeto_id', projetoId)
+      .order('trabalhador_id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar a equipe da obra: ${error.message}`);
   return (data ?? [])
     .filter((e) => e.trabalhador)
@@ -325,11 +347,15 @@ export const listarEquipeProjeto = cache(async (projetoId: string): Promise<(Tra
 /** Custos lançados (só quem pode ver custos recebe linhas; para os outros, vazio). */
 export const listarCustos = cache(async (empresaId: string): Promise<CustoVigente[]> => {
   const { supabase } = await exigirUsuario();
-  const { data } = await supabase
-    .from('custo_mao_obra')
-    .select('trabalhador_id, tipo, valor, unidade_producao, vigente_desde')
-    .eq('empresa_id', empresaId)
-    .order('vigente_desde', { ascending: false });
+  const { data } = await emPaginas((de, ate) =>
+    supabase
+      .from('custo_mao_obra')
+      .select('trabalhador_id, tipo, valor, unidade_producao, vigente_desde')
+      .eq('empresa_id', empresaId)
+      .order('vigente_desde', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
   return (data ?? []).map((c) => ({ ...c, valor: Number(c.valor) }));
 });
 
@@ -386,7 +412,15 @@ export const buscarChamada = cache(async (projetoId: string, data: string) => {
 /** Custo de mão de obra calculado no banco. null para quem não pode ver custos. */
 export const custoMaoObra = cache(async (projetoId: string, de?: string, ate?: string): Promise<LinhaCustoMaoObra[] | null> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.rpc('custo_mao_obra_projeto', { p_projeto_id: projetoId, p_de: de, p_ate: ate });
+  const { data, error } = await emPaginas((inicio, fim) =>
+    supabase
+      .rpc('custo_mao_obra_projeto', { p_projeto_id: projetoId, p_de: de, p_ate: ate })
+      .order('data')
+      .order('trabalhador_id')
+      .order('tarefa_id')
+      .order('horas')
+      .range(inicio, fim),
+  );
   if (error) return null;
   return (data ?? []).map((l) => ({
     ...l,
@@ -410,7 +444,9 @@ const COLUNAS_ITEM = 'id, codigo, nome, tipo, unidade, categoria, estoque_minimo
 /** Catálogo da empresa (materiais e ferramentas), por nome. */
 export const listarItensEstoque = cache(async (empresaId: string): Promise<ItemEstoque[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.from('item_estoque').select(COLUNAS_ITEM).eq('empresa_id', empresaId).order('nome');
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.from('item_estoque').select(COLUNAS_ITEM).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar o catálogo: ${error.message}`);
   return (data ?? []).map((i) => ({ ...i, estoque_minimo: Number(i.estoque_minimo) }));
 });
@@ -424,7 +460,9 @@ export const buscarItemEstoque = cache(async (id: string): Promise<(ItemEstoque 
 
 export const listarSaldos = cache(async (projetoId: string): Promise<SaldoEstoque[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.from('saldo_estoque').select('item_id, quantidade, custo_medio').eq('projeto_id', projetoId);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.from('saldo_estoque').select('item_id, quantidade, custo_medio').eq('projeto_id', projetoId).order('item_id').range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar o estoque: ${error.message}`);
   return (data ?? []).map((s) => ({ item_id: s.item_id, quantidade: Number(s.quantidade), custo_medio: Number(s.custo_medio) }));
 });
@@ -433,15 +471,20 @@ const COLUNAS_MOVIMENTO =
   'id, item_id, tipo, data, quantidade, valor_unitario, valor_total, fornecedor, nota_fiscal, chave_nfe, tarefa_id, trabalhador_id, responsavel, observacao, registrado_em';
 
 /** Movimentos da obra, do mais recente para o mais antigo. */
-export const listarMovimentos = cache(async (projetoId: string, limite = 5000): Promise<MovimentoEstoque[]> => {
+export const listarMovimentos = cache(async (projetoId: string, limite = 100_000): Promise<MovimentoEstoque[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('movimento_estoque')
-    .select(COLUNAS_MOVIMENTO)
-    .eq('projeto_id', projetoId)
-    .order('data', { ascending: false })
-    .order('registrado_em', { ascending: false })
-    .limit(limite);
+  const { data, error } = await emPaginas(
+    (de, ate) =>
+      supabase
+        .from('movimento_estoque')
+        .select(COLUNAS_MOVIMENTO)
+        .eq('projeto_id', projetoId)
+        .order('data', { ascending: false })
+        .order('registrado_em', { ascending: false })
+        .order('id')
+        .range(de, ate),
+    limite,
+  );
   if (error) throw new Error(`Não foi possível carregar os movimentos: ${error.message}`);
   return (data ?? []).map((m) => ({
     ...m,
@@ -456,11 +499,13 @@ const COLUNAS_EMPRESTIMO = 'id, projeto_id, item_id, trabalhador_id, responsavel
 /** Empréstimos de ferramenta que a pessoa enxerga (das obras dela). */
 export const listarEmprestimos = cache(async (filtro: { projetoId?: string; itemId?: string; abertos?: boolean }): Promise<EmprestimoFerramenta[]> => {
   const { supabase } = await exigirUsuario();
-  let q = supabase.from('emprestimo_ferramenta').select(COLUNAS_EMPRESTIMO).order('retirada_em', { ascending: false }).limit(1000);
-  if (filtro.projetoId) q = q.eq('projeto_id', filtro.projetoId);
-  if (filtro.itemId) q = q.eq('item_id', filtro.itemId);
-  if (filtro.abertos) q = q.is('devolvida_em', null);
-  const { data, error } = await q;
+  const { data, error } = await emPaginas((de, ate) => {
+    let q = supabase.from('emprestimo_ferramenta').select(COLUNAS_EMPRESTIMO);
+    if (filtro.projetoId) q = q.eq('projeto_id', filtro.projetoId);
+    if (filtro.itemId) q = q.eq('item_id', filtro.itemId);
+    if (filtro.abertos) q = q.is('devolvida_em', null);
+    return q.order('retirada_em', { ascending: false }).order('id').range(de, ate);
+  });
   if (error) throw new Error(`Não foi possível carregar os empréstimos: ${error.message}`);
   return data ?? [];
 });
@@ -468,11 +513,15 @@ export const listarEmprestimos = cache(async (filtro: { projetoId?: string; item
 /** Códigos de produto de fornecedores já ligados ao catálogo (para casar a próxima NF-e). */
 export const listarVinculosFornecedor = cache(async (empresaId: string): Promise<VinculoFornecedor[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('item_fornecedor')
-    .select('cnpj_fornecedor, codigo_fornecedor, item_id')
-    .eq('empresa_id', empresaId)
-    .limit(10000);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('item_fornecedor')
+      .select('cnpj_fornecedor, codigo_fornecedor, item_id')
+      .eq('empresa_id', empresaId)
+      .order('cnpj_fornecedor')
+      .order('codigo_fornecedor')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar os códigos de fornecedor: ${error.message}`);
   return data ?? [];
 });
@@ -524,16 +573,13 @@ export const listarCameras = cache(async (projetoId: string): Promise<Camera[]> 
 export const listarFotosCamera = cache(
   async (projetoId: string, filtro: { cameraId?: string; de?: string; ate?: string } = {}): Promise<FotoCamera[]> => {
     const { supabase } = await exigirUsuario();
-    let q = supabase
-      .from('foto_camera')
-      .select('id, camera_id, caminho, capturada_em, data, origem')
-      .eq('projeto_id', projetoId)
-      .order('capturada_em', { ascending: false })
-      .limit(5000);
-    if (filtro.cameraId) q = q.eq('camera_id', filtro.cameraId);
-    if (filtro.de) q = q.gte('data', filtro.de);
-    if (filtro.ate) q = q.lte('data', filtro.ate);
-    const { data, error } = await q;
+    const { data, error } = await emPaginas((de, ate) => {
+      let q = supabase.from('foto_camera').select('id, camera_id, caminho, capturada_em, data, origem').eq('projeto_id', projetoId);
+      if (filtro.cameraId) q = q.eq('camera_id', filtro.cameraId);
+      if (filtro.de) q = q.gte('data', filtro.de);
+      if (filtro.ate) q = q.lte('data', filtro.ate);
+      return q.order('capturada_em', { ascending: false }).order('id').range(de, ate);
+    });
     if (error) throw new Error(`Não foi possível carregar as fotos: ${error.message}`);
     return (data ?? []).map((f) => ({ ...f, url: null }));
   },
@@ -552,24 +598,35 @@ export async function assinarFotos<T extends { caminho: string }>(fotos: T[], se
   return fotos.map((f) => ({ ...f, url: urls.get(f.caminho) ?? null }));
 }
 
-/** A foto mais recente de cada câmera da obra. */
+/** A foto mais recente de cada câmera da obra (uma consulta por câmera: uma parada não some atrás das outras). */
 export const ultimasFotos = cache(async (projetoId: string): Promise<Map<string, FotoCamera>> => {
   const { supabase } = await exigirUsuario();
-  const { data } = await supabase
-    .from('foto_camera')
-    .select('id, camera_id, caminho, capturada_em, data, origem')
-    .eq('projeto_id', projetoId)
-    .order('capturada_em', { ascending: false })
-    .limit(200);
-  const primeira = new Map<string, FotoCamera>();
-  for (const f of data ?? []) if (!primeira.has(f.camera_id)) primeira.set(f.camera_id, { ...f, url: null });
-  const assinadas = await assinarFotos([...primeira.values()]);
+  const cameras = await listarCameras(projetoId);
+  const ultimas = await Promise.all(
+    cameras.map(async (c): Promise<FotoCamera | null> => {
+      const { data } = await supabase
+        .from('foto_camera')
+        .select('id, camera_id, caminho, capturada_em, data, origem')
+        .eq('camera_id', c.id)
+        .order('capturada_em', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data ? { ...data, url: null } : null;
+    }),
+  );
+  const assinadas = await assinarFotos(ultimas.filter((f): f is FotoCamera => f !== null));
   return new Map(assinadas.map((f) => [f.camera_id, f]));
 });
 
-/** Dias com foto (para o calendário da galeria), mais recentes primeiro. */
+/** Dias com foto (para o calendário da galeria), mais recentes primeiro. Lê só a data de cada foto. */
 export const diasComFoto = cache(async (projetoId: string, cameraId?: string): Promise<{ data: string; fotos: number }[]> => {
-  const fotos = await listarFotosCamera(projetoId, cameraId ? { cameraId } : {});
+  const { supabase } = await exigirUsuario();
+  const { data: fotos, error } = await emPaginas((de, ate) => {
+    let q = supabase.from('foto_camera').select('data').eq('projeto_id', projetoId);
+    if (cameraId) q = q.eq('camera_id', cameraId);
+    return q.order('data', { ascending: false }).order('id').range(de, ate);
+  });
+  if (error) throw new Error(`Não foi possível carregar os dias com foto: ${error.message}`);
   const conta = new Map<string, number>();
   for (const f of fotos) conta.set(f.data, (conta.get(f.data) ?? 0) + 1);
   return [...conta.entries()].map(([data, n]) => ({ data, fotos: n })).sort((a, b) => b.data.localeCompare(a.data));
@@ -587,10 +644,14 @@ const n = (v: number | string | null) => (v === null ? 0 : Number(v));
 
 export const listarComposicoes = cache(async (projetoId: string): Promise<ComposicaoCusto[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('composicao_custo')
-    .select('tarefa_id, material, mao_obra, equipamento, outros, total')
-    .eq('projeto_id', projetoId);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('composicao_custo')
+      .select('tarefa_id, material, mao_obra, equipamento, outros, total')
+      .eq('projeto_id', projetoId)
+      .order('tarefa_id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar a composição dos custos: ${error.message}`);
   return (data ?? []).map((c) => ({
     tarefa_id: c.tarefa_id,
@@ -616,7 +677,9 @@ export const listarVersoesOrcamento = cache(async (projetoId: string): Promise<V
 /** Orçado × comprometido × realizado por tarefa (calculado no banco). null = sem permissão. */
 export const orcadoRealizado = cache(async (projetoId: string): Promise<LinhaOrcadoRealizado[] | null> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.rpc('orcado_realizado', { p_projeto_id: projetoId });
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.rpc('orcado_realizado', { p_projeto_id: projetoId }).order('tarefa_id').range(de, ate),
+  );
   if (error) return null;
   return (data ?? []).map((l) => ({
     tarefa_id: l.tarefa_id,
@@ -631,31 +694,40 @@ export const orcadoRealizado = cache(async (projetoId: string): Promise<LinhaOrc
 /** Custo realizado por dia (material + mão de obra + despesas). null = sem permissão. */
 export const custoRealizadoPorDia = cache(async (projetoId: string): Promise<{ data: string; total: number }[] | null> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase.rpc('custo_realizado_por_dia', { p_projeto_id: projetoId });
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase.rpc('custo_realizado_por_dia', { p_projeto_id: projetoId }).order('data').range(de, ate),
+  );
   if (error) return null;
   return (data ?? []).map((d) => ({ data: d.data, total: Math.round((n(d.material) + n(d.mao_obra) + n(d.despesas)) * 100) / 100 }));
 });
 
 export const listarDespesas = cache(async (projetoId: string): Promise<Despesa[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('despesa')
-    .select('id, tarefa_id, data, categoria, descricao, valor, fornecedor, documento, compromisso_id')
-    .eq('projeto_id', projetoId)
-    .order('data', { ascending: false })
-    .order('registrado_em', { ascending: false })
-    .limit(2000);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('despesa')
+      .select('id, tarefa_id, data, categoria, descricao, valor, fornecedor, documento, compromisso_id')
+      .eq('projeto_id', projetoId)
+      .order('data', { ascending: false })
+      .order('registrado_em', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar as despesas: ${error.message}`);
   return (data ?? []).map((d) => ({ ...d, valor: n(d.valor) }));
 });
 
 export const listarCompromissos = cache(async (projetoId: string): Promise<Compromisso[]> => {
   const { supabase } = await exigirUsuario();
-  const { data, error } = await supabase
-    .from('compromisso')
-    .select('id, tarefa_id, tipo, descricao, fornecedor, cnpj, empreiteira_id, valor, data, encerrado, encerrado_em')
-    .eq('projeto_id', projetoId)
-    .order('data', { ascending: false });
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('compromisso')
+      .select('id, tarefa_id, tipo, descricao, fornecedor, cnpj, empreiteira_id, valor, data, encerrado, encerrado_em')
+      .eq('projeto_id', projetoId)
+      .order('data', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
   if (error) throw new Error(`Não foi possível carregar os contratos e pedidos: ${error.message}`);
   return (data ?? []).map((c) => ({ ...c, valor: n(c.valor) }));
 });
