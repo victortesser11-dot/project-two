@@ -144,6 +144,9 @@ select tests.afirmar(
 select tests.afirmar(
   tests.linhas_afetadas(format($$delete from projeto where id = %L$$, current_setting('t.projeto'))) = 0,
   'engenheiro não apaga o projeto');
+select tests.deve_falhar(
+  format($$update projeto set empresa_id = %L where id = %L$$, current_setting('t.empresa_b'), current_setting('t.projeto')),
+  'engenheiro não muda a obra de empresa');
 
 select tests.entrar('00000000-0000-0000-0000-00000000000a');
 select tests.afirmar((select count(*) from projeto) = 1, 'admin da empresa vê todos os projetos dela');
@@ -167,6 +170,12 @@ select tests.deve_falhar($$update audit_log set acao = 'INSERT'$$, 'ninguém alt
 
 select tests.entrar('00000000-0000-0000-0000-00000000000b');
 select tests.afirmar((select count(*) from audit_log) = 0, 'quem não é admin não lê a auditoria');
+
+-- ---------------------------------------------------------------- funções internas
+select tests.afirmar(
+  not exists (select 1 from pg_proc p where p.pronamespace = 'app'::regnamespace and p.prorettype = 'trigger'::regtype
+                 and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))),
+  'funções de trigger em app não têm EXECUTE para anon nem authenticated');
 
 -- ---------------------------------------------------------------- exclusão em cascata
 select tests.entrar('00000000-0000-0000-0000-00000000000a');

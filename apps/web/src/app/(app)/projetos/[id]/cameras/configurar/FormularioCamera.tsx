@@ -129,7 +129,7 @@ export function FormularioCamera({
               <option value="">Escolha o agente</option>
               {ativos.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.nome}
+                  {a.ativo ? a.nome : `${a.nome} (revogado: só dá para desligar a câmera)`}
                 </option>
               ))}
             </select>
