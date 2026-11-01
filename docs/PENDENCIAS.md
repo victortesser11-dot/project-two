@@ -17,15 +17,6 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
-## Revisão geral (01/11): publicar no Supabase
-
-- [ ] **Migração `20261101120000_revisao.sql`** no SQL Editor (o conteúdo vai na conversa). Trava a troca de
-      empresa de uma obra, deixa desligar câmera de agente revogado e fecha permissões internas.
-- [ ] **Atualizar a função `agente-cameras`** (Edge Functions → agente-cameras → editar, colar o novo
-      `index.ts` e publicar; manter "Verify JWT" desligado). Sem isso o agente novo funciona, mas reenvio
-      ainda pode duplicar foto.
-- [ ] Quando instalar o agente na obra, use a versão 1.1.0 (já é a do repositório).
-
 ## Para eu testar com dados reais
 
 - [ ] **Conta de teste** como variáveis de ambiente `OBRAS_TESTE_EMAIL` e `OBRAS_TESTE_SENHA`
@@ -102,3 +93,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Migração do almoxarifado aplicada no Supabase e sprint 4 publicado (31/10).
 - [x] Câmeras: Intelbras, link dedicado, sem VPS por enquanto; agente na obra em vez de abrir portas (31/10).
 - [x] Migrações `cameras` e `orcamento` e a função `agente-cameras` publicadas no Supabase pelo SQL Editor (01/11).
+- [x] Revisão geral publicada: migração `revisao` no SQL Editor e função `agente-cameras` atualizada (01/11).
