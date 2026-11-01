@@ -46,6 +46,7 @@ export function PainelObra({
   maoDeObra = null,
   material = null,
   ultimaFoto = null,
+  equipeHoje = null,
   hoje = hojeIso(),
 }: {
   projeto: Projeto;
@@ -62,6 +63,8 @@ export function PainelObra({
   material?: { aplicado: number | null; itens: number; abaixoDoMinimo: number } | null;
   /** Foto mais recente das câmeras da obra (URL assinada). */
   ultimaFoto?: { url: string; camera: string; quando: string; cameras: number } | null;
+  /** Pessoas presentes na chamada de hoje (null = sem acesso). */
+  equipeHoje?: number | null;
   hoje?: string;
 }) {
   const p = montarPainel(itens, apontamentos, linhaBase !== null, hoje);
@@ -74,6 +77,7 @@ export function PainelObra({
     'Dados básicos': true,
     'EAP e cronograma': temTarefas,
     'Linha de base': linhaBase !== null,
+    'Orçamento por etapa': (p.custoTotal ?? 0) > 0,
     Almoxarifado: (material?.itens ?? 0) > 0,
     Câmeras: (ultimaFoto?.cameras ?? 0) > 0,
   };
@@ -152,6 +156,9 @@ export function PainelObra({
                   </Link>
                 )}
               </p>
+              <Link href={`${base}/orcamento/realizado`} className="mt-1 inline-block text-xs font-semibold text-cianotipia hover:underline underline-offset-4">
+                Orçado × realizado
+              </Link>
               {maoDeObra && maoDeObra.semCusto > 0 && (
                 <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>
               )}
@@ -174,6 +181,17 @@ export function PainelObra({
             )}
             <span className="text-regua"> · {p.hoje.proximas} nos próximos dias</span>
           </p>
+          {equipeHoje !== null && (
+            <Link href={`${base}/equipe/chamada/${hoje}`} className="numeros mt-1 block text-sm hover:text-cianotipia">
+              {equipeHoje > 0 ? (
+                <>
+                  <span className="font-semibold">{equipeHoje}</span> {equipeHoje === 1 ? 'pessoa' : 'pessoas'} na chamada de hoje
+                </>
+              ) : (
+                <span className="text-regua">Chamada de hoje ainda não feita</span>
+              )}
+            </Link>
+          )}
           {material && material.abaixoDoMinimo > 0 && (
             <Link href={`${base}/almoxarifado`} className="numeros mt-1 block text-sm font-semibold text-marcador hover:underline underline-offset-4">
               {material.abaixoDoMinimo} {material.abaixoDoMinimo === 1 ? 'material abaixo' : 'materiais abaixo'} do estoque mínimo

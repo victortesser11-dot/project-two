@@ -336,6 +336,150 @@ export type Database = {
           },
         ]
       }
+      composicao_custo: {
+        Row: {
+          atualizado_em: string
+          empresa_id: string
+          equipamento: number
+          mao_obra: number
+          material: number
+          outros: number
+          projeto_id: string
+          tarefa_id: string
+          total: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          empresa_id: string
+          equipamento?: number
+          mao_obra?: number
+          material?: number
+          outros?: number
+          projeto_id: string
+          tarefa_id: string
+          total?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          empresa_id?: string
+          equipamento?: number
+          mao_obra?: number
+          material?: number
+          outros?: number
+          projeto_id?: string
+          tarefa_id?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composicao_custo_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composicao_custo_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composicao_custo_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: true
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compromisso: {
+        Row: {
+          atualizado_em: string
+          cnpj: string | null
+          criado_em: string
+          criado_por: string | null
+          data: string
+          descricao: string
+          empreiteira_id: string | null
+          empresa_id: string
+          encerrado: boolean
+          encerrado_em: string | null
+          fornecedor: string | null
+          id: string
+          projeto_id: string
+          tarefa_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_compromisso"]
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          cnpj?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data: string
+          descricao: string
+          empreiteira_id?: string | null
+          empresa_id: string
+          encerrado?: boolean
+          encerrado_em?: string | null
+          fornecedor?: string | null
+          id?: string
+          projeto_id: string
+          tarefa_id?: string | null
+          tipo: Database["public"]["Enums"]["tipo_compromisso"]
+          valor: number
+        }
+        Update: {
+          atualizado_em?: string
+          cnpj?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data?: string
+          descricao?: string
+          empreiteira_id?: string | null
+          empresa_id?: string
+          encerrado?: boolean
+          encerrado_em?: string | null
+          fornecedor?: string | null
+          id?: string
+          projeto_id?: string
+          tarefa_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_compromisso"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromisso_empreiteira_id_fkey"
+            columns: ["empreiteira_id"]
+            isOneToOne: false
+            referencedRelation: "empreiteira"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromisso_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromisso_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromisso_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custo_mao_obra: {
         Row: {
           criado_em: string
@@ -383,6 +527,83 @@ export type Database = {
             columns: ["trabalhador_id"]
             isOneToOne: false
             referencedRelation: "trabalhador"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesa: {
+        Row: {
+          categoria: Database["public"]["Enums"]["categoria_despesa"]
+          compromisso_id: string | null
+          data: string
+          descricao: string
+          documento: string | null
+          empresa_id: string
+          fornecedor: string | null
+          id: string
+          projeto_id: string
+          registrado_em: string
+          registrado_por: string | null
+          tarefa_id: string | null
+          valor: number
+        }
+        Insert: {
+          categoria: Database["public"]["Enums"]["categoria_despesa"]
+          compromisso_id?: string | null
+          data: string
+          descricao: string
+          documento?: string | null
+          empresa_id: string
+          fornecedor?: string | null
+          id?: string
+          projeto_id: string
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["categoria_despesa"]
+          compromisso_id?: string | null
+          data?: string
+          descricao?: string
+          documento?: string | null
+          empresa_id?: string
+          fornecedor?: string | null
+          id?: string
+          projeto_id?: string
+          registrado_em?: string
+          registrado_por?: string | null
+          tarefa_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesa_compromisso_id_fkey"
+            columns: ["compromisso_id"]
+            isOneToOne: false
+            referencedRelation: "compromisso"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
             referencedColumns: ["id"]
           },
         ]
@@ -1306,6 +1527,54 @@ export type Database = {
           },
         ]
       }
+      orcamento_versao: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          empresa_id: string
+          id: string
+          itens: Json
+          nome: string
+          projeto_id: string
+          total: number
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id: string
+          id?: string
+          itens: Json
+          nome: string
+          projeto_id: string
+          total: number
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id?: string
+          id?: string
+          itens?: Json
+          nome?: string
+          projeto_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_versao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_versao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto: {
         Row: {
           atualizado_em: string
@@ -1360,6 +1629,41 @@ export type Database = {
             foreignKeyName: "projeto_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regra_semaforo: {
+        Row: {
+          atraso_amarelo_dias: number
+          atraso_vermelho_dias: number
+          atualizado_em: string
+          custo_amarelo_pct: number
+          custo_vermelho_pct: number
+          empresa_id: string
+        }
+        Insert: {
+          atraso_amarelo_dias?: number
+          atraso_vermelho_dias?: number
+          atualizado_em?: string
+          custo_amarelo_pct?: number
+          custo_vermelho_pct?: number
+          empresa_id: string
+        }
+        Update: {
+          atraso_amarelo_dias?: number
+          atraso_vermelho_dias?: number
+          atualizado_em?: string
+          custo_amarelo_pct?: number
+          custo_vermelho_pct?: number
+          empresa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regra_semaforo_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
             referencedRelation: "empresa"
             referencedColumns: ["id"]
           },
@@ -1569,6 +1873,25 @@ export type Database = {
           valor_unitario: number
         }[]
       }
+      custo_realizado_por_dia: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          data: string
+          despesas: number
+          mao_obra: number
+          material: number
+        }[]
+      }
+      definir_composicao_custo: {
+        Args: {
+          p_equipamento: number
+          p_mao_obra: number
+          p_material: number
+          p_outros: number
+          p_tarefa_id: string
+        }
+        Returns: number
+      }
       definir_custo_mao_obra: {
         Args: {
           p_tipo: Database["public"]["Enums"]["tipo_custo_mao_obra"]
@@ -1584,6 +1907,16 @@ export type Database = {
         Returns: number
       }
       definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
+      definir_regras_semaforo: {
+        Args: {
+          p_atraso_amarelo_dias: number
+          p_atraso_vermelho_dias: number
+          p_custo_amarelo_pct: number
+          p_custo_vermelho_pct: number
+          p_empresa_id: string
+        }
+        Returns: undefined
+      }
       devolver_ferramenta: {
         Args: { p_item_id: string; p_observacao?: string }
         Returns: number
@@ -1624,6 +1957,11 @@ export type Database = {
         }
         Returns: string
       }
+      encerrar_compromisso: {
+        Args: { p_encerrado?: boolean; p_id: string }
+        Returns: undefined
+      }
+      excluir_despesa: { Args: { p_id: string }; Returns: undefined }
       excluir_foto_camera: { Args: { p_id: string }; Returns: string }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
@@ -1644,6 +1982,17 @@ export type Database = {
       mover_item_eap: {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
         Returns: undefined
+      }
+      orcado_realizado: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          comprometido: number
+          despesas: number
+          mao_obra: number
+          material: number
+          orcado: number
+          tarefa_id: string
+        }[]
       }
       pedir_teste_camera: { Args: { p_id: string }; Returns: undefined }
       registrar_ajuste: {
@@ -1670,6 +2019,20 @@ export type Database = {
       registrar_chamada: {
         Args: { p_data: string; p_linhas: Json; p_projeto_id: string }
         Returns: number
+      }
+      registrar_despesa: {
+        Args: {
+          p_categoria: Database["public"]["Enums"]["categoria_despesa"]
+          p_compromisso_id?: string
+          p_data: string
+          p_descricao: string
+          p_documento?: string
+          p_fornecedor?: string
+          p_projeto_id: string
+          p_tarefa_id: string
+          p_valor: number
+        }
+        Returns: string
       }
       registrar_entradas: {
         Args: {
@@ -1731,6 +2094,10 @@ export type Database = {
         }
         Returns: string
       }
+      salvar_compromisso: {
+        Args: { p_campos: Json; p_id: string; p_projeto_id: string }
+        Returns: string
+      }
       salvar_dependencia: {
         Args: {
           p_defasagem_dias?: number
@@ -1744,8 +2111,20 @@ export type Database = {
         Args: { p_campos?: Json; p_data: string; p_projeto_id: string }
         Returns: string
       }
+      salvar_versao_orcamento: {
+        Args: { p_nome: string; p_projeto_id: string }
+        Returns: string
+      }
     }
     Enums: {
+      categoria_despesa:
+        | "equipamento"
+        | "servico"
+        | "material"
+        | "frete"
+        | "taxa"
+        | "administracao"
+        | "outros"
       clima_periodo: "sol" | "nublado" | "chuva" | "chuva_forte"
       origem_camera: "agente" | "manual"
       papel_empresa: "admin" | "membro"
@@ -1757,6 +2136,7 @@ export type Database = {
         | "leitura"
       status_diario: "rascunho" | "assinado"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
+      tipo_compromisso: "contrato" | "pedido"
       tipo_custo_mao_obra: "hora" | "diaria" | "producao"
       tipo_dependencia: "ti" | "ii" | "tt"
       tipo_item_eap: "etapa" | "tarefa"
@@ -1889,6 +2269,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      categoria_despesa: [
+        "equipamento",
+        "servico",
+        "material",
+        "frete",
+        "taxa",
+        "administracao",
+        "outros",
+      ],
       clima_periodo: ["sol", "nublado", "chuva", "chuva_forte"],
       origem_camera: ["agente", "manual"],
       papel_empresa: ["admin", "membro"],
@@ -1901,6 +2290,7 @@ export const Constants = {
       ],
       status_diario: ["rascunho", "assinado"],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
+      tipo_compromisso: ["contrato", "pedido"],
       tipo_custo_mao_obra: ["hora", "diaria", "producao"],
       tipo_dependencia: ["ti", "ii", "tt"],
       tipo_item_eap: ["etapa", "tarefa"],

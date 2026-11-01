@@ -34,7 +34,13 @@ export const MODULOS: Modulo[] = [
     disponivel: true,
   },
   { slug: 'equipe', nome: 'Equipe', resumo: 'Pessoas e empreiteiras, chamada diária e custo de mão de obra por tarefa.', sprint: 3, disponivel: true },
-  { slug: 'orcamento', nome: 'Orçamento', resumo: 'Orçamento por etapa, físico-financeiro, orçado × realizado e curva S.', sprint: 6, disponivel: false },
+  {
+    slug: 'orcamento',
+    nome: 'Orçamento',
+    resumo: 'Orçamento por etapa com versões, físico-financeiro, orçado × comprometido × realizado e curva S financeira.',
+    sprint: 6,
+    disponivel: true,
+  },
   { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, equipe, serviços, ocorrências e fotos do dia, com assinatura e PDF.', sprint: 2, disponivel: true },
 ];
 

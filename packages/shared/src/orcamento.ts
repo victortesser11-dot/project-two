@@ -295,3 +295,37 @@ export function semaforo(
   if (motivos.length === 0) motivos.push('No prazo e no custo');
   return { cor, motivos };
 }
+
+export interface LinhaTabelaFF {
+  id: string;
+  codigo: string;
+  nome: string;
+  tipo: 'etapa' | 'tarefa';
+  nivel: number;
+  valores: number[];
+  total: number;
+}
+
+/** Linhas do físico-financeiro na ordem da EAP: tarefas com seus meses e etapas somando as de dentro. */
+export function tabelaFisicoFinanceiro(
+  itens: (NoArvore & { codigo: string; nome: string; tipo: 'etapa' | 'tarefa'; nivel: number })[],
+  ff: FisicoFinanceiro,
+): LinhaTabelaFF[] {
+  const zeros = () => ff.meses.map(() => 0);
+  const porItem = new Map<string, number[]>();
+  const pai = new Map(itens.map((i) => [i.id, i.pai_id]));
+  for (const [id, valores] of ff.porTarefa) {
+    let no: string | null | undefined = id;
+    while (no) {
+      const atual = porItem.get(no) ?? zeros();
+      porItem.set(no, atual.map((v, i) => cent(v + valores[i]!)));
+      no = pai.get(no) ?? null;
+    }
+  }
+  return itens
+    .filter((i) => porItem.has(i.id))
+    .map((i) => {
+      const valores = porItem.get(i.id)!;
+      return { id: i.id, codigo: i.codigo, nome: i.nome, tipo: i.tipo, nivel: i.nivel, valores, total: cent(valores.reduce((s, v) => s + v, 0)) };
+    });
+}

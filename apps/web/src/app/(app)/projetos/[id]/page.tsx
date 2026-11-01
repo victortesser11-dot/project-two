@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import {
+  equipeNoDia,
   listarCameras,
   ultimasFotos,
   listarItensEstoque,
@@ -15,7 +16,7 @@ import {
   podeEditarProjeto,
   podeVerCustos,
 } from '@/lib/dados';
-import { itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
+import { hojeIso, itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
 import { PainelObra } from './PainelObra';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +39,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
     listarCameras(id).catch(() => []),
     ultimasFotos(id).catch(() => new Map()),
   ]);
+  const equipeHoje = await equipeNoDia(id, hojeIso());
   const maisRecente = [...fotos.values()].filter((f) => f.url).sort((a, b) => b.capturada_em.localeCompare(a.capturada_em))[0];
   const ultimaFoto = maisRecente
     ? {
@@ -70,6 +72,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
       maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
       material={material}
       ultimaFoto={ultimaFoto}
+      equipeHoje={equipeHoje}
     />
   );
 }

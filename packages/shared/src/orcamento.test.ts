@@ -9,6 +9,7 @@ import {
   rotuloMes,
   semaforo,
   somarNaArvore,
+  tabelaFisicoFinanceiro,
 } from './orcamento';
 
 const U = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -70,6 +71,24 @@ describe('físico-financeiro mensal', () => {
     expect(r.total).toBe(1600);
     expect(r.semDatas).toBe(50);
     expect(rotuloMes('2026-12')).toBe('dez/2026');
+  });
+
+  it('tabela na ordem da EAP com as etapas somando', () => {
+    const itens = [
+      { id: 'E', pai_id: null, codigo: '1', nome: 'Estrutura', tipo: 'etapa' as const, nivel: 1 },
+      { id: 'a', pai_id: 'E', codigo: '1.1', nome: 'Fundação', tipo: 'tarefa' as const, nivel: 2 },
+      { id: 'b', pai_id: 'E', codigo: '1.2', nome: 'Pilares', tipo: 'tarefa' as const, nivel: 2 },
+      { id: 'X', pai_id: null, codigo: '2', nome: 'Vazia', tipo: 'etapa' as const, nivel: 1 },
+    ];
+    const ff = fisicoFinanceiro([
+      { id: 'a', custo: 1000, inicio: '2026-10-22', fim: '2026-11-20' },
+      { id: 'b', custo: 600, inicio: '2026-11-01', fim: '2026-11-30' },
+    ]);
+    expect(tabelaFisicoFinanceiro(itens, ff).map((l) => [l.codigo, l.valores, l.total])).toEqual([
+      ['1', [333.33, 1266.67], 1600],
+      ['1.1', [333.33, 666.67], 1000],
+      ['1.2', [0, 600], 600],
+    ]);
   });
 
   it('virada de ano e obra sem datas', () => {
