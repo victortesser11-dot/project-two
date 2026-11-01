@@ -1,4 +1,5 @@
 // Um ciclo do agente: pega a configuração, responde testes, tira as fotos do horário e esvazia a fila.
+import { randomUUID } from 'node:crypto';
 import { agoraNoFuso, horariosDevidos, limparEstado } from './agenda.js';
 import { capturarFoto, explicarErro } from './captura.js';
 import { vale_tentar_de_novo } from './plataforma.js';
@@ -6,13 +7,15 @@ import { vale_tentar_de_novo } from './plataforma.js';
 export function criarAgente({ plataforma, fila, estado, salvarEstado, log = console, capturar = capturarFoto, relogio = () => new Date() }) {
   let config = null;
 
-  async function enviarOuGuardar(camera, quando, jpeg) {
+  // Cada foto ganha um id na hora da captura: se a resposta do envio se perder e a foto for
+  // reenviada (agora ou pela fila), a plataforma grava no mesmo lugar e não duplica.
+  async function enviarOuGuardar(camera, quando, jpeg, id) {
     try {
-      await plataforma.enviarFoto(camera.id, quando, jpeg);
+      await plataforma.enviarFoto(camera.id, quando, jpeg, false, id);
       return 'enviada';
     } catch (e) {
       if (!vale_tentar_de_novo(e)) throw e;
-      await fila.guardar(camera.id, quando, jpeg);
+      await fila.guardar(camera.id, quando, jpeg, id);
       log.warn(`[${camera.nome}] sem conexão com a plataforma; foto guardada na fila (${explicarErro(e)})`);
       return 'na fila';
     }
@@ -20,9 +23,17 @@ export function criarAgente({ plataforma, fila, estado, salvarEstado, log = cons
 
   async function esvaziarFila() {
     for (const nome of await fila.itens()) {
-      const item = await fila.ler(nome);
+      let item;
       try {
-        await plataforma.enviarFoto(item.cameraId, item.quando, item.jpeg);
+        item = await fila.ler(nome);
+      } catch (e) {
+        // Arquivo pela metade (energia caiu no meio da gravação): não pode travar a fila.
+        await fila.tirar(nome);
+        log.warn(`fila: item ilegível descartado (${e.message})`);
+        continue;
+      }
+      try {
+        await plataforma.enviarFoto(item.cameraId, item.quando, item.jpeg, false, item.id);
         await fila.tirar(nome);
         log.info(`fila: foto de ${item.quando.toISOString()} enviada`);
       } catch (e) {
@@ -60,19 +71,22 @@ export function criarAgente({ plataforma, fila, estado, salvarEstado, log = cons
         }
       }
 
-      for (const h of horariosDevidos(camera, hoje, estado)) {
-        const chave = `${camera.id}|${hoje.data}|${h}`;
+      // Vários horários vencidos de uma vez (agente ficou desligado): uma foto só vale por todos.
+      const devidos = horariosDevidos(camera, hoje, estado);
+      if (devidos.length > 0) {
+        const rotulo = devidos.join(', ');
+        let feito = false;
         try {
           const jpeg = await capturar(camera);
-          const destino = await enviarOuGuardar(camera, agora, jpeg);
-          estado[chave] = { feito: true, tentativa: hoje.minutos };
-          log.info(`[${camera.nome}] foto das ${h} ${destino}`);
+          const destino = await enviarOuGuardar(camera, relogio(), jpeg, randomUUID());
+          feito = true;
+          log.info(`[${camera.nome}] foto das ${rotulo} ${destino}`);
         } catch (e) {
-          estado[chave] = { feito: false, tentativa: hoje.minutos };
           const msg = explicarErro(e);
-          log.warn(`[${camera.nome}] foto das ${h} falhou: ${msg}`);
+          log.warn(`[${camera.nome}] foto das ${rotulo} falhou: ${msg}`);
           await plataforma.registrarFalha(camera.id, msg).catch(() => undefined);
         }
+        for (const h of devidos) estado[`${camera.id}|${hoje.data}|${h}`] = { feito, tentativa: hoje.minutos };
       }
     }
 

@@ -64,7 +64,7 @@ function porRtsp(camera, ffmpeg = process.env.FFMPEG ?? 'ffmpeg') {
 
 /** Foto da câmera em JPEG; lança erro com mensagem legível. */
 export async function capturarFoto(camera) {
-  const dados = camera.endereco.startsWith('rtsp://') ? await porRtsp(camera) : await porHttp(camera);
+  const dados = /^rtsp:\/\//i.test(camera.endereco) ? await porRtsp(camera) : await porHttp(camera);
   if (!ehJpeg(dados)) throw new Error('A câmera não devolveu uma foto JPEG: confira o endereço da foto.');
   return dados;
 }

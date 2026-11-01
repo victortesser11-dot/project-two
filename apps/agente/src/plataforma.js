@@ -27,8 +27,8 @@ export function criarPlataforma({ url = PLATAFORMA_PADRAO, token, versao, buscar
   return {
     /** Câmeras deste agente (com senha), horários e pedidos de teste. */
     config: () => chamar('/config'),
-    enviarFoto: (cameraId, quando, jpeg, teste = false) =>
-      chamar(`/foto?camera=${cameraId}&quando=${encodeURIComponent(quando.toISOString())}${teste ? '&teste=1' : ''}`, {
+    enviarFoto: (cameraId, quando, jpeg, teste = false, id = null) =>
+      chamar(`/foto?camera=${cameraId}&quando=${encodeURIComponent(quando.toISOString())}${teste ? '&teste=1' : ''}${id ? `&id=${id}` : ''}`, {
         method: 'POST',
         headers: { 'content-type': 'image/jpeg' },
         body: jpeg,
@@ -42,7 +42,10 @@ export function criarPlataforma({ url = PLATAFORMA_PADRAO, token, versao, buscar
   };
 }
 
-/** Erro que vale guardar na fila e tentar de novo (rede caiu, plataforma fora do ar). */
+/**
+ * Erro que vale guardar na fila e tentar de novo (rede caiu, plataforma fora do ar).
+ * 4xx (foto recusada, câmera de outro agente, horário inválido) não melhora tentando de novo.
+ */
 export function vale_tentar_de_novo(erro) {
   if (erro instanceof ErroPlataforma) return erro.status >= 500 || erro.status === 429;
   return true; // erro de rede

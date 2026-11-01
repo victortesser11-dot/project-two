@@ -249,12 +249,12 @@ export function curvaSFinanceira(
       pct.set(aps[ia]!.tarefa_id, Number(aps[ia]!.percentual));
       ia += 1;
     }
-    const dentroDoPlano = data <= fimPlano || data <= hoje;
     let agregado = 0;
     for (const [id, p] of pct) agregado += ((orcadoPorTarefa.get(id) ?? 0) * p) / 100;
     return {
       data,
-      planejado: dentroDoPlano && validas.length > 0 ? cent(planejadoAte(data)) : null,
+      // Depois do fim do plano o planejado fica no total (a obra devia ter acabado).
+      planejado: validas.length > 0 ? cent(planejadoAte(data)) : null,
       real: data <= hoje ? cent(acumuladoReal) : null,
       agregado: data <= hoje ? cent(agregado) : null,
     };

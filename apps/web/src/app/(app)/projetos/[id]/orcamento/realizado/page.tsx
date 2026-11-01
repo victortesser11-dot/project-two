@@ -48,7 +48,7 @@ export default async function PaginaRealizado({ params, searchParams }: { params
   const { porItem, semTarefa, obra } = custosNaArvore(itens, linhas ?? []);
   const ind = indicadoresCusto(obra);
   const soEtapas = nivel !== 'tudo';
-  const visiveis = itens.filter((i) => porItem.has(i.id) && (!soEtapas || i.nivel === 1 || (i.tipo === 'tarefa' && i.nivel === 1)));
+  const visiveis = itens.filter((i) => porItem.has(i.id) && (!soEtapas || i.nivel === 1));
   const base = `/projetos/${id}/orcamento/realizado`;
 
   return (

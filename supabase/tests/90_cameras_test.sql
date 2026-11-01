@@ -259,4 +259,25 @@ select tests.afirmar(
   (select count(*) from audit_log where tabela = 'foto_camera' and acao = 'DELETE') = 1,
   'foto tirada da galeria fica no audit_log');
 
+-- ---------------------------------------------------------------- câmera de agente revogado
+set local role authenticated;
+select tests.entrar('00000000-0000-0000-0000-00000000000b');
+select tests.afirmar(
+  tests.erro_de(format($$select salvar_camera(%L, %L, '{"nome": "Fachada sul"}')$$, tests.camera('Fachada norte'), current_setting('t.p')))
+  = 'Escolha um agente ativo desta obra',
+  'câmera ligada não fica com agente revogado');
+select salvar_camera(tests.camera('Fachada norte'), current_setting('t.p')::uuid, '{"ativa": false}');
+select tests.afirmar((select not ativa from camera where nome = 'Fachada norte'), 'dá para desligar a câmera do agente revogado');
+select salvar_camera(tests.camera('Fachada norte'), current_setting('t.p')::uuid, '{"nome": "Fachada sul"}');
+select tests.afirmar(exists (select 1 from camera where nome = 'Fachada sul' and not ativa), 'e renomear a câmera desligada');
+select tests.afirmar(
+  tests.erro_de(format($$select salvar_camera(%L, %L, '{"ativa": true}')$$, tests.camera('Fachada sul'), current_setting('t.p')))
+  = 'Escolha um agente ativo desta obra',
+  'religar exige um agente ativo');
+select set_config('t.agente2', (criar_agente_camera(current_setting('t.p')::uuid, 'Raspberry do canteiro') ->> 'id'), true);
+select salvar_camera(tests.camera('Fachada sul'), current_setting('t.p')::uuid, jsonb_build_object('ativa', true, 'agente_id', current_setting('t.agente2')));
+select tests.afirmar(
+  (select ativa and agente_id = current_setting('t.agente2')::uuid from camera where nome = 'Fachada sul'),
+  'com o agente novo a câmera volta a funcionar');
+
 rollback;

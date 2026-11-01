@@ -5,3 +5,8 @@ packages:
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# O Next 15 fixa postcss 8.4.31, que tem falhas conhecidas (GHSA-fxqj-rqcc-2cmp e outras).
+# Mesma versão principal, compatível; tirar quando o Next atualizar.
+overrides:
+  postcss: ^8.5.32
