@@ -69,7 +69,7 @@ export const listarProjetos = cache(async (): Promise<Projeto[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await supabase
     .from('projeto')
-    .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em')
+    .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em, exemplo')
     .order('criado_em', { ascending: false });
   if (error) throw new Error(`Não foi possível carregar os projetos: ${error.message}`);
   return data ?? [];
@@ -80,7 +80,7 @@ export const buscarProjeto = cache(async (id: string) => {
   const [projeto, papel] = await Promise.all([
     supabase
       .from('projeto')
-      .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em, latitude, longitude')
+      .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em, latitude, longitude, exemplo')
       .eq('id', id)
       .maybeSingle(),
     supabase.from('membro_projeto').select('papel').eq('projeto_id', id).eq('usuario_id', usuario.id).maybeSingle(),

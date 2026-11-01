@@ -108,6 +108,8 @@ export interface Projeto {
   /** Localização da obra (clima automático do diário). */
   latitude?: number | null;
   longitude?: number | null;
+  /** Obra de exemplo (dados fictícios, criada e apagada pelo admin). */
+  exemplo?: boolean;
 }
 
 // ---------------------------------------------------------------- diário de obra (RF-203)

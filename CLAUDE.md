@@ -46,7 +46,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    câmeras: `criar_agente_camera`, `revogar_agente_camera`, `salvar_camera`, `pedir_teste_camera`,
    `registrar_foto_camera`, `excluir_foto_camera`, e as do orçamento: `definir_composicao_custo`,
    `salvar_versao_orcamento`, `salvar_compromisso`, `encerrar_compromisso`, `registrar_despesa`, `excluir_despesa`,
-   `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da obra de exemplo:
+   `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
@@ -163,6 +164,14 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   (admin da empresa). Sempre com ícone e rótulo, nunca só a cor.
 - `formatarMoeda(..., { compacta: true })` é feito à mão (sem notação compacta do Intl), para o servidor e o
   navegador escreverem igual.
+
+## Obra de exemplo
+
+- `criar_obra_exemplo(empresa)` (só admin, uma por empresa) monta no banco uma obra fictícia com ~140 tarefas e três
+  meses de andamento, chamando as mesmas RPCs do app; `excluir_obra_exemplo` apaga a obra e os cadastros marcados
+  `exemplo` que nenhuma obra real usa. Nenhuma conta de login é criada (pessoas são `trabalhador`).
+- A coluna `exemplo` (projeto, empreiteira, trabalhador, item_estoque) só é gravada dentro de `criar_obra_exemplo`
+  (`app.tg_exemplo_protegido`). Mudou uma RPC usada pelo exemplo? Rode `97_obra_exemplo_test.sql`: ele quebra junto.
 
 ## Interface
 

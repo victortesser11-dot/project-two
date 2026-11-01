@@ -17,6 +17,12 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
+## Obra de exemplo (02/11)
+
+- [ ] **Migração `20261102090000_obra_exemplo.sql`** no SQL Editor, **antes** do merge do app (a tela inicial
+      passa a ler a coluna `exemplo`).
+- [ ] Depois do merge: tela inicial → "Obra de exemplo" → **Criar obra de exemplo**.
+
 ## Para eu testar com dados reais
 
 - [ ] **Conta de teste** como variáveis de ambiente `OBRAS_TESTE_EMAIL` e `OBRAS_TESTE_SENHA`
