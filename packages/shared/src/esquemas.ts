@@ -8,6 +8,8 @@ import {
   TIPOS_ITEM_EAP,
   TIPOS_ITEM_ESTOQUE,
   ORIGENS_CAMERA,
+  CATEGORIAS_DESPESA,
+  TIPOS_COMPROMISSO,
 } from './dominio';
 import { chaveNfeValida, cnpjValido, cpfValido, somenteDigitos } from './documentos';
 import { lerNumero } from './importacao/valores';
@@ -524,6 +526,107 @@ export const cameraSchema = z
       ctx.addIssue({ code: 'custom', path: ['endereco'], message: 'O endereço começa com http://, https:// ou rtsp://' });
   });
 export type CameraValidada = z.output<typeof cameraSchema>;
+
+// ---------------------------------------------------------------- orçamento (RF-501 a 504, 602)
+
+/** Valor em reais digitado ("1.234,56", "R$ 500"): vazio = null; com `positivo`, exige > 0. */
+const reais = ({ positivo = false, obrigatorio = false } = {}) =>
+  z
+    .union([z.string(), z.number()])
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      const n = v === null || v === undefined ? null : typeof v === 'number' ? v : lerValorEmReais(v);
+      if (n === null) {
+        if (obrigatorio) {
+          ctx.addIssue({ code: 'custom', message: 'Informe o valor' });
+          return z.NEVER;
+        }
+        return null;
+      }
+      if (Number.isNaN(n)) {
+        ctx.addIssue({ code: 'custom', message: 'Valor inválido' });
+        return z.NEVER;
+      }
+      if (positivo ? n <= 0 : n < 0) {
+        ctx.addIssue({ code: 'custom', message: positivo ? 'O valor precisa ser maior que zero' : 'Não pode ser negativo' });
+        return z.NEVER;
+      }
+      return Math.round(n * 100) / 100;
+    });
+
+/** Composição do custo da tarefa. Tudo vazio = tirar a composição. */
+export const composicaoSchema = z.object({
+  material: reais(),
+  mao_obra: reais(),
+  equipamento: reais(),
+  outros: reais(),
+});
+export type ComposicaoValidada = z.output<typeof composicaoSchema>;
+
+export const versaoOrcamentoSchema = z.object({
+  nome: z.string().trim().min(2, 'Dê um nome à versão (ex.: Orçamento aprovado, Revisão 1)').max(80, 'Use no máximo 80 caracteres'),
+});
+
+export const despesaSchema = z.object({
+  tarefa_id: z.string({ error: 'Escolha a tarefa da despesa' }).uuid('Escolha a tarefa da despesa'),
+  data: z.string().regex(DATA_ISO, 'Informe a data'),
+  categoria: z.enum(CATEGORIAS_DESPESA, { error: 'Escolha o tipo da despesa' }),
+  descricao: z.string().trim().min(2, 'Descreva a despesa').max(200, 'Use no máximo 200 caracteres'),
+  valor: reais({ positivo: true, obrigatorio: true }),
+  fornecedor: textoOpcional(160),
+  documento: textoOpcional(60),
+  compromisso_id: uuidOpcional,
+});
+export type DespesaValidada = z.output<typeof despesaSchema>;
+
+export const compromissoSchema = z.object({
+  tarefa_id: z.string({ error: 'Escolha a tarefa' }).uuid('Escolha a tarefa'),
+  tipo: z.enum(TIPOS_COMPROMISSO, { error: 'Escolha contrato ou pedido' }),
+  descricao: z.string().trim().min(2, 'Descreva o contrato ou pedido').max(200, 'Use no máximo 200 caracteres'),
+  fornecedor: textoOpcional(160),
+  cnpj: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      const c = somenteDigitos(v ?? '');
+      if (c === '') return null;
+      if (!cnpjValido(c)) {
+        ctx.addIssue({ code: 'custom', message: 'CNPJ inválido: confira os números' });
+        return z.NEVER;
+      }
+      return c;
+    }),
+  empreiteira_id: uuidOpcional,
+  valor: reais({ positivo: true, obrigatorio: true }),
+  data: z.string().regex(DATA_ISO, 'Informe a data'),
+});
+export type CompromissoValidado = z.output<typeof compromissoSchema>;
+
+const inteiroNaoNegativo = (mensagem: string) =>
+  z.union([z.string(), z.number()]).transform((v, ctx) => {
+    const n = typeof v === 'number' ? v : Number(String(v).trim());
+    if (!Number.isInteger(n) || n < 0) {
+      ctx.addIssue({ code: 'custom', message: mensagem });
+      return z.NEVER;
+    }
+    return n;
+  });
+
+export const regraSemaforoSchema = z
+  .object({
+    atraso_amarelo_dias: inteiroNaoNegativo('Dias inteiros, zero ou mais'),
+    atraso_vermelho_dias: inteiroNaoNegativo('Dias inteiros, zero ou mais'),
+    custo_amarelo_pct: numeroEntre(0, 1000, 2, 'Percentual de 0 a 1000').refine((v) => v !== null, 'Informe o percentual'),
+    custo_vermelho_pct: numeroEntre(0, 1000, 2, 'Percentual de 0 a 1000').refine((v) => v !== null, 'Informe o percentual'),
+  })
+  .superRefine((r, ctx) => {
+    if (r.atraso_vermelho_dias < r.atraso_amarelo_dias)
+      ctx.addIssue({ code: 'custom', path: ['atraso_vermelho_dias'], message: 'O vermelho precisa de mais dias que o amarelo' });
+    if ((r.custo_vermelho_pct ?? 0) < (r.custo_amarelo_pct ?? 0))
+      ctx.addIssue({ code: 'custom', path: ['custo_vermelho_pct'], message: 'O vermelho precisa de um percentual maior que o amarelo' });
+  });
 
 /** Erros por campo, no formato que os formulários exibem. */
 export function errosPorCampo(erro: z.ZodError): Record<string, string> {
