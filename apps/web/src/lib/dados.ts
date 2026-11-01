@@ -2,6 +2,15 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type {
+  ComposicaoCusto,
+  Compromisso,
+  Despesa,
+  LinhaOrcadoRealizado,
+  RegraSemaforo,
+  VersaoOrcamento,
+  AgenteCamera,
+  Camera,
+  FotoCamera,
   ApontamentoRegistrado,
   EmprestimoFerramenta,
   ItemEstoque,
@@ -24,6 +33,7 @@ import type {
   Projeto,
   StatusDiario,
 } from '@obras/shared';
+import { REGRA_SEMAFORO_PADRAO } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 /** Usuário logado; sem sessão, manda para o login. */
@@ -484,4 +494,193 @@ export const obrasOndeMovimenta = cache(async (empresaId: string): Promise<Proje
   const admin = empresa?.papel === 'admin' && empresa.id === empresaId;
   const pode = new Set((papeis.data ?? []).filter((p) => p.papel === 'engenheiro' || p.papel === 'almoxarife').map((p) => p.projeto_id));
   return projetos.filter((p) => p.empresa_id === empresaId && p.status !== 'concluido' && (admin || pode.has(p.id)));
+});
+
+// ---------------------------------------------------------------- câmeras (RF-101 a 104)
+
+export const listarAgentes = cache(async (projetoId: string): Promise<AgenteCamera[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('agente_camera')
+    .select('id, nome, ativo, versao, ultimo_contato_em, criado_em')
+    .eq('projeto_id', projetoId)
+    .order('criado_em');
+  if (error) throw new Error(`Não foi possível carregar os agentes: ${error.message}`);
+  return data ?? [];
+});
+
+// Nunca select('*') em camera: o banco não entrega senha_id (fica no Vault).
+const COLUNAS_CAMERA =
+  'id, nome, origem, agente_id, endereco, usuario, tem_senha, horarios, ativa, ultima_foto_em, falhas_seguidas, ultimo_erro, ultimo_erro_em, teste_pedido_em, teste_respondido_em, teste_caminho, teste_erro';
+
+export const listarCameras = cache(async (projetoId: string): Promise<Camera[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.from('camera').select(COLUNAS_CAMERA).eq('projeto_id', projetoId).order('criado_em');
+  if (error) throw new Error(`Não foi possível carregar as câmeras: ${error.message}`);
+  return (data ?? []).map((c) => ({ ...c, tem_senha: c.tem_senha ?? false }));
+});
+
+/** Fotos das câmeras da obra (sem URL; assine só as que for mostrar). */
+export const listarFotosCamera = cache(
+  async (projetoId: string, filtro: { cameraId?: string; de?: string; ate?: string } = {}): Promise<FotoCamera[]> => {
+    const { supabase } = await exigirUsuario();
+    let q = supabase
+      .from('foto_camera')
+      .select('id, camera_id, caminho, capturada_em, data, origem')
+      .eq('projeto_id', projetoId)
+      .order('capturada_em', { ascending: false })
+      .limit(5000);
+    if (filtro.cameraId) q = q.eq('camera_id', filtro.cameraId);
+    if (filtro.de) q = q.gte('data', filtro.de);
+    if (filtro.ate) q = q.lte('data', filtro.ate);
+    const { data, error } = await q;
+    if (error) throw new Error(`Não foi possível carregar as fotos: ${error.message}`);
+    return (data ?? []).map((f) => ({ ...f, url: null }));
+  },
+);
+
+/** URLs assinadas (1 h) para as fotos, em lotes. */
+export async function assinarFotos<T extends { caminho: string }>(fotos: T[], segundos = 3600): Promise<(T & { url: string | null })[]> {
+  if (fotos.length === 0) return [];
+  const { supabase } = await exigirUsuario();
+  const urls = new Map<string, string>();
+  for (let i = 0; i < fotos.length; i += 200) {
+    const lote = fotos.slice(i, i + 200).map((f) => f.caminho);
+    const { data } = await supabase.storage.from('cameras').createSignedUrls(lote, segundos);
+    for (const d of data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  }
+  return fotos.map((f) => ({ ...f, url: urls.get(f.caminho) ?? null }));
+}
+
+/** A foto mais recente de cada câmera da obra. */
+export const ultimasFotos = cache(async (projetoId: string): Promise<Map<string, FotoCamera>> => {
+  const { supabase } = await exigirUsuario();
+  const { data } = await supabase
+    .from('foto_camera')
+    .select('id, camera_id, caminho, capturada_em, data, origem')
+    .eq('projeto_id', projetoId)
+    .order('capturada_em', { ascending: false })
+    .limit(200);
+  const primeira = new Map<string, FotoCamera>();
+  for (const f of data ?? []) if (!primeira.has(f.camera_id)) primeira.set(f.camera_id, { ...f, url: null });
+  const assinadas = await assinarFotos([...primeira.values()]);
+  return new Map(assinadas.map((f) => [f.camera_id, f]));
+});
+
+/** Dias com foto (para o calendário da galeria), mais recentes primeiro. */
+export const diasComFoto = cache(async (projetoId: string, cameraId?: string): Promise<{ data: string; fotos: number }[]> => {
+  const fotos = await listarFotosCamera(projetoId, cameraId ? { cameraId } : {});
+  const conta = new Map<string, number>();
+  for (const f of fotos) conta.set(f.data, (conta.get(f.data) ?? 0) + 1);
+  return [...conta.entries()].map(([data, n]) => ({ data, fotos: n })).sort((a, b) => b.data.localeCompare(a.data));
+});
+
+// ---------------------------------------------------------------- orçamento (RF-501 a 504, 601, 602)
+
+/** Engenheiro (admin conta como engenheiro) ou financeiro: vê e lança o financeiro. Só para a interface. */
+export async function podeFinanceiro(projeto: Projeto, papel: PapelProjeto | null): Promise<boolean> {
+  if (papel === 'engenheiro' || papel === 'financeiro') return true;
+  return podeEditarProjeto(projeto, papel);
+}
+
+const n = (v: number | string | null) => (v === null ? 0 : Number(v));
+
+export const listarComposicoes = cache(async (projetoId: string): Promise<ComposicaoCusto[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('composicao_custo')
+    .select('tarefa_id, material, mao_obra, equipamento, outros, total')
+    .eq('projeto_id', projetoId);
+  if (error) throw new Error(`Não foi possível carregar a composição dos custos: ${error.message}`);
+  return (data ?? []).map((c) => ({
+    tarefa_id: c.tarefa_id,
+    material: n(c.material),
+    mao_obra: n(c.mao_obra),
+    equipamento: n(c.equipamento),
+    outros: n(c.outros),
+    total: n(c.total),
+  }));
+});
+
+export const listarVersoesOrcamento = cache(async (projetoId: string): Promise<VersaoOrcamento[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('orcamento_versao')
+    .select('id, nome, total, criado_em, itens')
+    .eq('projeto_id', projetoId)
+    .order('criado_em', { ascending: false });
+  if (error) throw new Error(`Não foi possível carregar as versões do orçamento: ${error.message}`);
+  return (data ?? []).map((v) => ({ ...v, total: n(v.total), itens: v.itens as unknown as VersaoOrcamento['itens'] }));
+});
+
+/** Orçado × comprometido × realizado por tarefa (calculado no banco). null = sem permissão. */
+export const orcadoRealizado = cache(async (projetoId: string): Promise<LinhaOrcadoRealizado[] | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.rpc('orcado_realizado', { p_projeto_id: projetoId });
+  if (error) return null;
+  return (data ?? []).map((l) => ({
+    tarefa_id: l.tarefa_id,
+    orcado: n(l.orcado),
+    material: n(l.material),
+    mao_obra: n(l.mao_obra),
+    despesas: n(l.despesas),
+    comprometido: n(l.comprometido),
+  }));
+});
+
+/** Custo realizado por dia (material + mão de obra + despesas). null = sem permissão. */
+export const custoRealizadoPorDia = cache(async (projetoId: string): Promise<{ data: string; total: number }[] | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase.rpc('custo_realizado_por_dia', { p_projeto_id: projetoId });
+  if (error) return null;
+  return (data ?? []).map((d) => ({ data: d.data, total: Math.round((n(d.material) + n(d.mao_obra) + n(d.despesas)) * 100) / 100 }));
+});
+
+export const listarDespesas = cache(async (projetoId: string): Promise<Despesa[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('despesa')
+    .select('id, tarefa_id, data, categoria, descricao, valor, fornecedor, documento, compromisso_id')
+    .eq('projeto_id', projetoId)
+    .order('data', { ascending: false })
+    .order('registrado_em', { ascending: false })
+    .limit(2000);
+  if (error) throw new Error(`Não foi possível carregar as despesas: ${error.message}`);
+  return (data ?? []).map((d) => ({ ...d, valor: n(d.valor) }));
+});
+
+export const listarCompromissos = cache(async (projetoId: string): Promise<Compromisso[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('compromisso')
+    .select('id, tarefa_id, tipo, descricao, fornecedor, cnpj, empreiteira_id, valor, data, encerrado, encerrado_em')
+    .eq('projeto_id', projetoId)
+    .order('data', { ascending: false });
+  if (error) throw new Error(`Não foi possível carregar os contratos e pedidos: ${error.message}`);
+  return (data ?? []).map((c) => ({ ...c, valor: n(c.valor) }));
+});
+
+export const regraSemaforo = cache(async (empresaId: string): Promise<RegraSemaforo> => {
+  const { supabase } = await exigirUsuario();
+  const { data } = await supabase
+    .from('regra_semaforo')
+    .select('atraso_amarelo_dias, atraso_vermelho_dias, custo_amarelo_pct, custo_vermelho_pct')
+    .eq('empresa_id', empresaId)
+    .maybeSingle();
+  return data
+    ? { ...data, custo_amarelo_pct: n(data.custo_amarelo_pct), custo_vermelho_pct: n(data.custo_vermelho_pct) }
+    : REGRA_SEMAFORO_PADRAO;
+});
+
+/** Quantas pessoas vieram hoje (chamada do dia). */
+export const equipeNoDia = cache(async (projetoId: string, data: string): Promise<number | null> => {
+  const { supabase } = await exigirUsuario();
+  const { data: linhas, error } = await supabase
+    .from('apontamento_mao_obra')
+    .select('trabalhador_id')
+    .eq('projeto_id', projetoId)
+    .eq('data', data)
+    .eq('presente', true);
+  if (error) return null;
+  return new Set((linhas ?? []).map((l) => l.trabalhador_id)).size;
 });

@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation';
 import {
+  equipeNoDia,
+  listarCameras,
+  ultimasFotos,
   listarItensEstoque,
   listarMovimentos,
   listarSaldos,
@@ -13,7 +16,7 @@ import {
   podeEditarProjeto,
   podeVerCustos,
 } from '@/lib/dados';
-import { itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
+import { hojeIso, itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
 import { PainelObra } from './PainelObra';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +25,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
   if (!dados) notFound();
   const { projeto, papel } = dados;
 
-  const [itens, membros, podeEditar, linhaBase, apontamentos, verCustos, catalogo, saldos, movimentos] = await Promise.all([
+  const [itens, membros, podeEditar, linhaBase, apontamentos, verCustos, catalogo, saldos, movimentos, cameras, fotos] = await Promise.all([
     buscarEap(id),
     listarMembrosProjeto(id),
     podeEditarProjeto(projeto, papel),
@@ -32,7 +35,20 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
     listarItensEstoque(projeto.empresa_id),
     listarSaldos(id),
     listarMovimentos(id),
+    // O painel não cai se o módulo de câmeras falhar.
+    listarCameras(id).catch(() => []),
+    ultimasFotos(id).catch(() => new Map()),
   ]);
+  const equipeHoje = await equipeNoDia(id, hojeIso());
+  const maisRecente = [...fotos.values()].filter((f) => f.url).sort((a, b) => b.capturada_em.localeCompare(a.capturada_em))[0];
+  const ultimaFoto = maisRecente
+    ? {
+        url: maisRecente.url!,
+        camera: cameras.find((c) => c.id === maisRecente.camera_id)?.nome ?? 'Câmera',
+        quando: maisRecente.capturada_em,
+        cameras: cameras.length,
+      }
+    : null;
   const linhasMaoObra = verCustos ? await custoMaoObra(id) : null;
   const material =
     catalogo.length > 0
@@ -55,6 +71,8 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
       apontamentos={apontamentos}
       maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
       material={material}
+      ultimaFoto={ultimaFoto}
+      equipeHoje={equipeHoje}
     />
   );
 }

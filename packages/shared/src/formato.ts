@@ -1,14 +1,29 @@
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const moedaCompacta = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
+const umaCasa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+const semCasas = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+
+/**
+ * "R$ 12,5 mil", "R$ 1,3 mi". Feito à mão de propósito: a notação compacta do Intl muda
+ * entre versões do ICU (Node × navegador) e quebraria a hidratação dos componentes de cliente.
+ */
+function moedaCompacta(valor: number): string {
+  const abs = Math.abs(valor);
+  const sinal = valor < 0 ? '-' : '';
+  const escalas: [number, string][] = [
+    [1e9, 'bi'],
+    [1e6, 'mi'],
+    [1e3, 'mil'],
+  ];
+  for (const [limite, sufixo] of escalas) {
+    // 999.950 arredonda para "1.000 mil": sobe de escala antes
+    if (abs >= limite * 0.99995) return `${sinal}R$\u00a0${umaCasa.format(abs / limite)}\u00a0${sufixo}`;
+  }
+  return `${sinal}R$\u00a0${semCasas.format(abs)}`;
+}
 
 export function formatarMoeda(valor: number | null | undefined, opcoes?: { compacta?: boolean }): string {
   if (valor === null || valor === undefined) return '—';
-  return (opcoes?.compacta ? moedaCompacta : moeda).format(valor);
+  return opcoes?.compacta ? moedaCompacta(valor) : moeda.format(valor);
 }
 
 /** "2026-11-03" → "03/11/2026", sem conversão de fuso. */

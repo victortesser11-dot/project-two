@@ -19,6 +19,9 @@
   --color-marcador: #b9461a;
   --color-marcador-claro: #fbeee7;
   --color-obra-ok: #2f7d4f;
+  /* Semáforo do portfólio: amarelo de atenção (texto 5:1 no fundo claro dele). */
+  --color-atencao: #8a5a00;
+  --color-atencao-claro: #fdf3dc;
 
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 

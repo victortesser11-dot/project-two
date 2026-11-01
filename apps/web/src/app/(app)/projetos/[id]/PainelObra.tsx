@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
+  dataDoInstante,
   diasEntre,
+  horaDoInstante,
   formatarData,
   formatarMoeda,
   hojeIso,
@@ -43,6 +45,8 @@ export function PainelObra({
   apontamentos,
   maoDeObra = null,
   material = null,
+  ultimaFoto = null,
+  equipeHoje = null,
   hoje = hojeIso(),
 }: {
   projeto: Projeto;
@@ -57,6 +61,10 @@ export function PainelObra({
   maoDeObra?: { custo: number; horas: number; semCusto: number } | null;
   /** Almoxarifado: aplicado nas tarefas (custo médio; null = sem permissão para ver custos), itens no catálogo e abaixo do mínimo. */
   material?: { aplicado: number | null; itens: number; abaixoDoMinimo: number } | null;
+  /** Foto mais recente das câmeras da obra (URL assinada). */
+  ultimaFoto?: { url: string; camera: string; quando: string; cameras: number } | null;
+  /** Pessoas presentes na chamada de hoje (null = sem acesso). */
+  equipeHoje?: number | null;
   hoje?: string;
 }) {
   const p = montarPainel(itens, apontamentos, linhaBase !== null, hoje);
@@ -69,7 +77,9 @@ export function PainelObra({
     'Dados básicos': true,
     'EAP e cronograma': temTarefas,
     'Linha de base': linhaBase !== null,
+    'Orçamento por etapa': (p.custoTotal ?? 0) > 0,
     Almoxarifado: (material?.itens ?? 0) > 0,
+    Câmeras: (ultimaFoto?.cameras ?? 0) > 0,
   };
   const materialAplicado = material?.aplicado ?? null;
   const gastoReal = maoDeObra || materialAplicado !== null ? (maoDeObra?.custo ?? 0) + (materialAplicado ?? 0) : null;
@@ -146,6 +156,9 @@ export function PainelObra({
                   </Link>
                 )}
               </p>
+              <Link href={`${base}/orcamento/realizado`} className="mt-1 inline-block text-xs font-semibold text-cianotipia hover:underline underline-offset-4">
+                Orçado × realizado
+              </Link>
               {maoDeObra && maoDeObra.semCusto > 0 && (
                 <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>
               )}
@@ -168,6 +181,17 @@ export function PainelObra({
             )}
             <span className="text-regua"> · {p.hoje.proximas} nos próximos dias</span>
           </p>
+          {equipeHoje !== null && (
+            <Link href={`${base}/equipe/chamada/${hoje}`} className="numeros mt-1 block text-sm hover:text-cianotipia">
+              {equipeHoje > 0 ? (
+                <>
+                  <span className="font-semibold">{equipeHoje}</span> {equipeHoje === 1 ? 'pessoa' : 'pessoas'} na chamada de hoje
+                </>
+              ) : (
+                <span className="text-regua">Chamada de hoje ainda não feita</span>
+              )}
+            </Link>
+          )}
           {material && material.abaixoDoMinimo > 0 && (
             <Link href={`${base}/almoxarifado`} className="numeros mt-1 block text-sm font-semibold text-marcador hover:underline underline-offset-4">
               {material.abaixoDoMinimo} {material.abaixoDoMinimo === 1 ? 'material abaixo' : 'materiais abaixo'} do estoque mínimo
@@ -237,6 +261,22 @@ export function PainelObra({
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
+          {ultimaFoto && (
+            <section aria-labelledby="titulo-ultima-foto" className="overflow-hidden rounded-medio border border-linha bg-papel">
+              <Link href={`${base}/cameras`} className="block aspect-video bg-concreto">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ultimaFoto.url} alt={`Última foto de ${ultimaFoto.camera}`} className="h-full w-full object-cover" />
+              </Link>
+              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+                <h2 id="titulo-ultima-foto" className="text-base font-semibold">
+                  Última foto
+                </h2>
+                <p className="numeros text-sm text-regua">
+                  {ultimaFoto.camera} · {formatarData(dataDoInstante(ultimaFoto.quando))} {horaDoInstante(ultimaFoto.quando)}
+                </p>
+              </div>
+            </section>
+          )}
           <aside className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-resumo">
             <h2 id="titulo-resumo" className="border-b border-linha px-5 py-4 text-base font-semibold">
               Resumo

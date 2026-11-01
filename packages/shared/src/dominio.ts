@@ -285,3 +285,155 @@ export interface VinculoFornecedor {
   codigo_fornecedor: string;
   item_id: string;
 }
+
+// ---------------------------------------------------------------- câmeras (RF-101 a 104)
+
+/** Espelha o enum origem_camera do banco. */
+export const ORIGENS_CAMERA = ['agente', 'manual'] as const;
+export type OrigemCamera = (typeof ORIGENS_CAMERA)[number];
+export const ROTULO_ORIGEM_CAMERA: Record<OrigemCamera, string> = {
+  agente: 'Agente na obra (automático)',
+  manual: 'Foto pelo celular',
+};
+
+export interface AgenteCamera {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  versao: string | null;
+  ultimo_contato_em: string | null;
+  criado_em: string;
+}
+
+/** Câmera como o app enxerga: sem o id da senha (o banco não entrega). */
+export interface Camera {
+  id: string;
+  nome: string;
+  origem: OrigemCamera;
+  agente_id: string | null;
+  endereco: string | null;
+  usuario: string | null;
+  tem_senha: boolean;
+  /** "07:00:00" (time do Postgres). */
+  horarios: string[];
+  ativa: boolean;
+  ultima_foto_em: string | null;
+  falhas_seguidas: number;
+  ultimo_erro: string | null;
+  ultimo_erro_em: string | null;
+  teste_pedido_em: string | null;
+  teste_respondido_em: string | null;
+  teste_caminho: string | null;
+  teste_erro: string | null;
+}
+
+export interface FotoCamera {
+  id: string;
+  camera_id: string;
+  caminho: string;
+  capturada_em: string;
+  /** Dia da captura em Brasília (AAAA-MM-DD). */
+  data: string;
+  origem: OrigemCamera;
+  /** URL assinada (bucket privado), válida por pouco tempo. */
+  url: string | null;
+}
+
+// ---------------------------------------------------------------- orçamento (RF-501 a 504, 602)
+
+/** Espelha o enum categoria_despesa do banco. */
+export const CATEGORIAS_DESPESA = ['equipamento', 'servico', 'material', 'frete', 'taxa', 'administracao', 'outros'] as const;
+export type CategoriaDespesa = (typeof CATEGORIAS_DESPESA)[number];
+export const ROTULO_CATEGORIA_DESPESA: Record<CategoriaDespesa, string> = {
+  equipamento: 'Aluguel de equipamento',
+  servico: 'Serviço',
+  material: 'Material fora do almoxarifado',
+  frete: 'Frete',
+  taxa: 'Taxa, licença ou ART',
+  administracao: 'Administração da obra',
+  outros: 'Outros',
+};
+
+/** Espelha o enum tipo_compromisso do banco. */
+export const TIPOS_COMPROMISSO = ['contrato', 'pedido'] as const;
+export type TipoCompromisso = (typeof TIPOS_COMPROMISSO)[number];
+export const ROTULO_COMPROMISSO: Record<TipoCompromisso, string> = { contrato: 'Contrato', pedido: 'Pedido de compra' };
+
+export interface ComposicaoCusto {
+  tarefa_id: string;
+  material: number;
+  mao_obra: number;
+  equipamento: number;
+  outros: number;
+  total: number;
+}
+
+/** Linha de orcado_realizado (no banco): valores de uma tarefa; tarefa nula = perdeu a tarefa. */
+export interface LinhaOrcadoRealizado {
+  tarefa_id: string | null;
+  orcado: number;
+  material: number;
+  mao_obra: number;
+  despesas: number;
+  comprometido: number;
+}
+
+export interface Despesa {
+  id: string;
+  tarefa_id: string | null;
+  data: string;
+  categoria: CategoriaDespesa;
+  descricao: string;
+  valor: number;
+  fornecedor: string | null;
+  documento: string | null;
+  compromisso_id: string | null;
+}
+
+export interface Compromisso {
+  id: string;
+  tarefa_id: string | null;
+  tipo: TipoCompromisso;
+  descricao: string;
+  fornecedor: string | null;
+  cnpj: string | null;
+  empreiteira_id: string | null;
+  valor: number;
+  data: string;
+  encerrado: boolean;
+  encerrado_em: string | null;
+}
+
+export interface ItemVersaoOrcamento {
+  id: string;
+  codigo: string;
+  tipo: TipoItemEap;
+  nome: string;
+  custo: number | null;
+  material: number | null;
+  mao_obra: number | null;
+  equipamento: number | null;
+  outros: number | null;
+}
+
+export interface VersaoOrcamento {
+  id: string;
+  nome: string;
+  total: number;
+  criado_em: string;
+  itens: ItemVersaoOrcamento[];
+}
+
+export interface RegraSemaforo {
+  atraso_amarelo_dias: number;
+  atraso_vermelho_dias: number;
+  custo_amarelo_pct: number;
+  custo_vermelho_pct: number;
+}
+
+export const REGRA_SEMAFORO_PADRAO: RegraSemaforo = {
+  atraso_amarelo_dias: 7,
+  atraso_vermelho_dias: 30,
+  custo_amarelo_pct: 5,
+  custo_vermelho_pct: 10,
+};

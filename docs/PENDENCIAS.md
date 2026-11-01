@@ -51,6 +51,10 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
       muito diferentes precisarem de mínimos diferentes, dá para ter o mínimo por obra.
 - [ ] **Custo da NF-e**: lancei o custo da linha com frete, seguro, IPI e ICMS-ST, menos desconto
       (a construtora em geral não aproveita crédito de ICMS). Confirme com a contabilidade.
+- [ ] **Regras do semáforo** (portfólio): comecei com amarelo a partir de 7 dias de atraso ou 5% de custo
+      acima do que o serviço feito vale, e vermelho com 30 dias ou 10%. O admin muda na tela inicial.
+- [ ] **Despesa e contrato sempre numa tarefa**: custo de administração da obra (vigia, água, luz) vai para uma
+      tarefa "Administração local" na EAP. Confirme se é assim que vocês apropriam.
 - [ ] Perguntas em aberto do PRD: produto interno ou SaaS; obra-piloto; de onde vem o orçamento hoje
       (planilha, OrçaFascio, Sienge…); integrar com ERP no MVP ou só exportar planilha.
 
@@ -65,14 +69,27 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 
 ## Câmeras (sprint 5)
 
-- [ ] Modelo exato da câmera Intelbras (e se a obra tem gravador NVR).
-- [ ] Internet e energia na obra-piloto (fibra, 4G, rádio; tomada ou solar).
-- [ ] Qual VPS usar (ou peça uma recomendação).
-- [ ] Uma câmera na sua rede para testar o endereço de foto (`/cgi-bin/snapshot.cgi`) do modelo.
+Decidido (31/10): câmeras Intelbras, ligadas direto ou por um NVR. A foto chega por um **agente
+na obra** (programa num computador da rede da obra) que pede a foto pela rede local e envia por
+HTTPS. **Não precisa abrir porta** no roteador, e a câmera não fica exposta na internet. Sem VPS
+por enquanto: a nuvem é o Supabase que já usamos.
+
+- [ ] **Computador para o agente na obra-piloto**, ligado 24 h na mesma rede das câmeras:
+      Raspberry Pi 4/5 (com fonte e cartão de 32 GB), mini PC ou o PC do escritório da obra.
+      Nobreak ajuda (a câmera e o roteador também precisam).
+- [ ] **Endereço local de cada câmera ou do NVR** (ex.: `192.168.1.108`) e, no NVR, o número do
+      canal de cada câmera.
+- [ ] **Usuário só de visualização** criado na câmera/NVR para a plataforma (não use o admin).
+- [ ] Modelo exato quando comprar/instalar, para eu conferir o endereço de foto do modelo
+      (`/cgi-bin/snapshot.cgi`) e o RTSP.
+- [ ] Energia na obra-piloto (tomada fixa ou solar) e onde fixar: alta, fixa, mesma posição a obra toda.
+- [ ] Aviso de câmera na obra (LGPD): placa "ambiente monitorado por câmeras".
 
 ## Feito
 
 - [x] Liberar o Supabase na rede do ambiente (31/10).
 - [x] Trocar o install da Vercel para `pnpm install --frozen-lockfile` (31/10).
 - [x] Aprovar e publicar sprints 1, 2 e 3 (31/10).
-- [x] Migração do almoxarifado aplicada no Supabase (31/10).
+- [x] Migração do almoxarifado aplicada no Supabase e sprint 4 publicado (31/10).
+- [x] Câmeras: Intelbras, link dedicado, sem VPS por enquanto; agente na obra em vez de abrir portas (31/10).
+- [x] Migrações `cameras` e `orcamento` e a função `agente-cameras` publicadas no Supabase pelo SQL Editor (01/11).

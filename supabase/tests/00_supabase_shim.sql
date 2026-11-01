@@ -67,3 +67,33 @@ grant usage on schema storage to anon, authenticated, service_role;
 grant select, insert, update, delete on storage.objects to authenticated;
 grant select on storage.buckets to authenticated;
 grant execute on function storage.foldername(text) to anon, authenticated;
+
+-- Vault (mínimo): guarda o segredo e devolve pela view decrypted_secrets. No Supabase
+-- de verdade o segredo fica cifrado com uma chave fora do banco; aqui só imita a interface.
+create schema if not exists vault;
+create table if not exists vault.secrets (
+  id          uuid primary key default gen_random_uuid(),
+  name        text unique,
+  description text not null default '',
+  secret      text not null,
+  key_id      uuid,
+  nonce       bytea,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create or replace view vault.decrypted_secrets as
+  select id, name, description, secret, secret as decrypted_secret, key_id, nonce, created_at, updated_at from vault.secrets;
+create or replace function vault.create_secret(new_secret text, new_name text default null, new_description text default '', new_key_id uuid default null)
+returns uuid language sql as $$
+  insert into vault.secrets (secret, name, description, key_id) values (new_secret, new_name, new_description, new_key_id) returning id;
+$$;
+create or replace function vault.update_secret(secret_id uuid, new_secret text default null, new_name text default null, new_description text default null, new_key_id uuid default null)
+returns void language sql as $$
+  update vault.secrets
+     set secret = coalesce(new_secret, secret), name = coalesce(new_name, name),
+         description = coalesce(new_description, description), updated_at = now()
+   where id = secret_id;
+$$;
+revoke all on schema vault from public;
+revoke all on all tables in schema vault from public;
+revoke all on all functions in schema vault from public;
