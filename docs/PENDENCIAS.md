@@ -51,6 +51,10 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
       muito diferentes precisarem de mínimos diferentes, dá para ter o mínimo por obra.
 - [ ] **Custo da NF-e**: lancei o custo da linha com frete, seguro, IPI e ICMS-ST, menos desconto
       (a construtora em geral não aproveita crédito de ICMS). Confirme com a contabilidade.
+- [ ] **Regras do semáforo** (portfólio): comecei com amarelo a partir de 7 dias de atraso ou 5% de custo
+      acima do que o serviço feito vale, e vermelho com 30 dias ou 10%. O admin muda na tela inicial.
+- [ ] **Despesa e contrato sempre numa tarefa**: custo de administração da obra (vigia, água, luz) vai para uma
+      tarefa "Administração local" na EAP. Confirme se é assim que vocês apropriam.
 - [ ] Perguntas em aberto do PRD: produto interno ou SaaS; obra-piloto; de onde vem o orçamento hoje
       (planilha, OrçaFascio, Sienge…); integrar com ERP no MVP ou só exportar planilha.
 
@@ -75,6 +79,8 @@ por enquanto: a nuvem é o Supabase que já usamos.
       repito o pedido. Ou rode `supabase/migrations/20261031100000_cameras.sql` no SQL Editor e me avise.
 - [ ] **Aprovar a publicação da função `agente-cameras`** no Supabase (mesmo tipo de cartão, logo
       depois da migração). É ela que recebe as fotos do agente.
+- [ ] **Aplicar a migração `orcamento`** (sprint 6) junto: `supabase/migrations/20261101090000_orcamento.sql`.
+      As duas migrações e a função podem ir na mesma sessão, um cartão atrás do outro.
 - [ ] **Computador para o agente na obra-piloto**, ligado 24 h na mesma rede das câmeras:
       Raspberry Pi 4/5 (com fonte e cartão de 32 GB), mini PC ou o PC do escritório da obra.
       Nobreak ajuda (a câmera e o roteador também precisam).

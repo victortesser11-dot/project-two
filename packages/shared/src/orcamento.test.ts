@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compromissoSchema, composicaoSchema, despesaSchema, errosPorCampo, regraSemaforoSchema } from './esquemas';
 import { REGRA_SEMAFORO_PADRAO } from './dominio';
+import { formatarMoeda } from './formato';
 import {
   curvaSFinanceira,
   custosNaArvore,
@@ -179,5 +180,21 @@ describe('esquemas do orçamento', () => {
       custo_amarelo_pct: 5,
       custo_vermelho_pct: 10.5,
     });
+  });
+});
+
+describe('moeda compacta', () => {
+  it('igual no servidor e no navegador (sem notação compacta do Intl)', () => {
+    const c = (v: number) => formatarMoeda(v, { compacta: true }).replace(/\u00a0/g, ' ');
+    expect([0, 950.4, 1000, 12500, 999_960, 1_250_000, 2_400_000_000, -3100].map(c)).toEqual([
+      'R$ 0',
+      'R$ 950',
+      'R$ 1 mil',
+      'R$ 12,5 mil',
+      'R$ 1 mi',
+      'R$ 1,3 mi',
+      'R$ 2,4 bi',
+      '-R$ 3,1 mil',
+    ]);
   });
 });

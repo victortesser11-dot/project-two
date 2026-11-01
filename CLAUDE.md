@@ -44,7 +44,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `definir_custo_mao_obra`, `registrar_chamada`, `custo_mao_obra_projeto`, e as do almoxarifado:
    `registrar_entradas`, `registrar_saida`, `registrar_ajuste`, `emprestar_ferramenta`, `devolver_ferramenta`, e as das
    câmeras: `criar_agente_camera`, `revogar_agente_camera`, `salvar_camera`, `pedir_teste_camera`,
-   `registrar_foto_camera`, `excluir_foto_camera`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
+   `registrar_foto_camera`, `excluir_foto_camera`, e as do orçamento: `definir_composicao_custo`,
+   `salvar_versao_orcamento`, `salvar_compromisso`, `encerrar_compromisso`, `registrar_despesa`, `excluir_despesa`,
+   `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
 6. **Validação dupla**: Zod em `packages/shared` (mensagens para o usuário) e `check` no banco (garantia).
@@ -134,6 +136,25 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   O estado operacional da câmera (última foto, falhas, teste) não entra no `audit_log`.
 - Time-lapse sem servidor: uma foto por dia, a mais perto do horário-alvo (`quadrosTimelapse`), tocada no navegador.
   MP4 gerado e link público com expiração ficam para quando houver VPS (ou o próprio agente gerar).
+
+## Orçamento e portfólio (sprint 6)
+
+- Composição do custo da tarefa em `composicao_custo` (material, mão de obra, equipamento, outros), só por
+  `definir_composicao_custo`. Com composição, `eap_item.custo_previsto` é a soma e o trigger
+  `app.tg_eap_custo_composto` barra mudar o custo por fora (`atualizar_item_eap`, importação).
+- Versões do orçamento (`orcamento_versao`): fotografia imutável da EAP com custos, por `salvar_versao_orcamento`.
+- Financeiro da obra (despesas, contratos/pedidos, realizado) é de quem `app.pode_financeiro_projeto`
+  (engenheiro, admin e financeiro). Despesa e contrato sempre de uma **tarefa**.
+- Realizado = saídas do almoxarifado + `custo_mao_obra_projeto` + despesas, calculado no banco por
+  `orcado_realizado` (por tarefa) e `custo_realizado_por_dia`. Comprometido = contratos/pedidos abertos + o que
+  foi pago pelos encerrados. O app só soma na árvore (`custosNaArvore`).
+- Valor agregado = orçado × % físico; "gasto × feito" = realizado ÷ agregado − 1; projeção no término = orçado ÷ IDC.
+- Físico-financeiro: custo de cada tarefa pelos dias de cada mês (`fisicoFinanceiro`), linha de base ou previsto;
+  XLSX gerado no aparelho (`write-excel-file`).
+- Semáforo do portfólio: a pior cor entre atraso (prazo agregado) e custo, pelas regras de `regra_semaforo`
+  (admin da empresa). Sempre com ícone e rótulo, nunca só a cor.
+- `formatarMoeda(..., { compacta: true })` é feito à mão (sem notação compacta do Intl), para o servidor e o
+  navegador escreverem igual.
 
 ## Interface
 

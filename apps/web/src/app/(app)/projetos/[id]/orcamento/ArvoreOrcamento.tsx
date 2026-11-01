@@ -28,10 +28,10 @@ export function ArvoreOrcamento({
   const [aberta, setAberta] = useState<string | null>(null);
   return (
     <ul className="divide-y divide-linha rounded-medio border border-linha bg-papel">
-      <li aria-hidden className="hidden grid-cols-[minmax(0,1fr)_9rem_9rem] gap-3 px-5 py-2 text-xs font-semibold text-regua md:grid">
+      <li aria-hidden className="hidden grid-cols-[minmax(0,1fr)_9rem_16rem] gap-3 px-5 py-2 text-xs font-semibold text-regua md:grid">
         <span>Item</span>
         <span className="text-right">Custo previsto</span>
-        <span className="text-right">{comparando ? `Diferença × ${comparando}` : 'Material · MO · Equip.'}</span>
+        <span className="text-right">{comparando ? `Diferença × ${comparando}` : 'Composição'}</span>
       </li>
       {linhas.map(({ item, composicao, somaComposicao, naVersao }) => {
         const etapa = item.tipo === 'etapa';
@@ -41,7 +41,7 @@ export function ArvoreOrcamento({
         return (
           <li key={item.id} className={etapa ? 'bg-concreto/50' : ''}>
             <div
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 md:grid-cols-[minmax(0,1fr)_9rem_9rem] md:px-5"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 md:grid-cols-[minmax(0,1fr)_9rem_16rem] md:px-5"
               style={{ paddingLeft: `${Math.min(item.nivel - 1, 5) * 16 + 16}px` }}
             >
               <div className="min-w-0">
@@ -72,7 +72,14 @@ export function ArvoreOrcamento({
                     </span>
                   )
                 ) : c && c.material + c.mao_obra + c.equipamento + c.outros > 0 ? (
-                  `${formatarMoeda(c.material, { compacta: true })} · ${formatarMoeda(c.mao_obra, { compacta: true })} · ${formatarMoeda(c.equipamento, { compacta: true })}${c.outros > 0 ? ` · +${formatarMoeda(c.outros, { compacta: true })}` : ''}`
+                  [
+                    c.material > 0 && `Mat. ${formatarMoeda(c.material, { compacta: true })}`,
+                    c.mao_obra > 0 && `MO ${formatarMoeda(c.mao_obra, { compacta: true })}`,
+                    c.equipamento > 0 && `Equip. ${formatarMoeda(c.equipamento, { compacta: true })}`,
+                    c.outros > 0 && `Outros ${formatarMoeda(c.outros, { compacta: true })}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
                 ) : !etapa && custo ? (
                   'sem composição'
                 ) : (

@@ -9,16 +9,16 @@ const COR_REAL = '#2f5bd3';
 const COR_AGREGADO = '#eb6834';
 const COR_PLANEJADO = '#878d96';
 const ALTURA = 260;
-const MARGEM = { topo: 16, direita: 72, base: 28, esquerda: 56 };
+const MARGEM = { topo: 16, direita: 72, base: 28, esquerda: 80 };
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 const dia = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
 
-/** Teto "redondo" do eixo (1, 2, 2,5 ou 5 × 10^n). */
+/** Teto "redondo" do eixo, que divide bem em quartos e não desperdiça altura. */
 function teto(max: number): number {
   if (max <= 0) return 1;
   const ordem = 10 ** Math.floor(Math.log10(max));
-  for (const m of [1, 2, 2.5, 5, 10]) if (m * ordem >= max) return m * ordem;
+  for (const m of [1, 1.2, 1.6, 2, 2.4, 3, 4, 5, 6, 8, 10]) if (m * ordem >= max) return m * ordem;
   return 10 * ordem;
 }
 
