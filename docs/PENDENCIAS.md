@@ -74,13 +74,6 @@ na obra** (programa num computador da rede da obra) que pede a foto pela rede lo
 HTTPS. **Não precisa abrir porta** no roteador, e a câmera não fica exposta na internet. Sem VPS
 por enquanto: a nuvem é o Supabase que já usamos.
 
-- [ ] **Aplicar a migração `cameras` no Supabase** (bloqueia publicar o módulo). O conector pede
-      aprovação num cartão que expira em ~4 min; me avise quando estiver com o app aberto que eu
-      repito o pedido. Ou rode `supabase/migrations/20261031100000_cameras.sql` no SQL Editor e me avise.
-- [ ] **Aprovar a publicação da função `agente-cameras`** no Supabase (mesmo tipo de cartão, logo
-      depois da migração). É ela que recebe as fotos do agente.
-- [ ] **Aplicar a migração `orcamento`** (sprint 6) junto: `supabase/migrations/20261101090000_orcamento.sql`.
-      As duas migrações e a função podem ir na mesma sessão, um cartão atrás do outro.
 - [ ] **Computador para o agente na obra-piloto**, ligado 24 h na mesma rede das câmeras:
       Raspberry Pi 4/5 (com fonte e cartão de 32 GB), mini PC ou o PC do escritório da obra.
       Nobreak ajuda (a câmera e o roteador também precisam).
@@ -99,3 +92,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Aprovar e publicar sprints 1, 2 e 3 (31/10).
 - [x] Migração do almoxarifado aplicada no Supabase e sprint 4 publicado (31/10).
 - [x] Câmeras: Intelbras, link dedicado, sem VPS por enquanto; agente na obra em vez de abrir portas (31/10).
+- [x] Migrações `cameras` e `orcamento` e a função `agente-cameras` publicadas no Supabase pelo SQL Editor (01/11).
