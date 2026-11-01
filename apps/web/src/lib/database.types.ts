@@ -981,6 +981,7 @@ export type Database = {
           cnpj: string | null
           criado_em: string
           empresa_id: string
+          exemplo: boolean
           id: string
           nome: string
           situacao_cnpj: string | null
@@ -992,6 +993,7 @@ export type Database = {
           cnpj?: string | null
           criado_em?: string
           empresa_id: string
+          exemplo?: boolean
           id?: string
           nome: string
           situacao_cnpj?: string | null
@@ -1003,6 +1005,7 @@ export type Database = {
           cnpj?: string | null
           criado_em?: string
           empresa_id?: string
+          exemplo?: boolean
           id?: string
           nome?: string
           situacao_cnpj?: string | null
@@ -1232,6 +1235,7 @@ export type Database = {
           criado_em: string
           empresa_id: string
           estoque_minimo: number
+          exemplo: boolean
           id: string
           ncm: string | null
           nome: string
@@ -1247,6 +1251,7 @@ export type Database = {
           criado_em?: string
           empresa_id: string
           estoque_minimo?: number
+          exemplo?: boolean
           id?: string
           ncm?: string | null
           nome: string
@@ -1262,6 +1267,7 @@ export type Database = {
           criado_em?: string
           empresa_id?: string
           estoque_minimo?: number
+          exemplo?: boolean
           id?: string
           ncm?: string | null
           nome?: string
@@ -1584,6 +1590,7 @@ export type Database = {
           data_inicio: string | null
           empresa_id: string
           endereco: string | null
+          exemplo: boolean
           id: string
           latitude: number | null
           longitude: number | null
@@ -1600,6 +1607,7 @@ export type Database = {
           data_inicio?: string | null
           empresa_id: string
           endereco?: string | null
+          exemplo?: boolean
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -1616,6 +1624,7 @@ export type Database = {
           data_inicio?: string | null
           empresa_id?: string
           endereco?: string | null
+          exemplo?: boolean
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -1730,6 +1739,7 @@ export type Database = {
           criado_em: string
           empreiteira_id: string | null
           empresa_id: string
+          exemplo: boolean
           funcao: string
           id: string
           nome: string
@@ -1743,6 +1753,7 @@ export type Database = {
           criado_em?: string
           empreiteira_id?: string | null
           empresa_id: string
+          exemplo?: boolean
           funcao: string
           id?: string
           nome: string
@@ -1756,6 +1767,7 @@ export type Database = {
           criado_em?: string
           empreiteira_id?: string | null
           empresa_id?: string
+          exemplo?: boolean
           funcao?: string
           id?: string
           nome?: string
@@ -1848,6 +1860,7 @@ export type Database = {
         }
         Returns: string
       }
+      criar_obra_exemplo: { Args: { p_empresa_id: string }; Returns: string }
       criar_projeto: {
         Args: {
           p_data_fim_prevista?: string
@@ -1965,6 +1978,7 @@ export type Database = {
       excluir_foto_camera: { Args: { p_id: string }; Returns: string }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
+      excluir_obra_exemplo: { Args: { p_empresa_id: string }; Returns: number }
       importar_eap: {
         Args: { p_itens: Json; p_projeto_id: string; p_substituir?: boolean }
         Returns: number

@@ -8,6 +8,7 @@ import { Regua } from '@/components/Regua';
 import { SeloSemaforo } from '@/components/Semaforo';
 import { FormularioEmpresa } from './FormularioEmpresa';
 import { RegrasSemaforo } from './RegrasSemaforo';
+import { ObraExemplo } from './ObraExemplo';
 
 export const metadata: Metadata = { title: 'Obras' };
 
@@ -39,6 +40,12 @@ export default async function Portfolio() {
         <Link href="/projetos/novo" className={classeBotao()}>
           Criar projeto
         </Link>
+        {empresa.papel === 'admin' && (
+          <div className="mt-10 border-t border-linha pt-6">
+            <h2 className="mb-2 font-semibold">Quer ver o app funcionando antes?</h2>
+            <ObraExemplo existe={false} />
+          </div>
+        )}
       </section>
     );
   }
@@ -106,8 +113,21 @@ export default async function Portfolio() {
           </div>
         </details>
       )}
+
+      {empresa.papel === 'admin' && (
+        <details className="mt-3 rounded-medio border border-linha bg-papel" open={!projetos.some((p) => p.exemplo) && projetos.length < 2}>
+          <summary className="flex min-h-11 cursor-pointer items-center px-5 font-semibold">Obra de exemplo</summary>
+          <div className="border-t border-linha px-5 py-4">
+            <ObraExemplo existe={projetos.some((p) => p.exemplo)} />
+          </div>
+        </details>
+      )}
     </section>
   );
+}
+
+function SeloExemplo() {
+  return <span className="rounded-full bg-concreto px-2.5 py-0.5 text-xs font-semibold text-regua">Exemplo</span>;
 }
 
 function LinhaProjeto({ projeto: p, hoje, resumo }: { projeto: Projeto; hoje: string; resumo: ResumoPortfolio | null }) {
@@ -121,6 +141,7 @@ function LinhaProjeto({ projeto: p, hoje, resumo }: { projeto: Projeto; hoje: st
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="truncate text-base font-semibold sm:text-lg">{p.nome}</h2>
             <SeloStatus status={p.status} />
+            {p.exemplo && <SeloExemplo />}
             {resumo && <SeloSemaforo cor={resumo.semaforo.cor} />}
           </div>
           {p.endereco && <p className="mt-1 truncate text-sm text-regua">{p.endereco}</p>}

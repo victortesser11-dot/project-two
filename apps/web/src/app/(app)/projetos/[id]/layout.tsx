@@ -34,6 +34,12 @@ export default async function LayoutProjeto({
         <Link href="/" className="text-sm font-medium text-cianotipia hover:underline underline-offset-4">
           Todas as obras
         </Link>
+        {projeto.exemplo && (
+          <p role="note" className="mt-4 rounded-medio bg-concreto px-4 py-3 text-sm">
+            <span className="font-semibold">Obra de exemplo.</span> Dados fictícios para conhecer o app. Pode mexer à vontade; o admin
+            apaga tudo na tela inicial, em "Obra de exemplo".
+          </p>
+        )}
         <header className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-end">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
