@@ -54,6 +54,11 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 7. **Datas do dia a dia são datas, não instantes**: guarde `date` e use `hojeIso()` (fuso de Brasília).
 8. **Funções de permissão nunca devolvem NULL.** `if not app.x(...)` com NULL não barra nada em plpgsql.
    Envolva com `coalesce(..., false)` e teste com `is false` (ver `10_permissoes_test.sql`).
+9. **Chaves não mudam.** Política de UPDATE que confere a própria linha (`pode_editar_projeto(id)`) lê a linha
+   antiga: trocar `empresa_id` passaria. Tabela com UPDATE direto ganha `app.tg_chaves_fixas('id', 'empresa_id')`.
+   Funções novas em `app` nascem sem EXECUTE para PUBLIC: dê `grant` explícito a quem precisa.
+10. **O Supabase entrega no máximo 1.000 linhas por pedido** e corta o resto sem erro (vale para `.limit()` maior
+    e para RPC que devolve tabela). Lista que pode passar disso usa `emPaginas` (`lib/paginas.ts`) com ordem estável.
 
 ## Fluxo de trabalho
 
@@ -132,6 +137,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Senha da câmera no **Vault** (`vault.create_secret`); `camera.senha_id` fora do grant. Nunca `select('*')` em
   `camera`: use as colunas de `COLUNAS_CAMERA` em `lib/dados.ts`. Só o agente recebe a senha (em memória).
 - `foto_camera.data` é o dia de Brasília da captura. Bucket privado `cameras`, caminho `<projeto>/<camera>/<arquivo>`.
+- O agente gera um id por captura (`&id=` na função de borda): o reenvio, pela fila ou depois de perder a resposta,
+  regrava o mesmo arquivo e não duplica a foto. Erro de regra do banco volta 4xx (o agente registra a falha e não
+  insiste); só 5xx e rede caída vão para a fila. Vários horários vencidos juntos viram uma foto só.
 - Alerta (RF-102): `falhas_seguidas >= 2` ou agente sem contato há mais de 3 min (`situacaoCamera` no shared).
   O estado operacional da câmera (última foto, falhas, teste) não entra no `audit_log`.
 - Time-lapse sem servidor: uma foto por dia, a mais perto do horário-alvo (`quadrosTimelapse`), tocada no navegador.
