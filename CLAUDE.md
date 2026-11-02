@@ -78,6 +78,10 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - O importador (`packages/shared/src/importacao`) roda no navegador: CSV, XLSX (`read-excel-file`) e MS Project XML
   viram uma prévia; só ao confirmar o navegador chama `importar_eap` (tudo ou nada, até 5.000 itens).
   Custos do MS Project XML vêm em centavos (÷100). `.mpp` não é lido: peça "Salvar como XML".
+- Modelos de cronograma (`packages/shared/src/modelos`): a estrutura padrão de um tipo de obra (hoje "Residência
+  unifamiliar", do documento da engenharia) vira itens da mesma prévia, com datas proporcionais ao prazo e a sequência
+  entre tarefas; ao gravar, o app chama `importar_eap` e depois `salvar_dependencia` (ligadas pelo `codigo_externo`
+  `<modelo>:<chave>`). Os testes garantem que a sequência não empurra nenhuma data.
 
 ## Cronograma e avanço (sprint 2)
 
