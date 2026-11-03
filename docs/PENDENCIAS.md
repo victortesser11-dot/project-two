@@ -23,6 +23,16 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
       passa a ler a coluna `exemplo`).
 - [ ] Depois do merge: tela inicial → "Obra de exemplo" → **Criar obra de exemplo**.
 
+## Medição (03/11)
+
+- [ ] **Migração `20261103090000_medicao.sql`** no SQL Editor, **antes** do merge (o conteúdo vai na conversa).
+- [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o
+      cliente já conhece.
+- [ ] **Decisões do contrato com o cliente**: preço com BDI ou a custo? Tem retenção (quanto)? Prazo de pagamento?
+      O cliente (ou o fiscal dele) vai entrar na plataforma para aprovar a medição, ou só recebe o boletim impresso?
+- [ ] **Pagamento de empreiteira vira despesa?** Hoje a medição da empreiteira registra o pagamento, mas não lança a
+      despesa no realizado (para não contar duas vezes com quem já lança a despesa à mão). Diga como prefere.
+
 ## Para eu testar com dados reais
 
 - [ ] **Conta de teste** como variáveis de ambiente `OBRAS_TESTE_EMAIL` e `OBRAS_TESTE_SENHA`
