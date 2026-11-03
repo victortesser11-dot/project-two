@@ -11,3 +11,4 @@ export * from './almoxarifado';
 export * from './integracoes/nfe';
 export * from './cameras';
 export * from './orcamento';
+export * from './modelos';

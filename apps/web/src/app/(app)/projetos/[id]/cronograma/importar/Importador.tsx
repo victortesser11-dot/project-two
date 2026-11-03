@@ -15,9 +15,14 @@ import {
   lerMsProjectXml,
   letraColuna,
   montarEap,
+  montarModeloCronograma,
+  MODELOS_CRONOGRAMA,
+  PRAZO_MODELO_MAX,
+  PRAZO_MODELO_MIN,
   paraBanco,
   planilhaModeloCsv,
   textoCelula,
+  type DependenciaModelo,
   type ItemImportado,
   type Mapeamento,
   type ResultadoImportacao,
@@ -30,7 +35,7 @@ import { AvisoErro, Botao, classeBotao, classeEntrada } from '@/components/ui';
 
 type Aba = { nome: string; linhas: unknown[][] };
 type Passo = 'arquivo' | 'colunas' | 'previa';
-type Resultado = ResultadoImportacao & { origem: string };
+type Resultado = ResultadoImportacao & { origem: string; dependencias?: DependenciaModelo[]; modeloId?: string };
 
 const PASSOS: { id: Passo; nome: string }[] = [
   { id: 'arquivo', nome: 'Arquivo' },
@@ -62,14 +67,27 @@ function baixarModelo() {
   URL.revokeObjectURL(url);
 }
 
+/** Prazo sugerido (meses) pelas datas da obra; sem datas, 10 meses. */
+function prazoDaObra(inicio: string | null, fim: string | null): number {
+  if (!inicio || !fim || fim <= inicio) return 10;
+  const dias = (Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86_400_000 + 1;
+  return Math.min(PRAZO_MODELO_MAX, Math.max(PRAZO_MODELO_MIN, Math.round((dias * 12) / 365)));
+}
+
 export function Importador({
   projetoId,
   itensAtuais,
   orcamentoProjeto,
+  inicioObra,
+  fimObra,
+  hoje,
 }: {
   projetoId: string;
   itensAtuais: number;
   orcamentoProjeto: number | null;
+  inicioObra: string | null;
+  fimObra: string | null;
+  hoje: string;
 }) {
   const router = useRouter();
   const [passo, setPasso] = useState<Passo>('arquivo');
@@ -85,6 +103,10 @@ export function Importador({
   const [modo, setModo] = useState<'acrescentar' | 'substituir' | null>(itensAtuais === 0 ? 'acrescentar' : null);
   const [enviando, setEnviando] = useState(false);
   const [todosProblemas, setTodosProblemas] = useState(false);
+  const [modeloInicio, setModeloInicio] = useState(inicioObra ?? hoje);
+  const [modeloPrazo, setModeloPrazo] = useState(String(prazoDaObra(inicioObra, fimObra)));
+  const [modeloProjetos, setModeloProjetos] = useState(true);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const linhas = abas[abaAtual]?.linhas ?? [];
 
@@ -155,6 +177,22 @@ export function Importador({
     setPasso('previa');
   }
 
+  function usarModelo(id: string) {
+    const modelo = MODELOS_CRONOGRAMA.find((m) => m.id === id);
+    const prazo = Number(modeloPrazo.replace(',', '.'));
+    if (!modelo) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(modeloInicio)) return setErro('Informe a data de início.');
+    if (!Number.isFinite(prazo) || prazo < PRAZO_MODELO_MIN || prazo > PRAZO_MODELO_MAX) {
+      return setErro(`O prazo da obra vai de ${PRAZO_MODELO_MIN} a ${PRAZO_MODELO_MAX} meses.`);
+    }
+    setErro(null);
+    const r = montarModeloCronograma(modelo, { inicio: modeloInicio, prazoMeses: prazo, incluirProjetos: modeloProjetos });
+    setAbas([]);
+    setResultado({ ...r, origem: `Modelo: ${modelo.nome} (${prazo} meses de obra)`, modeloId: modelo.id });
+    setTodosProblemas(false);
+    setPasso('previa');
+  }
+
   async function importar() {
     if (!resultado) return;
     setEnviando(true);
@@ -169,6 +207,30 @@ export function Importador({
       setErro(mensagemDoBanco(error));
       setEnviando(false);
       return;
+    }
+
+    // Modelo: liga as tarefas na sequência (a função do banco confere tudo e recalcula as datas).
+    if (resultado.dependencias?.length && resultado.modeloId) {
+      const { data: gravados } = await supabase
+        .from('eap_item')
+        .select('id, codigo_externo')
+        .eq('projeto_id', projetoId)
+        .like('codigo_externo', `${resultado.modeloId}:%`)
+        .order('criado_em');
+      const ids = new Map<string, string>();
+      for (const g of gravados ?? []) if (g.codigo_externo) ids.set(g.codigo_externo.slice(resultado.modeloId.length + 1), g.id);
+      let falhas = 0;
+      for (const d of resultado.dependencias) {
+        const p = ids.get(d.predecessora);
+        const s = ids.get(d.sucessora);
+        const r = p && s ? await supabase.rpc('salvar_dependencia', { p_predecessora_id: p, p_sucessora_id: s, p_tipo: d.tipo, p_defasagem_dias: d.defasagem }) : null;
+        if (!r || r.error) falhas += 1;
+      }
+      if (falhas > 0) {
+        setAviso(`As tarefas foram criadas, mas ${falhas} ligações entre elas não entraram. Confira no Gantt.`);
+        setEnviando(false);
+        return;
+      }
     }
     router.push(`/projetos/${projetoId}/cronograma?importados=${data ?? resultado.itens.length}`);
     router.refresh();
@@ -197,6 +259,14 @@ export function Importador({
       </ol>
 
       {erro && <AvisoErro>{erro}</AvisoErro>}
+      {aviso && (
+        <div role="status" className="rounded-medio bg-atencao-claro px-4 py-3 text-sm text-atencao">
+          {aviso}{' '}
+          <Link href={`/projetos/${projetoId}/cronograma/gantt`} className="font-semibold underline underline-offset-4">
+            Abrir o Gantt
+          </Link>
+        </div>
+      )}
 
       {passo === 'arquivo' && (
         <section className="flex flex-col gap-5">
@@ -223,6 +293,41 @@ export function Importador({
             />
           </label>
 
+          <div className="rounded-medio border border-cianotipia/40 bg-papel p-4">
+            <h3 className="font-semibold">Começar de um modelo: {MODELOS_CRONOGRAMA[0]!.nome}</h3>
+            <p className="mt-1 text-regua">
+              {MODELOS_CRONOGRAMA[0]!.descricao} Datas sugeridas pelo prazo da obra; você ajusta tarefas, datas e custos depois, no
+              Gantt e no orçamento.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+              <label className="flex flex-col gap-1.5 font-semibold">
+                Início
+                <input type="date" value={modeloInicio} onChange={(e) => setModeloInicio(e.target.value)} className={classeEntrada} />
+              </label>
+              <label className="flex flex-col gap-1.5 font-semibold">
+                Prazo da obra (meses, do canteiro à entrega)
+                <input
+                  inputMode="numeric"
+                  value={modeloPrazo}
+                  onChange={(e) => setModeloPrazo(e.target.value)}
+                  className={`${classeEntrada} numeros`}
+                />
+              </label>
+              <Botao type="button" onClick={() => usarModelo(MODELOS_CRONOGRAMA[0]!.id)}>
+                Ver prévia do modelo
+              </Botao>
+            </div>
+            <label className="mt-3 flex min-h-11 items-center gap-3">
+              <input
+                type="checkbox"
+                checked={modeloProjetos}
+                onChange={(e) => setModeloProjetos(e.target.checked)}
+                className="size-5 accent-cianotipia"
+              />
+              Incluir sondagem, projetos e aprovação (cerca de 2 meses antes do canteiro)
+            </label>
+          </div>
+
           <div className="grid gap-4 text-sm sm:grid-cols-2">
             <div className="rounded-medio border border-linha bg-papel p-4">
               <h3 className="font-semibold">Orçamento ou cronograma em planilha</h3>
@@ -237,8 +342,7 @@ export function Importador({
             <div className="rounded-medio border border-linha bg-papel p-4">
               <h3 className="font-semibold">MS Project ou ProjectLibre</h3>
               <p className="mt-1 text-regua">
-                Salve como XML (Arquivo → Salvar como → XML). Vêm tarefas-resumo como etapas, tarefas, datas e custos. Dependências
-                entram no sprint 2, com o Gantt.
+                Salve como XML (Arquivo → Salvar como → XML). Vêm tarefas-resumo como etapas, tarefas, datas e custos.
               </p>
             </div>
           </div>
@@ -475,7 +579,11 @@ function Previa({
     <section className="flex flex-col gap-6">
       <div>
         <p className="text-sm text-regua">{r.origem}</p>
-        <p className="mt-1 text-regua">{criterio}</p>
+        <p className="mt-1 text-regua">
+          {r.dependencias
+            ? `Tarefas ligadas em sequência (${r.dependencias.length} ligações) e datas sugeridas pelo prazo. Custos ficam para depois, no orçamento.`
+            : criterio}
+        </p>
       </div>
 
       <dl className="numeros grid grid-cols-2 gap-px overflow-hidden rounded-medio border border-linha bg-linha text-sm sm:grid-cols-4">

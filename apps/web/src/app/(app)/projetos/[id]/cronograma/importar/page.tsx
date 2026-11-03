@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { LIMITE_ITENS_IMPORTACAO, LIMITE_NIVEIS_EAP } from '@obras/shared';
+import { hojeIso, LIMITE_ITENS_IMPORTACAO, LIMITE_NIVEIS_EAP } from '@obras/shared';
 import { buscarProjeto, contarItensEap, podeEditarProjeto } from '@/lib/dados';
 import { Importador } from './Importador';
 
@@ -40,7 +40,7 @@ export default async function PaginaImportarEap({ params }: { params: Promise<{ 
       <div>
         <h2 className="text-xl font-semibold sm:text-2xl">Importar EAP</h2>
         <p className="mt-1 text-regua">
-          Traga etapas e tarefas de uma planilha de orçamento ou do MS Project. Você confere tudo na prévia antes de gravar. Até{' '}
+          Comece pelo modelo da equipe ou traga etapas e tarefas de uma planilha de orçamento ou do MS Project. Você confere tudo na prévia antes de gravar. Até{' '}
           <span className="numeros">{LIMITE_ITENS_IMPORTACAO.toLocaleString('pt-BR')}</span> itens e {LIMITE_NIVEIS_EAP} níveis.
         </p>
       </div>
@@ -48,6 +48,9 @@ export default async function PaginaImportarEap({ params }: { params: Promise<{ 
         projetoId={id}
         itensAtuais={itensAtuais}
         orcamentoProjeto={projeto.orcamento_total !== null ? Number(projeto.orcamento_total) : null}
+        inicioObra={projeto.data_inicio}
+        fimObra={projeto.data_fim_prevista}
+        hoje={hojeIso()}
       />
     </div>
   );
