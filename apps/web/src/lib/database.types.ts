@@ -480,6 +480,144 @@ export type Database = {
           },
         ]
       }
+      contrato_medicao: {
+        Row: {
+          atualizado_em: string
+          bdi_pct: number
+          criado_em: string
+          criado_por: string | null
+          empreiteira_id: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          parte: Database["public"]["Enums"]["parte_medicao"]
+          prazo_pagamento_dias: number
+          projeto_id: string
+          retencao_pct: number
+        }
+        Insert: {
+          atualizado_em?: string
+          bdi_pct?: number
+          criado_em?: string
+          criado_por?: string | null
+          empreiteira_id?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          parte: Database["public"]["Enums"]["parte_medicao"]
+          prazo_pagamento_dias?: number
+          projeto_id: string
+          retencao_pct?: number
+        }
+        Update: {
+          atualizado_em?: string
+          bdi_pct?: number
+          criado_em?: string
+          criado_por?: string | null
+          empreiteira_id?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          parte?: Database["public"]["Enums"]["parte_medicao"]
+          prazo_pagamento_dias?: number
+          projeto_id?: string
+          retencao_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_medicao_empreiteira_id_fkey"
+            columns: ["empreiteira_id"]
+            isOneToOne: false
+            referencedRelation: "empreiteira"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_medicao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_medicao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_medicao_item: {
+        Row: {
+          atualizado_em: string
+          contrato_id: string
+          criterio: Database["public"]["Enums"]["criterio_medicao"]
+          empresa_id: string
+          id: string
+          preco_unitario: number
+          projeto_id: string
+          quantidade: number
+          tarefa_id: string
+          unidade: string
+          valor_total: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          contrato_id: string
+          criterio: Database["public"]["Enums"]["criterio_medicao"]
+          empresa_id: string
+          id?: string
+          preco_unitario: number
+          projeto_id: string
+          quantidade: number
+          tarefa_id: string
+          unidade: string
+          valor_total?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          contrato_id?: string
+          criterio?: Database["public"]["Enums"]["criterio_medicao"]
+          empresa_id?: string
+          id?: string
+          preco_unitario?: number
+          projeto_id?: string
+          quantidade?: number
+          tarefa_id?: string
+          unidade?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_medicao_item_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_medicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_medicao_item_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_medicao_item_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_medicao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custo_mao_obra: {
         Row: {
           criado_em: string
@@ -1363,6 +1501,159 @@ export type Database = {
           },
         ]
       }
+      medicao: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_nome: string | null
+          aprovada_por: string | null
+          atualizado_em: string
+          contrato_id: string
+          criado_em: string
+          criado_por: string | null
+          empresa_id: string
+          fim: string
+          id: string
+          inicio: string
+          numero: number
+          observacao: string | null
+          pago_em: string | null
+          pago_valor: number | null
+          projeto_id: string
+          retencao: number
+          status: Database["public"]["Enums"]["status_medicao"]
+          valor_bruto: number
+          valor_liquido: number | null
+          vencimento: string | null
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_nome?: string | null
+          aprovada_por?: string | null
+          atualizado_em?: string
+          contrato_id: string
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id: string
+          fim: string
+          id?: string
+          inicio: string
+          numero: number
+          observacao?: string | null
+          pago_em?: string | null
+          pago_valor?: number | null
+          projeto_id: string
+          retencao?: number
+          status?: Database["public"]["Enums"]["status_medicao"]
+          valor_bruto?: number
+          valor_liquido?: number | null
+          vencimento?: string | null
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_nome?: string | null
+          aprovada_por?: string | null
+          atualizado_em?: string
+          contrato_id?: string
+          criado_em?: string
+          criado_por?: string | null
+          empresa_id?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          numero?: number
+          observacao?: string | null
+          pago_em?: string | null
+          pago_valor?: number | null
+          projeto_id?: string
+          retencao?: number
+          status?: Database["public"]["Enums"]["status_medicao"]
+          valor_bruto?: number
+          valor_liquido?: number | null
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicao_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_medicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicao_item: {
+        Row: {
+          contrato_item_id: string
+          empresa_id: string
+          executado_acumulado: number
+          medicao_id: string
+          projeto_id: string
+          quantidade: number
+          valor: number
+        }
+        Insert: {
+          contrato_item_id: string
+          empresa_id: string
+          executado_acumulado: number
+          medicao_id: string
+          projeto_id: string
+          quantidade: number
+          valor: number
+        }
+        Update: {
+          contrato_item_id?: string
+          empresa_id?: string
+          executado_acumulado?: number
+          medicao_id?: string
+          projeto_id?: string
+          quantidade?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicao_item_contrato_item_id_fkey"
+            columns: ["contrato_item_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_medicao_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicao_item_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicao_item_medicao_id_fkey"
+            columns: ["medicao_id"]
+            isOneToOne: false
+            referencedRelation: "medicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicao_item_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membro_empresa: {
         Row: {
           criado_em: string
@@ -1839,6 +2130,15 @@ export type Database = {
         }
         Returns: string
       }
+      ajustar_item_medicao: {
+        Args: {
+          p_contrato_item_id: string
+          p_medicao_id: string
+          p_quantidade: number
+        }
+        Returns: number
+      }
+      aprovar_medicao: { Args: { p_medicao_id: string }; Returns: string }
       assinar_diario: { Args: { p_diario_id: string }; Returns: string }
       atualizar_item_eap: {
         Args: { p_campos: Json; p_id: string }
@@ -1919,6 +2219,10 @@ export type Database = {
         Args: { p_diario_id: string; p_linhas: Json }
         Returns: number
       }
+      definir_item_contrato: {
+        Args: { p_campos: Json; p_contrato_id: string; p_tarefa_id: string }
+        Returns: string
+      }
       definir_linha_base: { Args: { p_projeto_id: string }; Returns: number }
       definir_regras_semaforo: {
         Args: {
@@ -1978,7 +2282,12 @@ export type Database = {
       excluir_foto_camera: { Args: { p_id: string }; Returns: string }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
       excluir_item_eap: { Args: { p_id: string }; Returns: number }
+      excluir_medicao: { Args: { p_medicao_id: string }; Returns: undefined }
       excluir_obra_exemplo: { Args: { p_empresa_id: string }; Returns: number }
+      gerar_medicao: {
+        Args: { p_contrato_id: string; p_fim: string }
+        Returns: string
+      }
       importar_eap: {
         Args: { p_itens: Json; p_projeto_id: string; p_substituir?: boolean }
         Returns: number
@@ -1995,6 +2304,10 @@ export type Database = {
       }
       mover_item_eap: {
         Args: { p_id: string; p_novo_pai_id: string; p_posicao?: number }
+        Returns: undefined
+      }
+      observar_medicao: {
+        Args: { p_medicao_id: string; p_observacao: string }
         Returns: undefined
       }
       orcado_realizado: {
@@ -2080,6 +2393,10 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_pagamento_medicao: {
+        Args: { p_data: string; p_medicao_id: string; p_valor?: number }
+        Returns: undefined
+      }
       registrar_saida: {
         Args: {
           p_data: string
@@ -2094,6 +2411,7 @@ export type Database = {
         Returns: number
       }
       remover_dependencia: { Args: { p_id: string }; Returns: undefined }
+      remover_item_contrato: { Args: { p_item_id: string }; Returns: undefined }
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
         Returns: undefined
@@ -2109,6 +2427,10 @@ export type Database = {
         Returns: string
       }
       salvar_compromisso: {
+        Args: { p_campos: Json; p_id: string; p_projeto_id: string }
+        Returns: string
+      }
+      salvar_contrato_medicao: {
         Args: { p_campos: Json; p_id: string; p_projeto_id: string }
         Returns: string
       }
@@ -2140,6 +2462,7 @@ export type Database = {
         | "administracao"
         | "outros"
       clima_periodo: "sol" | "nublado" | "chuva" | "chuva_forte"
+      criterio_medicao: "quantidade" | "percentual"
       origem_camera: "agente" | "manual"
       papel_empresa: "admin" | "membro"
       papel_projeto:
@@ -2148,7 +2471,9 @@ export type Database = {
         | "almoxarife"
         | "financeiro"
         | "leitura"
+      parte_medicao: "cliente" | "empreiteiro"
       status_diario: "rascunho" | "assinado"
+      status_medicao: "rascunho" | "aprovada" | "paga"
       status_projeto: "planejamento" | "em_andamento" | "pausado" | "concluido"
       tipo_compromisso: "contrato" | "pedido"
       tipo_custo_mao_obra: "hora" | "diaria" | "producao"
@@ -2293,6 +2618,7 @@ export const Constants = {
         "outros",
       ],
       clima_periodo: ["sol", "nublado", "chuva", "chuva_forte"],
+      criterio_medicao: ["quantidade", "percentual"],
       origem_camera: ["agente", "manual"],
       papel_empresa: ["admin", "membro"],
       papel_projeto: [
@@ -2302,7 +2628,9 @@ export const Constants = {
         "financeiro",
         "leitura",
       ],
+      parte_medicao: ["cliente", "empreiteiro"],
       status_diario: ["rascunho", "assinado"],
+      status_medicao: ["rascunho", "aprovada", "paga"],
       status_projeto: ["planejamento", "em_andamento", "pausado", "concluido"],
       tipo_compromisso: ["contrato", "pedido"],
       tipo_custo_mao_obra: ["hora", "diaria", "producao"],

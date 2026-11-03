@@ -39,6 +39,10 @@ const RESTRICOES: Record<string, string> = {
   camera_nome_check: 'Dê um nome de 2 a 80 caracteres à câmera.',
   projeto_datas_ck: 'O fim previsto não pode ser antes do início.',
   projeto_orcamento_ck: 'O orçamento precisa ser maior que zero.',
+  medicao_item_contrato_item_id_fkey: 'Esta tarefa já foi medida: ela não pode sair da EAP nem do contrato.',
+  contrato_medicao_cliente_uk: 'Esta obra já tem o contrato de medição com o cliente.',
+  medicao_um_rascunho_uk: 'Já existe uma medição em rascunho neste contrato.',
+  contrato_medicao_nome_check: 'Dê um nome de 2 a 160 caracteres ao contrato.',
 };
 
 export interface ErroBanco {

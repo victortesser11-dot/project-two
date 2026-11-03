@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export type AbaOrcamento = 'orcamento' | 'fisico-financeiro' | 'realizado' | 'lancamentos' | 'curva';
+export type AbaOrcamento = 'orcamento' | 'fisico-financeiro' | 'realizado' | 'lancamentos' | 'medicoes' | 'curva';
 
 export function TopoOrcamento({
   projetoId,
@@ -24,6 +24,7 @@ export function TopoOrcamento({
     { chave: 'fisico-financeiro', href: `${base}/fisico-financeiro`, nome: 'Físico-financeiro' },
     { chave: 'realizado', href: `${base}/realizado`, nome: 'Orçado × realizado', so: true },
     { chave: 'lancamentos', href: `${base}/lancamentos`, nome: 'Despesas e contratos', so: true },
+    { chave: 'medicoes', href: `${base}/medicoes`, nome: 'Medições', so: true },
     { chave: 'curva', href: `${base}/curva`, nome: 'Curva S', so: true },
   ];
   return (
