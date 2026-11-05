@@ -26,6 +26,15 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Pagamento de empreiteira vira despesa?** Hoje a medição da empreiteira registra o pagamento, mas não lança a
       despesa no realizado (para não contar duas vezes com quem já lança a despesa à mão). Diga como prefere.
 
+## Alertas (05/11)
+
+- [ ] **Migração `20261105090000_justificativa_atraso.sql`** no SQL Editor, **antes** do merge.
+- [ ] **Alertas por e-mail**: crie uma conta num serviço de envio (Resend é o mais simples; plano gratuito de 3.000
+      e-mails/mês) com um domínio seu, e coloque a chave como segredo no Supabase. Eu não crio contas em seu nome.
+- [ ] **WhatsApp** (opcional, depois): exige conta comercial na Meta (WhatsApp Business Platform) em nome da empresa.
+- [ ] Confirmar com o engenheiro os gatilhos: 25 pontos abaixo do ritmo, chuva ≥ 5 mm em 3 dias, material para menos de
+      7 dias, medição em rascunho há mais de 5 dias.
+
 ## Para eu testar com dados reais
 
 - [ ] **Conta de teste** como variáveis de ambiente `OBRAS_TESTE_EMAIL` e `OBRAS_TESTE_SENHA`
