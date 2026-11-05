@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type {
+  JustificativaAtraso,
   ContratoMedicao,
   ItemContratoMedicao,
   ItemMedicao,
@@ -826,4 +827,21 @@ export const listarItensMedidos = cache(async (projetoId: string): Promise<ItemM
   );
   if (error) throw new Error(`Não foi possível carregar os itens medidos: ${error.message}`);
   return data.map((i) => ({ ...i, quantidade: num(i.quantidade), valor: num(i.valor), executado_acumulado: num(i.executado_acumulado) }));
+});
+
+// ---------------------------------------------------------------- justificativas de atraso
+
+export const listarJustificativas = cache(async (projetoId: string): Promise<JustificativaAtraso[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('justificativa_atraso')
+      .select('id, tarefa_id, causa, dias_impacto, descricao, registrado_nome, criado_em')
+      .eq('projeto_id', projetoId)
+      .order('criado_em', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar as justificativas de atraso: ${error.message}`);
+  return data;
 });

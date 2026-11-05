@@ -30,6 +30,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 1. **Toda tabela de negócio tem `empresa_id`, RLS ligada e teste.** Nova tabela = migração + políticas +
    casos em `supabase/tests/` cobrindo: outra empresa não vê, papel sem permissão não escreve.
+   O Supabase dá **todos os privilégios** em tabela nova para `anon` e `authenticated`: toda tabela nova leva
+   `revoke all ... from anon, authenticated` e só o `grant` necessário. O shim imita isso e `10_permissoes_test`
+   lista quem pode escrever direto (tabela nova fora da lista quebra o teste).
 2. **Permissão mora no banco.** Use as funções de `app` (`e_membro_empresa`, `e_admin_empresa`,
    `papel_no_projeto`, `pode_ver_projeto`, `pode_editar_projeto`). O front esconde botões, mas quem barra é o RLS.
 3. **Estoque, custo, cronograma e medição só mudam por função no banco** e geram `audit_log` (trigger
@@ -48,7 +51,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `salvar_versao_orcamento`, `salvar_compromisso`, `encerrar_compromisso`, `registrar_despesa`, `excluir_despesa`,
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
-   `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, e as da obra de exemplo:
+   `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
+   `justificar_atraso`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -183,6 +187,16 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   pagar com vencimento; depois só `registrar_pagamento_medicao`. Trigger barra mudar boletim aprovado.
 - Tudo financeiro: leitura só para `app.pode_financeiro_projeto`; escrita só pelas funções; tudo no `audit_log`.
 - Tarefa já medida não sai da EAP (FK sem cascata em `medicao_item`, checada no fim do comando).
+
+## Alertas
+
+- Calculados na hora, sem tabela (`packages/shared/src/alertas.ts`, juntados em `lib/alertas.ts`): tarefa que devia ter
+  terminado/começado ou está 25 pontos abaixo do ritmo linear (com sugestão de causa pelo diário e pelo almoxarifado),
+  chuva prevista (Open-Meteo, 3 dias, ≥ 5 mm) em tarefa sensível (`TAREFA_SENSIVEL_A_CHUVA`), material que acaba em menos
+  de 7 dias pelo ritmo de 21 dias, medição vencida ou parada, câmera, ferramenta atrasada e diário faltando/sem assinatura.
+- Só a justificativa é gravada: `justificativa_atraso` (imutável, auditada) por `justificar_atraso` (engenheiro e mestre);
+  justificada depois que o atraso começou, o alerta cai para "Aviso". Histórico com dias por causa (negociação de prazo).
+- E-mail/WhatsApp ainda não: precisam de conta de envio em nome do cliente (ver PENDENCIAS.md).
 
 ## Obra de exemplo
 

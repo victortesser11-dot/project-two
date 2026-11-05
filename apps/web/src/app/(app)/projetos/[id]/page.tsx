@@ -18,6 +18,8 @@ import {
 } from '@/lib/dados';
 import { hojeIso, itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/shared';
 import { PainelObra } from './PainelObra';
+import { ResumoAlertas } from './alertas/ResumoAlertas';
+import { alertasDaObra } from '@/lib/alertas';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,7 +41,10 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
     listarCameras(id).catch(() => []),
     ultimasFotos(id).catch(() => new Map()),
   ]);
-  const equipeHoje = await equipeNoDia(id, hojeIso());
+  const [equipeHoje, { alertas }] = await Promise.all([
+    equipeNoDia(id, hojeIso()),
+    alertasDaObra(projeto, papel).catch(() => ({ alertas: [] as Awaited<ReturnType<typeof alertasDaObra>>['alertas'] })),
+  ]);
   const maisRecente = [...fotos.values()].filter((f) => f.url).sort((a, b) => b.capturada_em.localeCompare(a.capturada_em))[0];
   const ultimaFoto = maisRecente
     ? {
@@ -60,19 +65,22 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
       : null;
 
   return (
-    <PainelObra
-      projeto={projeto}
-      papel={papel}
-      papelEmpresa={empresa?.papel ?? null}
-      itens={itens}
-      membros={membros}
-      podeEditar={podeEditar}
-      linhaBase={linhaBase}
-      apontamentos={apontamentos}
-      maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
-      material={material}
-      ultimaFoto={ultimaFoto}
-      equipeHoje={equipeHoje}
-    />
+    <div className="flex flex-col gap-6">
+      <ResumoAlertas projetoId={id} alertas={alertas} />
+      <PainelObra
+        projeto={projeto}
+        papel={papel}
+        papelEmpresa={empresa?.papel ?? null}
+        itens={itens}
+        membros={membros}
+        podeEditar={podeEditar}
+        linhaBase={linhaBase}
+        apontamentos={apontamentos}
+        maoDeObra={linhasMaoObra && linhasMaoObra.length > 0 ? totalMaoObra(linhasMaoObra) : null}
+        material={material}
+        ultimaFoto={ultimaFoto}
+        equipeHoje={equipeHoje}
+      />
+    </div>
   );
 }

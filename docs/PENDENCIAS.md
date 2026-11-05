@@ -19,13 +19,21 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 
 ## Medição (03/11)
 
-- [ ] **Migração `20261103090000_medicao.sql`** no SQL Editor, **antes** do merge (o conteúdo vai na conversa).
 - [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o
       cliente já conhece.
 - [ ] **Decisões do contrato com o cliente**: preço com BDI ou a custo? Tem retenção (quanto)? Prazo de pagamento?
       O cliente (ou o fiscal dele) vai entrar na plataforma para aprovar a medição, ou só recebe o boletim impresso?
 - [ ] **Pagamento de empreiteira vira despesa?** Hoje a medição da empreiteira registra o pagamento, mas não lança a
       despesa no realizado (para não contar duas vezes com quem já lança a despesa à mão). Diga como prefere.
+
+## Alertas (05/11)
+
+- [ ] **Migração `20261105090000_justificativa_atraso.sql`** no SQL Editor, **antes** do merge.
+- [ ] **Alertas por e-mail**: crie uma conta num serviço de envio (Resend é o mais simples; plano gratuito de 3.000
+      e-mails/mês) com um domínio seu, e coloque a chave como segredo no Supabase. Eu não crio contas em seu nome.
+- [ ] **WhatsApp** (opcional, depois): exige conta comercial na Meta (WhatsApp Business Platform) em nome da empresa.
+- [ ] Confirmar com o engenheiro os gatilhos: 25 pontos abaixo do ritmo, chuva ≥ 5 mm em 3 dias, material para menos de
+      7 dias, medição em rascunho há mais de 5 dias.
 
 ## Para eu testar com dados reais
 
@@ -106,3 +114,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Revisão geral publicada: migração `revisao` no SQL Editor e função `agente-cameras` atualizada (01/11).
 - [x] Obra de exemplo publicada: migração `obra_exemplo` no SQL Editor e app em produção (02/11).
 - [x] Modelo de cronograma "Residência unifamiliar" (documento da engenharia) publicado no importador da EAP (03/11).
+- [x] Medição publicada: migração `medicao` no SQL Editor (com a correção da obra de exemplo) e app em produção (05/11).
