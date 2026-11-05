@@ -102,4 +102,15 @@ select tests.afirmar((select count(*) from item_estoque where exemplo) = 0 and (
   'itens e empreiteiras do exemplo saíram');
 select tests.afirmar(criar_obra_exemplo(current_setting('t.a')::uuid) is not null, 'dá para criar de novo depois de apagar');
 
+-- A obra é montada a partir da data de hoje (dia da semana, meses): monta e apaga simulando 14 dias seguidos.
+select excluir_obra_exemplo(current_setting('t.a')::uuid);
+select tests.afirmar(
+  (select bool_and(ok) from (
+     select set_config('app.exemplo_hoje', ((now() at time zone 'America/Sao_Paulo')::date - k)::text, true) is not null
+            and criar_obra_exemplo(current_setting('t.a')::uuid) is not null
+            and excluir_obra_exemplo(current_setting('t.a')::uuid) = 1 as ok
+       from generate_series(1, 14) k) x),
+  'a obra de exemplo monta em qualquer dia (14 datas simuladas)');
+select set_config('app.exemplo_hoje', '', true);
+
 rollback;
