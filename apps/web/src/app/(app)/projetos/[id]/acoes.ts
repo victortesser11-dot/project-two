@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { errosPorCampo, membroProjetoSchema, PAPEIS_PROJETO, type PapelProjeto } from '@obras/shared';
+import { errosPorCampo, membroProjetoSchema, PAPEIS_PROJETO, ROTULO_PAPEL_PROJETO, type PapelProjeto } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { mensagemDoBanco } from '@/lib/erros';
+import { avisarAcessoObra, convidarParaObra } from '@/lib/convites';
 
 export type EstadoMembro = {
   ok?: boolean;
@@ -18,7 +19,7 @@ export type ResultadoMembro = { ok: true; mensagem: string } | { ok: false; erro
 
 const uuid = z.string().uuid();
 
-/** Dá acesso ao projeto para quem já tem conta (RF-004). */
+/** Dá acesso ao projeto (RF-004); quem ainda não tem conta recebe convite por e-mail. */
 export async function adicionarMembro(_: EstadoMembro, form: FormData): Promise<EstadoMembro> {
   const valores = { email: String(form.get('email') ?? ''), papel: String(form.get('papel') ?? '') };
   const projetoId = uuid.safeParse(form.get('projeto_id'));
@@ -28,13 +29,24 @@ export async function adicionarMembro(_: EstadoMembro, form: FormData): Promise<
   if (!dados.success) return { erros: errosPorCampo(dados.error), valores };
 
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('adicionar_membro_projeto', {
-    p_projeto_id: projetoId.data,
-    p_email: dados.data.email,
-    p_papel: dados.data.papel,
-  });
+  const pedido = { p_projeto_id: projetoId.data, p_email: dados.data.email, p_papel: dados.data.papel };
+  const { error } = await supabase.rpc('adicionar_membro_projeto', pedido);
+
+  // Sem conta com esse e-mail (o banco só diz isso a quem pode dar acesso): convida e tenta de novo.
+  if (error?.code === 'P0002') {
+    const convite = await convidarParaObra(supabase, projetoId.data, dados.data.email, dados.data.papel);
+    if (!convite.ok) return { erroGeral: convite.erro, valores };
+    const { error: deNovo } = await supabase.rpc('adicionar_membro_projeto', pedido);
+    if (deNovo) return { erroGeral: mensagemDoBanco(deNovo), valores };
+    revalidatePath(`/projetos/${projetoId.data}`);
+    return {
+      ok: true,
+      mensagem: `Convite enviado para ${dados.data.email}. A pessoa cria a senha pelo link do e-mail e já entra como ${ROTULO_PAPEL_PROJETO[dados.data.papel]}.`,
+    };
+  }
   if (error) return { erroGeral: mensagemDoBanco(error), valores };
 
+  await avisarAcessoObra(supabase, projetoId.data, dados.data.email, dados.data.papel);
   revalidatePath(`/projetos/${projetoId.data}`);
   return { ok: true, mensagem: `${dados.data.email} agora acessa o projeto.` };
 }

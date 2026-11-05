@@ -22,6 +22,9 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <span className="hidden text-regua sm:inline">{usuario.email}</span>
+            <Link href="/conta/senha" className="flex min-h-11 items-center px-1 font-medium text-cianotipia hover:underline underline-offset-4">
+              Senha
+            </Link>
             <form action="/auth/sair" method="post">
               <button type="submit" className="min-h-11 px-1 font-medium text-cianotipia hover:underline underline-offset-4">
                 Sair

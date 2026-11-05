@@ -72,3 +72,27 @@ export async function entrarComGoogle(form: FormData) {
   if (error || !data.url) redirect('/login?erro=google');
   redirect(data.url);
 }
+
+const pedidoSenha = z.object({ email: z.string().trim().toLowerCase().email('Informe um e-mail válido') });
+
+/** Manda o link para criar uma nova senha. Não conta se o e-mail tem conta (evita descobrir quem usa o app). */
+export async function pedirLinkSenha(_: EstadoLogin, form: FormData): Promise<EstadoLogin> {
+  const email = String(form.get('email') ?? '');
+  const dados = pedidoSenha.safeParse({ email });
+  if (!dados.success) return { erro: dados.error.issues[0]?.message, email };
+
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.auth.resetPasswordForEmail(dados.data.email, { redirectTo: `${urlDoSite()}/conta/senha` });
+  if (error?.code === 'over_email_send_rate_limit' || error?.status === 429) {
+    return { erro: 'Muitos pedidos seguidos. Espere alguns minutos e peça de novo.', email };
+  }
+  // O Supabase responde sem erro para e-mail sem conta; erro aqui é falha de verdade (SMTP, rede).
+  if (error) {
+    console.error('Link de senha não enviado:', error.code ?? error.message);
+    return { erro: 'Não foi possível enviar o link agora. Tente de novo em alguns minutos.', email };
+  }
+  return {
+    aviso: `Se houver uma conta com ${dados.data.email}, o link para criar a nova senha chega em alguns minutos. Confira também a caixa de spam.`,
+    email,
+  };
+}

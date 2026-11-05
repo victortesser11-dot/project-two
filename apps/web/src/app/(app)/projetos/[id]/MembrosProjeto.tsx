@@ -105,7 +105,7 @@ export function MembrosProjeto({
           <input type="hidden" name="projeto_id" value={projetoId} />
           <p className="text-sm font-semibold">Dar acesso a alguém</p>
           {estado.erroGeral && <AvisoErro>{estado.erroGeral}</AvisoErro>}
-          <Campo rotulo="E-mail da conta" nome="membro-email" erro={estado.erros?.email} dica="A pessoa precisa ter criado a conta no app.">
+          <Campo rotulo="E-mail da pessoa" nome="membro-email" erro={estado.erros?.email} dica="Sem conta ainda? Enviamos um convite por e-mail (só administradores da empresa trazem gente nova).">
             <input
               id="membro-email"
               name="email"
