@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { criarConta, entrar, entrarComGoogle, type EstadoLogin } from './actions';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
@@ -52,6 +53,11 @@ export function FormularioLogin({ voltar, erroInicial }: { voltar?: string; erro
             className={classeEntrada}
           />
         </Campo>
+        {modo === 'entrar' && (
+          <Link href="/login/recuperar" className="-mt-1 self-start text-sm font-semibold text-cianotipia hover:underline underline-offset-4">
+            Esqueci a senha
+          </Link>
+        )}
         <Botao type="submit" disabled={ocupado} className="mt-1">
           {modo === 'entrar' ? (entrando ? 'Entrando…' : 'Entrar') : criando ? 'Criando conta…' : 'Criar conta'}
         </Botao>

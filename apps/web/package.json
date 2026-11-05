@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@obras/emails": "workspace:*",
     "@obras/shared": "workspace:*",
     "@supabase/ssr": ">=0.6.1 <1.0.0",
     "@supabase/supabase-js": "^2.57.0",

@@ -19,6 +19,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@obras/emails':
+        specifier: workspace:*
+        version: link:../../packages/emails
       '@obras/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -71,6 +74,18 @@ importers:
       tailwindcss:
         specifier: ^4.1.0
         version: 4.3.3
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@22.20.5)(vite@7.3.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0))
+
+  packages/emails:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
