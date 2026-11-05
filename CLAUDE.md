@@ -8,6 +8,7 @@ Contexto completo e requisitos numerados (RF-xxx) em `docs/PRD.md`. Fale e escre
 
 - `apps/web`: Next.js 15 (App Router, Server Components e Server Actions), React 19, Tailwind 4.
 - `packages/shared`: tipos do domínio, validação com Zod 4 e formatação (usado no front e nas actions).
+- `packages/emails`: modelos de e-mail (HTML puro) do app e do Supabase Auth.
 - `supabase/`: migrações SQL, testes de permissão e o shim para rodar os testes em Postgres puro.
 - Supabase (Postgres + Auth + Storage), projeto `bxsaaabxbzlddpahdrto` em sa-east-1.
 - Hospedagem: web na Vercel; captura de fotos, FFmpeg e jobs de IA numa VPS (a partir do sprint 5).
@@ -196,7 +197,22 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   de 7 dias pelo ritmo de 21 dias, medição vencida ou parada, câmera, ferramenta atrasada e diário faltando/sem assinatura.
 - Só a justificativa é gravada: `justificativa_atraso` (imutável, auditada) por `justificar_atraso` (engenheiro e mestre);
   justificada depois que o atraso começou, o alerta cai para "Aviso". Histórico com dias por causa (negociação de prazo).
-- E-mail/WhatsApp ainda não: precisam de conta de envio em nome do cliente (ver PENDENCIAS.md).
+- Alerta por e-mail (resumo diário) ainda não: precisa de agendamento; WhatsApp precisa de conta comercial na Meta.
+
+## E-mails
+
+- `packages/emails`: HTML de e-mail sem dependências (tabelas, estilos inline, até 560px, botão que o Outlook desenha).
+  O modelo `html\`...\`` escapa tudo o que é interpolado; `cru()` só para trecho fixo e marcador do Supabase.
+- Modelos do Supabase Auth (cadastro, convite, link mágico, troca de e-mail, nova senha, código) gerados em
+  `supabase/templates/` por `pnpm --filter @obras/emails exportar`; o teste falha se o arquivo divergir do código.
+  Colados à mão no painel (Authentication → Emails), com o SMTP da Resend.
+- Os links vão para `/auth/confirmar?token_hash=...&type=...`, que pede um toque antes do `verifyOtp` (nunca valide no
+  GET: antivírus de e-mail corporativo abre o link e gastaria o código). Convite e nova senha terminam em `/conta/senha`.
+- E-mail do próprio app: `lib/email.ts` (API da Resend, `RESEND_API_KEY` e `EMAIL_REMETENTE`); sem chave, não envia e o
+  app segue. Envio em `after()`, nunca segurando a resposta.
+- Convite: `adicionar_membro_projeto` devolve `P0002` quando não há conta → se quem pede é admin da empresa, o app manda
+  `auth.admin.inviteUserByEmail` (única coisa feita com `SUPABASE_SECRET_KEY`, em `lib/supabase/admin.ts`) e chama a
+  função de novo; o banco confere tudo outra vez. Quem já tinha conta recebe o aviso "Você agora acessa a obra".
 
 ## Obra de exemplo
 

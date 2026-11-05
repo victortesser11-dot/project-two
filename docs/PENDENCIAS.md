@@ -26,11 +26,29 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Pagamento de empreiteira vira despesa?** Hoje a medição da empreiteira registra o pagamento, mas não lança a
       despesa no realizado (para não contar duas vezes com quem já lança a despesa à mão). Diga como prefere.
 
+## E-mails (05/11)
+
+A conta da Resend e a chave já existem. O segredo `RESEND_API_KEY` no GitHub só chega ao GitHub Actions (nada usa hoje):
+a Vercel e o Supabase precisam da chave nas configurações deles.
+
+- [ ] **Domínio** (obrigatório para mandar e-mail para qualquer pessoa): sem domínio verificado, a Resend só entrega no
+      e-mail do dono da conta. Registre um `.com.br` (registro.br) e, na Resend → Domains, adicione `seudominio.com.br`
+      e crie no DNS os registros que ela mostrar (SPF, DKIM e MX do subdomínio `send`). Depois de "Verified", siga.
+- [ ] **SMTP no Supabase** (Authentication → Emails → SMTP Settings → Enable custom SMTP): host `smtp.resend.com`,
+      porta `465`, usuário `resend`, senha = a chave da Resend; remetente `nao-responda@seudominio.com.br`, nome
+      "Controle de Obras". Sem isso o Supabase manda poucos e-mails por hora e só para o time do projeto.
+- [ ] **Modelos no Supabase**: Authentication → Emails → Templates. Assunto e arquivo de cada aba em
+      `supabase/templates/README.md` (cole o arquivo inteiro).
+- [ ] **Site URL** = endereço de produção (item "URLs de retorno" acima): os links dos e-mails e o logo saem dele.
+- [ ] **Variáveis na Vercel** (Settings → Environment Variables, Production e Preview), depois "Redeploy":
+      - `RESEND_API_KEY` = a mesma chave;
+      - `EMAIL_REMETENTE` = `Controle de Obras <avisos@seudominio.com.br>`;
+      - `SUPABASE_SECRET_KEY` = Supabase → Project Settings → API Keys → Secret key (`sb_secret_...`). Só serve para
+        mandar o convite de quem ainda não tem conta; sem ela, a pessoa precisa criar a conta antes.
+
 ## Alertas (05/11)
 
-- [ ] **Migração `20261105090000_justificativa_atraso.sql`** no SQL Editor, **antes** do merge.
-- [ ] **Alertas por e-mail**: crie uma conta num serviço de envio (Resend é o mais simples; plano gratuito de 3.000
-      e-mails/mês) com um domínio seu, e coloque a chave como segredo no Supabase. Eu não crio contas em seu nome.
+- [ ] **Resumo diário de alertas por e-mail**: depois dos e-mails acima, eu monto o envio agendado.
 - [ ] **WhatsApp** (opcional, depois): exige conta comercial na Meta (WhatsApp Business Platform) em nome da empresa.
 - [ ] Confirmar com o engenheiro os gatilhos: 25 pontos abaixo do ritmo, chuva ≥ 5 mm em 3 dias, material para menos de
       7 dias, medição em rascunho há mais de 5 dias.
@@ -115,3 +133,5 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Obra de exemplo publicada: migração `obra_exemplo` no SQL Editor e app em produção (02/11).
 - [x] Modelo de cronograma "Residência unifamiliar" (documento da engenharia) publicado no importador da EAP (03/11).
 - [x] Medição publicada: migração `medicao` no SQL Editor (com a correção da obra de exemplo) e app em produção (05/11).
+- [x] Alertas publicados: migrações `justificativa_atraso` e `revoga_padrao_supabase` no SQL Editor (05/11).
+- [x] Conta da Resend e chave de API criadas (05/11).
