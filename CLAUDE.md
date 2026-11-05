@@ -234,6 +234,14 @@ Textos em linguagem de obra, voz ativa, botões dizem o que fazem ("Criar projet
 Mobile primeiro: corpo 16px no celular, campos com 16px (iPhone não dá zoom) e alvos de toque de 44px;
 foco visível e `prefers-reduced-motion` respeitado.
 
+Componentes (no estilo do shadcn/ui: código nosso sobre primitivos do Radix, versões fixas no `package.json`):
+- Confirmação: `useConfirmar()` de `components/Confirmar.tsx` (gaveta no celular, janela no computador). **Nunca
+  `window.confirm`.** Ação que apaga ou tira acesso usa `perigo: true`.
+- Aviso rápido depois de uma ação: `avisar.ok/erro` (`lib/avisos.ts`, Sonner). Erro de formulário fica junto do campo.
+- Menus: `components/MenuSuspenso.tsx` (Radix). Ícones só do `lucide-react`; SVG à mão só no logo (`Logo.tsx`),
+  nos gráficos e nas formas do semáforo.
+- Data e lista de opções continuam nativas (`type="date"`, `<select>`): no celular o seletor do aparelho é o melhor.
+
 ## Glossário
 
 - **EAP**: estrutura analítica do projeto (etapas → tarefas). Tudo que acontece na obra aponta para uma tarefa.
