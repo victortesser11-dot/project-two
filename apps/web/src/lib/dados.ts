@@ -2,6 +2,10 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type {
+  ContratoMedicao,
+  ItemContratoMedicao,
+  ItemMedicao,
+  Medicao,
   ComposicaoCusto,
   Compromisso,
   Despesa,
@@ -755,4 +759,71 @@ export const equipeNoDia = cache(async (projetoId: string, data: string): Promis
     .eq('presente', true);
   if (error) return null;
   return new Set((linhas ?? []).map((l) => l.trabalhador_id)).size;
+});
+
+// ---------------------------------------------------------------- medição (RF-505)
+
+const num = (v: number | string | null) => (v === null ? 0 : Number(v));
+
+/** Contratos de medição da obra (cliente e empreiteiras). Só quem vê o financeiro recebe linhas. */
+export const listarContratosMedicao = cache(async (projetoId: string): Promise<ContratoMedicao[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('contrato_medicao')
+    .select('id, parte, nome, empreiteira_id, bdi_pct, retencao_pct, prazo_pagamento_dias')
+    .eq('projeto_id', projetoId)
+    .order('parte')
+    .order('criado_em');
+  if (error) throw new Error(`Não foi possível carregar os contratos de medição: ${error.message}`);
+  return (data ?? []).map((c) => ({ ...c, bdi_pct: num(c.bdi_pct), retencao_pct: num(c.retencao_pct) }));
+});
+
+export const listarItensContrato = cache(async (projetoId: string): Promise<ItemContratoMedicao[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('contrato_medicao_item')
+      .select('id, contrato_id, tarefa_id, criterio, unidade, quantidade, preco_unitario, valor_total')
+      .eq('projeto_id', projetoId)
+      .order('id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar os itens dos contratos: ${error.message}`);
+  return data.map((i) => ({ ...i, quantidade: num(i.quantidade), preco_unitario: num(i.preco_unitario), valor_total: num(i.valor_total) }));
+});
+
+export const listarMedicoes = cache(async (projetoId: string): Promise<Medicao[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('medicao')
+      .select('id, contrato_id, numero, inicio, fim, status, observacao, valor_bruto, retencao, valor_liquido, vencimento, aprovada_nome, aprovada_em, pago_em, pago_valor')
+      .eq('projeto_id', projetoId)
+      .order('fim', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar as medições: ${error.message}`);
+  return data.map((m) => ({
+    ...m,
+    valor_bruto: num(m.valor_bruto),
+    retencao: num(m.retencao),
+    valor_liquido: num(m.valor_liquido),
+    pago_valor: m.pago_valor === null ? null : num(m.pago_valor),
+  }));
+});
+
+export const listarItensMedidos = cache(async (projetoId: string): Promise<ItemMedicao[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('medicao_item')
+      .select('medicao_id, contrato_item_id, quantidade, valor, executado_acumulado')
+      .eq('projeto_id', projetoId)
+      .order('medicao_id')
+      .order('contrato_item_id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar os itens medidos: ${error.message}`);
+  return data.map((i) => ({ ...i, quantidade: num(i.quantidade), valor: num(i.valor), executado_acumulado: num(i.executado_acumulado) }));
 });

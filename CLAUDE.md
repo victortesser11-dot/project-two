@@ -46,7 +46,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    câmeras: `criar_agente_camera`, `revogar_agente_camera`, `salvar_camera`, `pedir_teste_camera`,
    `registrar_foto_camera`, `excluir_foto_camera`, e as do orçamento: `definir_composicao_custo`,
    `salvar_versao_orcamento`, `salvar_compromisso`, `encerrar_compromisso`, `registrar_despesa`, `excluir_despesa`,
-   `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da obra de exemplo:
+   `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
+   `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
+   `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -57,7 +59,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    Envolva com `coalesce(..., false)` e teste com `is false` (ver `10_permissoes_test.sql`).
 9. **Chaves não mudam.** Política de UPDATE que confere a própria linha (`pode_editar_projeto(id)`) lê a linha
    antiga: trocar `empresa_id` passaria. Tabela com UPDATE direto ganha `app.tg_chaves_fixas('id', 'empresa_id')`.
-   Funções novas em `app` nascem sem EXECUTE para PUBLIC: dê `grant` explícito a quem precisa.
+   Função nova em `app` nasce com EXECUTE para PUBLIC (padrão do Postgres; `alter default privileges in schema`
+   não tira isso): sempre `revoke all ... from public, anon, authenticated` e `grant` só a quem precisa.
 10. **O Supabase entrega no máximo 1.000 linhas por pedido** e corta o resto sem erro (vale para `.limit()` maior
     e para RPC que devolve tabela). Lista que pode passar disso usa `emPaginas` (`lib/paginas.ts`) com ordem estável.
 
@@ -169,10 +172,23 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - `formatarMoeda(..., { compacta: true })` é feito à mão (sem notação compacta do Intl), para o servidor e o
   navegador escreverem igual.
 
+## Medição (RF-505 ampliado)
+
+- `contrato_medicao`: um com o cliente por obra (receber) e quantos com empreiteiras (pagar), com BDI, retenção e
+  prazo de pagamento. Itens = tarefas, critério `quantidade` (unidade da tarefa, preço unitário) ou `percentual`
+  (quantidade 100, unidade "%"). Gerados da EAP: preço = custo (ou mão de obra da composição) × (1 + BDI) ÷ quantidade.
+- Boletim (`medicao`): `gerar_medicao` sugere "executado até o fim do período − já medido"; o executado é o último
+  avanço apontado (`app.executado_tarefa`, mesmo critério de `executadoAte` no shared). **O banco é o juiz**: medido
+  acumulado ≤ executado ≤ contratado, conferido de novo em `aprovar_medicao` (só o engenheiro). Aprovada = liberada para
+  pagar com vencimento; depois só `registrar_pagamento_medicao`. Trigger barra mudar boletim aprovado.
+- Tudo financeiro: leitura só para `app.pode_financeiro_projeto`; escrita só pelas funções; tudo no `audit_log`.
+- Tarefa já medida não sai da EAP (FK sem cascata em `medicao_item`, checada no fim do comando).
+
 ## Obra de exemplo
 
 - `criar_obra_exemplo(empresa)` (só admin, uma por empresa) monta no banco uma obra fictícia com ~140 tarefas e três
-  meses de andamento, chamando as mesmas RPCs do app; `excluir_obra_exemplo` apaga a obra e os cadastros marcados
+  meses de andamento, chamando as mesmas RPCs do app (a base está em `app.criar_obra_exemplo_base`; a pública acrescenta
+  as medições); `excluir_obra_exemplo` apaga a obra e os cadastros marcados
   `exemplo` que nenhuma obra real usa. Nenhuma conta de login é criada (pessoas são `trabalhador`).
 - A coluna `exemplo` (projeto, empreiteira, trabalhador, item_estoque) só é gravada dentro de `criar_obra_exemplo`
   (`app.tg_exemplo_protegido`). Mudou uma RPC usada pelo exemplo? Rode `97_obra_exemplo_test.sql`: ele quebra junto.

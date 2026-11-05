@@ -12,3 +12,4 @@ export * from './integracoes/nfe';
 export * from './cameras';
 export * from './orcamento';
 export * from './modelos';
+export * from './medicao';

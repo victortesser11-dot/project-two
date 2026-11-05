@@ -62,6 +62,15 @@ select tests.afirmar(
   (select sum(material) > 0 and sum(mao_obra) > 0 and sum(despesas) > 0 and sum(comprometido) > 0 from orcado_realizado(current_setting('t.p')::uuid)),
   'orçado × realizado com material, mão de obra, despesas e comprometido');
 
+select tests.afirmar(
+  (select count(*) filter (where status = 'paga') = 1 and count(*) filter (where status = 'aprovada') = 2
+          and count(*) filter (where status = 'rascunho') = 1
+     from medicao where projeto_id = current_setting('t.p')::uuid),
+  'medições do exemplo: uma paga, duas aprovadas (cliente e empreitada) e o rascunho do mês');
+select tests.afirmar(
+  (select count(*) = 2 from contrato_medicao where projeto_id = current_setting('t.p')::uuid),
+  'contrato com o cliente e empreitada de estrutura');
+
 -- ---------------------------------------------------------------- outra empresa e a marca
 select tests.entrar('00000000-0000-0000-0000-00000000000d');
 select tests.afirmar((select count(*) from projeto where id = current_setting('t.p')::uuid) = 0, 'outra empresa não vê a obra de exemplo');
@@ -92,5 +101,16 @@ select tests.afirmar((select count(*) from trabalhador where exemplo) = 1, 'só 
 select tests.afirmar((select count(*) from item_estoque where exemplo) = 0 and (select count(*) from empreiteira where exemplo) = 0,
   'itens e empreiteiras do exemplo saíram');
 select tests.afirmar(criar_obra_exemplo(current_setting('t.a')::uuid) is not null, 'dá para criar de novo depois de apagar');
+
+-- A obra é montada a partir da data de hoje (dia da semana, meses): monta e apaga simulando 14 dias seguidos.
+select excluir_obra_exemplo(current_setting('t.a')::uuid);
+select tests.afirmar(
+  (select bool_and(ok) from (
+     select set_config('app.exemplo_hoje', ((now() at time zone 'America/Sao_Paulo')::date - k)::text, true) is not null
+            and criar_obra_exemplo(current_setting('t.a')::uuid) is not null
+            and excluir_obra_exemplo(current_setting('t.a')::uuid) = 1 as ok
+       from generate_series(1, 14) k) x),
+  'a obra de exemplo monta em qualquer dia (14 datas simuladas)');
+select set_config('app.exemplo_hoje', '', true);
 
 rollback;

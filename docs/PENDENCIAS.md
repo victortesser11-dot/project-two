@@ -17,11 +17,15 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
-## Obra de exemplo (02/11)
+## Medição (03/11)
 
-- [ ] **Migração `20261102090000_obra_exemplo.sql`** no SQL Editor, **antes** do merge do app (a tela inicial
-      passa a ler a coluna `exemplo`).
-- [ ] Depois do merge: tela inicial → "Obra de exemplo" → **Criar obra de exemplo**.
+- [ ] **Migração `20261103090000_medicao.sql`** no SQL Editor, **antes** do merge (o conteúdo vai na conversa).
+- [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o
+      cliente já conhece.
+- [ ] **Decisões do contrato com o cliente**: preço com BDI ou a custo? Tem retenção (quanto)? Prazo de pagamento?
+      O cliente (ou o fiscal dele) vai entrar na plataforma para aprovar a medição, ou só recebe o boletim impresso?
+- [ ] **Pagamento de empreiteira vira despesa?** Hoje a medição da empreiteira registra o pagamento, mas não lança a
+      despesa no realizado (para não contar duas vezes com quem já lança a despesa à mão). Diga como prefere.
 
 ## Para eu testar com dados reais
 
@@ -100,3 +104,5 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Câmeras: Intelbras, link dedicado, sem VPS por enquanto; agente na obra em vez de abrir portas (31/10).
 - [x] Migrações `cameras` e `orcamento` e a função `agente-cameras` publicadas no Supabase pelo SQL Editor (01/11).
 - [x] Revisão geral publicada: migração `revisao` no SQL Editor e função `agente-cameras` atualizada (01/11).
+- [x] Obra de exemplo publicada: migração `obra_exemplo` no SQL Editor e app em produção (02/11).
+- [x] Modelo de cronograma "Residência unifamiliar" (documento da engenharia) publicado no importador da EAP (03/11).

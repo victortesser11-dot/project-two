@@ -439,3 +439,65 @@ export const REGRA_SEMAFORO_PADRAO: RegraSemaforo = {
   custo_amarelo_pct: 5,
   custo_vermelho_pct: 10,
 };
+
+// ---------------------------------------------------------------- medição (RF-505)
+export const PARTES_MEDICAO = ['cliente', 'empreiteiro'] as const;
+export type ParteMedicao = (typeof PARTES_MEDICAO)[number];
+export const ROTULO_PARTE_MEDICAO: Record<ParteMedicao, string> = { cliente: 'Cliente (receber)', empreiteiro: 'Empreiteira (pagar)' };
+
+export const CRITERIOS_MEDICAO = ['quantidade', 'percentual'] as const;
+export type CriterioMedicao = (typeof CRITERIOS_MEDICAO)[number];
+export const ROTULO_CRITERIO_MEDICAO: Record<CriterioMedicao, string> = {
+  quantidade: 'Por quantidade (m², m³, kg…)',
+  percentual: 'Por percentual executado',
+};
+
+export const STATUS_MEDICAO = ['rascunho', 'aprovada', 'paga'] as const;
+export type StatusMedicao = (typeof STATUS_MEDICAO)[number];
+
+export interface ContratoMedicao {
+  id: string;
+  parte: ParteMedicao;
+  nome: string;
+  empreiteira_id: string | null;
+  bdi_pct: number;
+  retencao_pct: number;
+  prazo_pagamento_dias: number;
+}
+
+export interface ItemContratoMedicao {
+  id: string;
+  contrato_id: string;
+  tarefa_id: string;
+  criterio: CriterioMedicao;
+  unidade: string;
+  quantidade: number;
+  preco_unitario: number;
+  valor_total: number;
+}
+
+export interface Medicao {
+  id: string;
+  contrato_id: string;
+  numero: number;
+  inicio: string;
+  fim: string;
+  status: StatusMedicao;
+  observacao: string | null;
+  valor_bruto: number;
+  retencao: number;
+  valor_liquido: number;
+  vencimento: string | null;
+  aprovada_nome: string | null;
+  aprovada_em: string | null;
+  pago_em: string | null;
+  pago_valor: number | null;
+}
+
+export interface ItemMedicao {
+  medicao_id: string;
+  contrato_item_id: string;
+  quantidade: number;
+  valor: number;
+  executado_acumulado: number;
+}
