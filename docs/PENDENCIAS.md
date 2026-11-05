@@ -19,7 +19,6 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 
 ## Medição (03/11)
 
-- [ ] **Migração `20261103090000_medicao.sql`** no SQL Editor, **antes** do merge (o conteúdo vai na conversa).
 - [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o
       cliente já conhece.
 - [ ] **Decisões do contrato com o cliente**: preço com BDI ou a custo? Tem retenção (quanto)? Prazo de pagamento?
@@ -106,3 +105,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Revisão geral publicada: migração `revisao` no SQL Editor e função `agente-cameras` atualizada (01/11).
 - [x] Obra de exemplo publicada: migração `obra_exemplo` no SQL Editor e app em produção (02/11).
 - [x] Modelo de cronograma "Residência unifamiliar" (documento da engenharia) publicado no importador da EAP (03/11).
+- [x] Medição publicada: migração `medicao` no SQL Editor (com a correção da obra de exemplo) e app em produção (05/11).
