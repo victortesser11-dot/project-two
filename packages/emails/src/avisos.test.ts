@@ -6,7 +6,7 @@ const base = {
   obra: 'Residência <Silva> & Filhos',
   empresa: 'Construtora A',
   papel: 'Mestre de obras',
-  chavePapel: 'mestre',
+  oQueFaz: 'Aponta o avanço das tarefas, faz a chamada da equipe e preenche o diário.',
   quem: 'bruno@a.test',
   urlObra: 'https://obras.exemplo.com.br/projetos/1?a=1&b=2',
 };
@@ -24,8 +24,8 @@ describe('emailAcessoObra', () => {
     expect(e.texto).toContain('Abrir a obra: https://obras.exemplo.com.br/projetos/1?a=1&b=2');
   });
 
-  it('funciona sem empresa e com papel desconhecido', () => {
-    const e = emailAcessoObra({ ...base, empresa: null, chavePapel: 'outro' });
+  it('funciona sem empresa e sem a descrição do papel', () => {
+    const e = emailAcessoObra({ ...base, empresa: null, oQueFaz: null });
     expect(e.html).not.toContain(', da ');
     expect(e.texto).not.toContain('undefined');
   });

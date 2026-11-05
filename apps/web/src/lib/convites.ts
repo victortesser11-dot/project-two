@@ -1,7 +1,7 @@
 import 'server-only';
 import { after } from 'next/server';
 import { emailAcessoObra } from '@obras/emails';
-import { ROTULO_PAPEL_PROJETO, type PapelProjeto } from '@obras/shared';
+import { DESCRICAO_PAPEL_PROJETO, ROTULO_PAPEL_PROJETO, type PapelProjeto } from '@obras/shared';
 import { emailConfigurado, enviarEmail } from '@/lib/email';
 import { urlDoSite } from '@/lib/env';
 import { adminConfigurado, criarClienteAdmin } from '@/lib/supabase/admin';
@@ -88,7 +88,7 @@ export async function avisarAcessoObra(supabase: Cliente, projetoId: string, ema
     obra: ctx.projeto,
     empresa: ctx.empresa,
     papel: ROTULO_PAPEL_PROJETO[papel],
-    chavePapel: papel,
+    oQueFaz: DESCRICAO_PAPEL_PROJETO[papel],
     quem,
     urlObra: `${base}/projetos/${projetoId}`,
   });

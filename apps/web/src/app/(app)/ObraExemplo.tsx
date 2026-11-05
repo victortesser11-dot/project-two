@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import { AvisoErro, Botao } from '@/components/ui';
+import { useConfirmar } from '@/components/Confirmar';
 import { apagarObraExemplo, criarObraExemplo } from './acoes';
 
 /** Criar ou apagar a obra de exemplo (só aparece para o admin). */
 export function ObraExemplo({ existe }: { existe: boolean }) {
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, iniciar] = useTransition();
+  const confirmar = useConfirmar();
 
   function executar(acao: () => Promise<{ erro?: string }>) {
     setErro(null);
@@ -30,8 +32,14 @@ export function ObraExemplo({ existe }: { existe: boolean }) {
             type="button"
             variante="secundario"
             disabled={rodando}
-            onClick={() => {
-              if (window.confirm('Apagar a obra de exemplo com todos os dados dela? Não dá para desfazer.')) executar(apagarObraExemplo);
+            onClick={async () => {
+              const sim = await confirmar({
+                titulo: 'Apagar a obra de exemplo?',
+                texto: 'Saem a obra fictícia e todos os dados dela. As obras reais não são tocadas. Não dá para desfazer.',
+                confirmar: 'Apagar obra de exemplo',
+                perigo: true,
+              });
+              if (sim) executar(apagarObraExemplo);
             }}
           >
             {rodando ? 'Apagando…' : 'Apagar obra de exemplo'}

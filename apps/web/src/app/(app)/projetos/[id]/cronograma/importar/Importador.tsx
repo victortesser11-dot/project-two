@@ -32,6 +32,7 @@ import { criarClienteNavegador } from '@/lib/supabase/client';
 import { mensagemDoBanco } from '@/lib/erros';
 import type { Json } from '@/lib/database.types';
 import { AvisoErro, Botao, classeBotao, classeEntrada } from '@/components/ui';
+import { Upload } from 'lucide-react';
 
 type Aba = { nome: string; linhas: unknown[][] };
 type Passo = 'arquivo' | 'colunas' | 'previa';
@@ -275,9 +276,7 @@ export function Importador({
               lendo ? 'pointer-events-none opacity-60' : ''
             }`}
           >
-            <svg aria-hidden viewBox="0 0 24 24" className="size-8 text-cianotipia" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M12 16V4m0 0-4 4m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-            </svg>
+            <Upload aria-hidden className="size-8 text-cianotipia" strokeWidth={1.8} />
             <span className="text-lg font-semibold">{lendo ? 'Lendo o arquivo…' : 'Escolher arquivo'}</span>
             <span className="text-sm text-regua">Planilha .xlsx ou .csv, ou XML do MS Project</span>
             <input

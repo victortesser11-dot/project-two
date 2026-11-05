@@ -7,6 +7,8 @@ import type { EstadoForm } from '../../acoes';
 import { ajustarMedicao, aprovarMedicao, excluirMedicao, observarMedicao, registrarPagamentoMedicao } from '../acoes';
 import { SeloSituacao } from '../Selo';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
+import { useConfirmar } from '@/components/Confirmar';
+import { avisar } from '@/lib/avisos';
 
 export interface LinhaBoletim {
   itemId: string;
@@ -54,6 +56,7 @@ export function Boletim({
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [rodando, iniciar] = useTransition();
+  const confirmar = useConfirmar();
   const [obs, setObs] = useState(m.observacao ?? '');
 
   const calc = useMemo(
@@ -279,17 +282,18 @@ export function Boletim({
                 variante="secundario"
                 disabled={mudou || rodando || m.valor_bruto <= 0}
                 title={mudou ? 'Salve a medição antes de aprovar' : undefined}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Aprovar a medição nº ${m.numero} de ${formatarMoeda(m.valor_liquido)} líquidos? Depois de aprovada ela não muda mais.`,
-                    )
-                  )
-                    return;
+                onClick={async () => {
+                  const sim = await confirmar({
+                    titulo: `Aprovar a medição nº ${m.numero}?`,
+                    texto: `${formatarMoeda(m.valor_liquido)} líquidos ficam liberados para pagamento. Depois de aprovada, a medição não muda mais.`,
+                    confirmar: 'Aprovar medição',
+                  });
+                  if (!sim) return;
                   setErro(null);
                   iniciar(async () => {
                     const r = await aprovarMedicao(projetoId, m.id);
                     if (!r.ok) setErro(r.erro);
+                    else avisar.ok(`Medição nº ${m.numero} aprovada.`);
                     router.refresh();
                   });
                 }}
@@ -301,8 +305,14 @@ export function Boletim({
               type="button"
               variante="discreto"
               disabled={rodando}
-              onClick={() => {
-                if (!window.confirm(`Apagar o rascunho da medição nº ${m.numero}?`)) return;
+              onClick={async () => {
+                const sim = await confirmar({
+                  titulo: `Apagar o rascunho da medição nº ${m.numero}?`,
+                  texto: 'As quantidades lançadas neste boletim se perdem. O que foi executado na obra não muda.',
+                  confirmar: 'Apagar rascunho',
+                  perigo: true,
+                });
+                if (!sim) return;
                 iniciar(async () => {
                   const r = await excluirMedicao(projetoId, m.id);
                   if (r && !r.ok) setErro(r.erro);

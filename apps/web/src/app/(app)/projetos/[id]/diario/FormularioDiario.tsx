@@ -4,33 +4,15 @@ import { useActionState, useState } from 'react';
 import { CLIMAS, ROTULO_CLIMA, type Clima, type ClimaDoDia, type Diario } from '@obras/shared';
 import { salvarDiario, type EstadoDiario } from './acoes';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
+import { Cloud, CloudDrizzle, CloudRainWind, Sun } from 'lucide-react';
 
 const numeroBr = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
 
 const ICONE: Record<Clima, React.ReactNode> = {
-  sol: (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
-  ),
-  nublado: (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18Z" />
-    </svg>
-  ),
-  chuva: (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M7 14h10a4 4 0 0 0 0-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 14Z" />
-      <path d="M9 17l-1 3M14 17l-1 3" />
-    </svg>
-  ),
-  chuva_forte: (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M7 13h10a4 4 0 0 0 0-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 13Z" />
-      <path d="M8 16l-1.5 4M12 16l-1.5 4M16 16l-1.5 4" />
-    </svg>
-  ),
+  sol: <Sun aria-hidden className="size-5" />,
+  nublado: <Cloud aria-hidden className="size-5" />,
+  chuva: <CloudDrizzle aria-hidden className="size-5" />,
+  chuva_forte: <CloudRainWind aria-hidden className="size-5" />,
 };
 
 /** Clima de um período: quatro botões grandes (rádio) e "deu para trabalhar?". */

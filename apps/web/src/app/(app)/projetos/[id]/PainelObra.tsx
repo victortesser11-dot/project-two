@@ -21,6 +21,7 @@ import { MembrosProjeto } from './MembrosProjeto';
 import { MODULOS } from './modulos';
 import { CurvaS } from './CurvaS';
 import { montarPainel } from './painel';
+import { Check, TriangleAlert } from 'lucide-react';
 
 // Passo a passo de configuração (PRD, "Fluxo de criação de um projeto").
 const PASSOS = [
@@ -313,9 +314,7 @@ export function PainelObra({
                       }`}
                     >
                       {feito && (
-                        <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="3">
-                          <path d="m3.5 8.5 3 3 6-7" />
-                        </svg>
+                        <Check className="size-3" strokeWidth={3} />
                       )}
                     </span>
                     <span className={feito ? '' : 'text-regua'}>
@@ -358,16 +357,8 @@ function BarraDupla({ real, planejado, fina }: { real: number; planejado: number
   );
 }
 
-const ICONE_OK = (
-  <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="m3.5 8.5 3 3 6-7" />
-  </svg>
-);
-const ICONE_ALERTA = (
-  <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="currentColor">
-    <path d="M8 1.5 15 14H1L8 1.5Zm-.75 4.5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" />
-  </svg>
-);
+const ICONE_OK = <Check aria-hidden className="size-4" strokeWidth={2.5} />;
+const ICONE_ALERTA = <TriangleAlert aria-hidden className="size-4" />;
 
 function CartaoPrazo({ projecao, fimProjeto }: { projecao: Projecao; fimProjeto: string | null }) {
   const pr = projecao;

@@ -25,6 +25,15 @@ export const ROTULO_PAPEL_PROJETO: Record<PapelProjeto, string> = {
   leitura: 'Somente leitura',
 };
 
+/** O que cada papel faz na obra (tela de dar acesso e e-mail de aviso). */
+export const DESCRICAO_PAPEL_PROJETO: Record<PapelProjeto, string> = {
+  engenheiro: 'Planeja o cronograma, aponta o avanço, assina o diário e aprova medições.',
+  mestre: 'Aponta o avanço das tarefas, faz a chamada da equipe e preenche o diário.',
+  almoxarife: 'Dá entrada nas notas, registra as saídas para as tarefas e cuida das ferramentas.',
+  financeiro: 'Acompanha orçado × realizado, lança despesas e controla medições e pagamentos.',
+  leitura: 'Acompanha o cronograma, as fotos e o diário, sem alterar nada.',
+};
+
 export const TIPOS_ITEM_EAP = ['etapa', 'tarefa'] as const;
 export type TipoItemEap = (typeof TIPOS_ITEM_EAP)[number];
 

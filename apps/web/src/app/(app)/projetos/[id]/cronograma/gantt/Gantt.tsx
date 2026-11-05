@@ -17,6 +17,7 @@ import {
 } from './escala';
 import { PainelTarefa } from './PainelTarefa';
 import { BotaoLinhaBase } from './BotaoLinhaBase';
+import { ChevronDown } from 'lucide-react';
 
 const ALTURA_LINHA = 40;
 const ALTURA_CABECALHO = 44;
@@ -190,9 +191,7 @@ export function Gantt({
                         aria-label={`${recolhido ? 'Abrir' : 'Recolher'} ${item.nome}`}
                         className="flex size-6 shrink-0 items-center justify-center rounded text-regua hover:bg-concreto"
                       >
-                        <svg aria-hidden viewBox="0 0 16 16" className={`size-3.5 transition-transform ${recolhido ? '-rotate-90' : ''}`}>
-                          <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" />
-                        </svg>
+                        <ChevronDown aria-hidden className={`size-3.5 transition-transform ${recolhido ? '-rotate-90' : ''}`} />
                       </button>
                     ) : (
                       <span className="w-6 shrink-0" />

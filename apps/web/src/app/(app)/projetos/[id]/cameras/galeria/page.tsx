@@ -6,6 +6,7 @@ import { assinarFotos, buscarProjeto, diasComFoto, listarCameras, listarFotosCam
 import { SeletorCamera, TopoCameras } from '../NavCameras';
 import { BotaoTirarFoto } from './BotaoTirarFoto';
 import { classeEntrada } from '@/components/ui';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Galeria das câmeras' };
 
@@ -64,7 +65,7 @@ export default async function PaginaGaleria({
             <div className="flex items-center gap-2">
               {anterior ? (
                 <Link href={link(camera.id, anterior.data)} className="flex size-11 items-center justify-center rounded-medio border border-campo/60 bg-papel hover:border-grafite" aria-label={`Dia anterior com foto: ${formatarData(anterior.data)}`}>
-                  <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 3 5 8l5 5" /></svg>
+                  <ChevronLeft aria-hidden className="size-4" />
                 </Link>
               ) : (
                 <span className="size-11" />
@@ -72,7 +73,7 @@ export default async function PaginaGaleria({
               <h3 className="numeros text-base font-semibold sm:text-lg">{data ? `${formatarDataLonga(data)}` : ''}</h3>
               {proximo ? (
                 <Link href={link(camera.id, proximo.data)} className="flex size-11 items-center justify-center rounded-medio border border-campo/60 bg-papel hover:border-grafite" aria-label={`Próximo dia com foto: ${formatarData(proximo.data)}`}>
-                  <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 3 5 5-5 5" /></svg>
+                  <ChevronRight aria-hidden className="size-4" />
                 </Link>
               ) : (
                 <span className="size-11" />
