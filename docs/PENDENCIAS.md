@@ -5,15 +5,13 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 
 ## Para a equipe da obra usar a produção
 
-- [ ] **Abrir a produção para quem não está no time da Vercel.** Hoje a proteção do projeto
-      `controle-de-obras` está em "todos exceto domínios próprios": `controle-de-obras-vtesser.vercel.app`
-      só abre para quem está logado na Vercel. Duas saídas:
-      1. ligar um domínio próprio (ex.: `app.suaempresa.com.br`) em Settings → Domains; ou
-      2. em Settings → Deployment Protection, deixar a proteção só nas prévias ("Standard Protection").
+Endereço do piloto: **https://moda-triade.com.br** (domínio ligado na Vercel em 05/11; DNS no registro.br).
+
 - [ ] **URLs de retorno do login no Supabase.** Authentication → URL Configuration:
-      - Site URL: o endereço de produção;
-      - Redirect URLs: o de produção + `https://controle-de-obras-*-vtesser.vercel.app/**` (prévias).
-      Sem isso, o link de confirmação de cadastro por e-mail não volta para o app.
+      - Site URL: `https://moda-triade.com.br`;
+      - Redirect URLs: `https://moda-triade.com.br/**`, `https://controle-de-obras-puce.vercel.app/**` e
+        `https://controle-de-obras-*-vtesser.vercel.app/**` (prévias).
+      Sem isso, os links dos e-mails (confirmar cadastro, convite, nova senha) não voltam para o app.
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
@@ -31,18 +29,20 @@ cada item libera algo em produção ou um teste ao vivo. Marque `[x]` quando fiz
 A conta da Resend e a chave já existem. O segredo `RESEND_API_KEY` no GitHub só chega ao GitHub Actions (nada usa hoje):
 a Vercel e o Supabase precisam da chave nas configurações deles.
 
-- [ ] **Domínio** (obrigatório para mandar e-mail para qualquer pessoa): sem domínio verificado, a Resend só entrega no
-      e-mail do dono da conta. Registre um `.com.br` (registro.br) e, na Resend → Domains, adicione `seudominio.com.br`
-      e crie no DNS os registros que ela mostrar (SPF, DKIM e MX do subdomínio `send`). Depois de "Verified", siga.
+- [ ] **Verificar o domínio na Resend** (sem isso ela só entrega no e-mail do dono da conta): Resend → Domains → Add
+      domain → `moda-triade.com.br`, região **São Paulo (sa-east-1)**. Ela mostra 3 ou 4 registros (DKIM em
+      `resend._domainkey`, MX e TXT/SPF em `send`); crie cada um no registro.br → o domínio → DNS → "Editar zona".
+      Eles não mexem no site nem no e-mail que o domínio já tenha. Volte na Resend e clique "Verify" (leva de minutos
+      a algumas horas).
 - [ ] **SMTP no Supabase** (Authentication → Emails → SMTP Settings → Enable custom SMTP): host `smtp.resend.com`,
-      porta `465`, usuário `resend`, senha = a chave da Resend; remetente `nao-responda@seudominio.com.br`, nome
+      porta `465`, usuário `resend`, senha = a chave da Resend; remetente `nao-responda@moda-triade.com.br`, nome
       "Controle de Obras". Sem isso o Supabase manda poucos e-mails por hora e só para o time do projeto.
 - [ ] **Modelos no Supabase**: Authentication → Emails → Templates. Assunto e arquivo de cada aba em
       `supabase/templates/README.md` (cole o arquivo inteiro).
-- [ ] **Site URL** = endereço de produção (item "URLs de retorno" acima): os links dos e-mails e o logo saem dele.
+- [ ] **Site URL** = `https://moda-triade.com.br` (item "URLs de retorno" acima): os links dos e-mails e o logo saem dele.
 - [ ] **Variáveis na Vercel** (Settings → Environment Variables, Production e Preview), depois "Redeploy":
       - `RESEND_API_KEY` = a mesma chave;
-      - `EMAIL_REMETENTE` = `Controle de Obras <avisos@seudominio.com.br>`;
+      - `EMAIL_REMETENTE` = `Controle de Obras <avisos@moda-triade.com.br>`;
       - `SUPABASE_SECRET_KEY` = Supabase → Project Settings → API Keys → Secret key (`sb_secret_...`). Só serve para
         mandar o convite de quem ainda não tem conta; sem ela, a pessoa precisa criar a conta antes.
 
@@ -135,3 +135,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Medição publicada: migração `medicao` no SQL Editor (com a correção da obra de exemplo) e app em produção (05/11).
 - [x] Alertas publicados: migrações `justificativa_atraso` e `revoga_padrao_supabase` no SQL Editor (05/11).
 - [x] Conta da Resend e chave de API criadas (05/11).
+- [x] Domínio próprio na produção (`moda-triade.com.br`): a equipe da obra entra sem conta na Vercel (05/11).
