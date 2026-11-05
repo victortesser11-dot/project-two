@@ -17,6 +17,7 @@
   --color-cianotipia-escuro: #1a3578;
   --color-cianotipia-claro: #e8edf8;
   --color-marcador: #b9461a;
+  --color-marcador-escuro: #9a3a15;
   --color-marcador-claro: #fbeee7;
   --color-obra-ok: #2f7d4f;
   /* Semáforo do portfólio: amarelo de atenção (texto 5:1 no fundo claro dele). */
@@ -27,6 +28,23 @@
 
   --radius-pequeno: 6px;
   --radius-medio: 10px;
+
+  /* Movimento curto e só de entrada (janelas e menus); some com prefers-reduced-motion. */
+  --animate-surgir: surgir 140ms ease-out;
+  --animate-subir: subir 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @keyframes surgir {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes subir {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
 }
 
 @layer base {

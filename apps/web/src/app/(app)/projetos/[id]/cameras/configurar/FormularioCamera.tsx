@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import { enderecoIntelbras, enderecoLocal, horaCurta, ROTULO_ORIGEM_CAMERA, type AgenteCamera, type Camera, type OrigemCamera } from '@obras/shared';
 import { salvarCamera, type EstadoForm } from '../acoes';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
+import { X } from 'lucide-react';
 
 const PADRAO = ['07:00', '12:00', '17:00'];
 
@@ -203,9 +204,7 @@ export function FormularioCamera({
                   onClick={() => setHorarios((l) => l.filter((_, j) => j !== i))}
                   className="flex size-11 items-center justify-center rounded-medio text-regua hover:bg-concreto hover:text-marcador"
                 >
-                  <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m4 4 8 8M12 4l-8 8" />
-                  </svg>
+                  <X aria-hidden className="size-4" />
                 </button>
               )}
             </div>

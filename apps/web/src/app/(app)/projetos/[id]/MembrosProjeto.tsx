@@ -1,9 +1,11 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
-import { PAPEIS_PROJETO, ROTULO_PAPEL_PROJETO, type MembroProjeto, type PapelProjeto } from '@obras/shared';
+import { useActionState, useEffect, useState, useTransition } from 'react';
+import { DESCRICAO_PAPEL_PROJETO, PAPEIS_PROJETO, ROTULO_PAPEL_PROJETO, type MembroProjeto, type PapelProjeto } from '@obras/shared';
 import { adicionarMembro, alterarPapelMembro, removerMembro, type EstadoMembro, type ResultadoMembro } from './acoes';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
+import { useConfirmar } from '@/components/Confirmar';
+import { avisarResultado } from '@/lib/avisos';
 
 export function MembrosProjeto({
   projetoId,
@@ -16,17 +18,18 @@ export function MembrosProjeto({
 }) {
   const [estado, acao, enviando] = useActionState<EstadoMembro, FormData>(adicionarMembro, {});
   const [ocupado, iniciar] = useTransition();
-  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+  const confirmar = useConfirmar();
+  const [papelNovo, setPapelNovo] = useState<PapelProjeto>('leitura');
+  // Depois de dar acesso, o formulário volta para "Somente leitura".
+  useEffect(() => {
+    if (estado.ok) setPapelNovo('leitura');
+  }, [estado]);
 
   function executar(tarefa: () => Promise<ResultadoMembro>) {
-    setAviso(null);
-    iniciar(async () => {
-      const r = await tarefa();
-      setAviso(r.ok ? { ok: true, texto: r.mensagem } : { ok: false, texto: r.erro });
-    });
+    iniciar(async () => avisarResultado(await tarefa()));
   }
 
-  const mensagem = aviso ?? (estado.ok && estado.mensagem ? { ok: true, texto: estado.mensagem } : null);
+  const mensagem = estado.ok && estado.mensagem ? { ok: true, texto: estado.mensagem } : null;
 
   return (
     <section className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-pessoas">
@@ -75,10 +78,14 @@ export function MembrosProjeto({
                     type="button"
                     disabled={ocupado}
                     className="shrink-0 font-semibold text-marcador hover:underline underline-offset-4 disabled:text-regua"
-                    onClick={() => {
-                      if (window.confirm(`Tirar o acesso de ${m.email} a este projeto?`)) {
-                        executar(() => removerMembro(projetoId, m.usuario_id));
-                      }
+                    onClick={async () => {
+                      const sim = await confirmar({
+                        titulo: 'Tirar o acesso a esta obra?',
+                        texto: `${m.email} deixa de ver a obra. Dá para dar acesso de novo depois.`,
+                        confirmar: 'Tirar acesso',
+                        perigo: true,
+                      });
+                      if (sim) executar(() => removerMembro(projetoId, m.usuario_id));
                     }}
                   >
                     Tirar acesso
@@ -101,7 +108,7 @@ export function MembrosProjeto({
       </div>
 
       {podeEditar && (
-        <form action={acao} onSubmit={() => setAviso(null)} className="flex flex-col gap-3 border-t border-linha px-5 py-4">
+        <form action={acao} className="flex flex-col gap-3 border-t border-linha px-5 py-4">
           <input type="hidden" name="projeto_id" value={projetoId} />
           <p className="text-sm font-semibold">Dar acesso a alguém</p>
           {estado.erroGeral && <AvisoErro>{estado.erroGeral}</AvisoErro>}
@@ -123,6 +130,7 @@ export function MembrosProjeto({
               id="membro-papel"
               name="papel"
               defaultValue={estado.ok ? 'leitura' : (estado.valores?.papel ?? 'leitura')}
+              onChange={(e) => setPapelNovo(e.target.value as PapelProjeto)}
               className={classeEntrada}
             >
               {PAPEIS_PROJETO.map((p) => (
@@ -132,7 +140,7 @@ export function MembrosProjeto({
               ))}
             </select>
           </Campo>
-          <p className="text-xs text-regua">Por enquanto só engenheiro(a) edita. Os outros papéis ganham funções conforme os módulos chegam.</p>
+          <p className="text-sm text-regua">{DESCRICAO_PAPEL_PROJETO[papelNovo]}</p>
           <Botao type="submit" disabled={enviando} className="self-start">
             {enviando ? 'Dando acesso…' : 'Dar acesso'}
           </Botao>

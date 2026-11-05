@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import type { LinhaEfetivo } from '@obras/shared';
 import { salvarEfetivo } from './acoes';
 import { Botao, classeEntrada } from '@/components/ui';
+import { X } from 'lucide-react';
 
 const FUNCOES = [
   'Pedreiro', 'Servente', 'Carpinteiro', 'Armador', 'Eletricista', 'Encanador', 'Pintor',
@@ -110,9 +111,7 @@ export function EditorEfetivo({
               aria-label={`Remover linha ${i + 1}`}
               className="flex size-11 items-center justify-center rounded-medio text-regua hover:bg-concreto hover:text-marcador"
             >
-              <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="m4 4 8 8M12 4l-8 8" />
-              </svg>
+              <X aria-hidden className="size-4" />
             </button>
           </li>
         ))}

@@ -6,6 +6,22 @@ import { diasEntre, formatarData, formatarMoeda, type ItemEap } from '@obras/sha
 import { alterarTipoItem, excluirItem, reposicionarItem, type AcaoPosicao, type ResultadoAcao } from './acoes';
 import { FormularioItem, type ModoFormulario } from './FormularioItem';
 import { classeBotao } from '@/components/ui';
+import { Menu, MenuConteudo, MenuGatilho, MenuOpcao, MenuSeparador } from '@/components/MenuSuspenso';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  Ellipsis,
+  FolderPlus,
+  IndentDecrease,
+  IndentIncrease,
+  ListPlus,
+  Pencil,
+  Plus,
+  Repeat,
+  Trash2,
+} from 'lucide-react';
+import { useConfirmar } from '@/components/Confirmar';
 
 const quantidadeBr = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 });
 
@@ -40,6 +56,7 @@ export function ArvoreEap({
   const [mensagem, setMensagem] = useState<{ tipo: 'erro' | 'ok'; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [, iniciar] = useTransition();
+  const confirmar = useConfirmar();
   const avisoRef = useRef<HTMLDivElement>(null);
 
   const fecharFormulario = useCallback(() => setFormulario(null), []);
@@ -205,11 +222,15 @@ export function ArvoreEap({
                 }
                 onMover={(acao) => executar(item.id, () => reposicionarItem(projetoId, item.id, acao))}
                 onTipo={(tipo) => executar(item.id, () => alterarTipoItem(projetoId, item.id, tipo))}
-                onExcluir={() => {
+                onExcluir={async () => {
                   const dentro = item.qtd_filhos > 0 ? ' e tudo que está dentro dela' : '';
-                  if (window.confirm(`Excluir ${item.codigo} "${item.nome}"${dentro}? Não dá para desfazer.`)) {
-                    executar(item.id, () => excluirItem(projetoId, item.id));
-                  }
+                  const sim = await confirmar({
+                    titulo: `Excluir ${item.codigo} ${item.nome}?`,
+                    texto: `O item${dentro} sai do cronograma. Não dá para desfazer.`,
+                    confirmar: 'Excluir',
+                    perigo: true,
+                  });
+                  if (sim) executar(item.id, () => excluirItem(projetoId, item.id));
                 }}
               />
               {formulario && formulario.ancora === item.id && (
@@ -277,9 +298,7 @@ function Linha({
             aria-label={`${aberto ? 'Recolher' : 'Abrir'} ${item.nome}`}
             className="-ml-1 flex size-7 shrink-0 items-center justify-center rounded-pequeno text-regua hover:bg-linha/60 hover:text-grafite"
           >
-            <svg aria-hidden viewBox="0 0 16 16" className={`size-4 transition-transform ${aberto ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m6 3.5 4.5 4.5L6 12.5" />
-            </svg>
+            <ChevronRight aria-hidden className={`size-4 transition-transform ${aberto ? 'rotate-90' : ''}`} />
           </button>
         ) : (
           <span aria-hidden className="w-6 shrink-0" />
@@ -346,96 +365,75 @@ function MenuItem({
   onTipo: (tipo: 'etapa' | 'tarefa') => void;
   onExcluir: () => void;
 }) {
-  const ref = useRef<HTMLDetailsElement>(null);
   const etapa = item.tipo === 'etapa';
-
-  // <details> não fecha sozinho: fecha ao tocar fora ou apertar Esc.
-  useEffect(() => {
-    const detalhes = ref.current;
-    if (!detalhes) return;
-    const fora = (e: PointerEvent) => {
-      if (detalhes.open && !detalhes.contains(e.target as Node)) detalhes.open = false;
-    };
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && detalhes.open) {
-        detalhes.open = false;
-        detalhes.querySelector('summary')?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', fora);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('pointerdown', fora);
-      document.removeEventListener('keydown', esc);
-    };
-  }, []);
-
-  const fecharE = (fn: () => void) => () => {
-    if (ref.current) ref.current.open = false;
-    fn();
-  };
-
-  const opcao = 'block w-full px-4 py-2.5 text-left text-sm hover:bg-concreto/60 focus-visible:bg-concreto/60';
+  const icone = 'size-4 text-regua';
 
   return (
-    <details ref={ref} className="relative justify-self-end">
-      <summary
-        className="flex size-11 cursor-pointer list-none items-center justify-center rounded-medio text-regua hover:bg-linha/60 hover:text-grafite [&::-webkit-details-marker]:hidden"
+    <Menu>
+      <MenuGatilho
+        className="flex size-11 items-center justify-center justify-self-end rounded-medio text-regua hover:bg-linha/60 hover:text-grafite data-[state=open]:bg-linha/60"
         aria-label={`Ações de ${item.codigo} ${item.nome}`}
       >
-        <svg aria-hidden viewBox="0 0 16 16" className="size-5" fill="currentColor">
-          <circle cx="3" cy="8" r="1.5" />
-          <circle cx="8" cy="8" r="1.5" />
-          <circle cx="13" cy="8" r="1.5" />
-        </svg>
-      </summary>
-      <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-medio border border-linha bg-white py-1 shadow-[0_6px_20px_rgb(26_29_33/0.10)]">
-        <button type="button" className={opcao} onClick={fecharE(onEditar)}>
+        <Ellipsis aria-hidden className="size-5" />
+      </MenuGatilho>
+      <MenuConteudo className="w-64">
+        <MenuOpcao onSelect={onEditar}>
+          <Pencil aria-hidden className={icone} />
           Editar
-        </button>
+        </MenuOpcao>
         {etapa && (
           <>
-            <button type="button" className={opcao} onClick={fecharE(() => onNovoDentro('tarefa'))}>
+            <MenuOpcao onSelect={() => onNovoDentro('tarefa')}>
+              <Plus aria-hidden className={icone} />
               Nova tarefa dentro
-            </button>
-            <button type="button" className={opcao} onClick={fecharE(() => onNovoDentro('etapa'))}>
+            </MenuOpcao>
+            <MenuOpcao onSelect={() => onNovoDentro('etapa')}>
+              <FolderPlus aria-hidden className={icone} />
               Nova etapa dentro
-            </button>
+            </MenuOpcao>
           </>
         )}
-        <button type="button" className={opcao} onClick={fecharE(onNovoAbaixo)}>
+        <MenuOpcao onSelect={onNovoAbaixo}>
+          <ListPlus aria-hidden className={icone} />
           Novo item logo abaixo
-        </button>
-        <hr className="my-1 border-linha" />
-        <button type="button" className={opcao} onClick={fecharE(() => onMover('subir'))}>
+        </MenuOpcao>
+        <MenuSeparador />
+        <MenuOpcao onSelect={() => onMover('subir')}>
+          <ArrowUp aria-hidden className={icone} />
           Subir
-        </button>
-        <button type="button" className={opcao} onClick={fecharE(() => onMover('descer'))}>
+        </MenuOpcao>
+        <MenuOpcao onSelect={() => onMover('descer')}>
+          <ArrowDown aria-hidden className={icone} />
           Descer
-        </button>
-        <button type="button" className={opcao} onClick={fecharE(() => onMover('avancar'))}>
+        </MenuOpcao>
+        <MenuOpcao onSelect={() => onMover('avancar')}>
+          <IndentIncrease aria-hidden className={icone} />
           Colocar dentro do item de cima
-        </button>
+        </MenuOpcao>
         {item.nivel > 1 && (
-          <button type="button" className={opcao} onClick={fecharE(() => onMover('recuar'))}>
+          <MenuOpcao onSelect={() => onMover('recuar')}>
+            <IndentDecrease aria-hidden className={icone} />
             Tirar da etapa
-          </button>
+          </MenuOpcao>
         )}
-        <hr className="my-1 border-linha" />
+        <MenuSeparador />
         {etapa && item.qtd_filhos === 0 && (
-          <button type="button" className={opcao} onClick={fecharE(() => onTipo('tarefa'))}>
+          <MenuOpcao onSelect={() => onTipo('tarefa')}>
+            <Repeat aria-hidden className={icone} />
             Transformar em tarefa
-          </button>
+          </MenuOpcao>
         )}
         {!etapa && !temValores(item) && (
-          <button type="button" className={opcao} onClick={fecharE(() => onTipo('etapa'))}>
+          <MenuOpcao onSelect={() => onTipo('etapa')}>
+            <Repeat aria-hidden className={icone} />
             Transformar em etapa
-          </button>
+          </MenuOpcao>
         )}
-        <button type="button" className={`${opcao} text-marcador`} onClick={fecharE(onExcluir)}>
+        <MenuOpcao perigo onSelect={onExcluir}>
+          <Trash2 aria-hidden className="size-4" />
           Excluir{item.qtd_filhos > 0 ? ' com o que está dentro' : ''}
-        </button>
-      </div>
-    </details>
+        </MenuOpcao>
+      </MenuConteudo>
+    </Menu>
   );
 }

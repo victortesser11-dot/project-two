@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo } from 'next/font/google';
 import './globals.css';
+import { Avisos } from '@/components/Avisos';
+import { ProvedorConfirmacao } from '@/components/Confirmar';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -21,7 +23,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={archivo.variable}>
-      <body>{children}</body>
+      <body>
+        <ProvedorConfirmacao>{children}</ProvedorConfirmacao>
+        <Avisos />
+      </body>
     </html>
   );
 }

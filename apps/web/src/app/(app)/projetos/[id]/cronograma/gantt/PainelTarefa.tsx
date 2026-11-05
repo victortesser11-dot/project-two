@@ -15,6 +15,7 @@ import {
 import { removerDependencia, salvarDependencia, type EstadoDependencia } from '../acoes';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
 import { desvioDaBase } from './escala';
+import { X } from 'lucide-react';
 
 function textoDefasagem(d: number) {
   if (d === 0) return '';
@@ -81,9 +82,7 @@ export function PainelTarefa({
           className="flex size-11 shrink-0 items-center justify-center rounded-medio text-regua hover:bg-concreto hover:text-grafite"
           aria-label="Fechar detalhes da tarefa"
         >
-          <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m4 4 8 8M12 4l-8 8" />
-          </svg>
+          <X aria-hidden className="size-4" />
         </button>
       </header>
 

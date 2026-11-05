@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { formatarMoeda, lerNumero, type ItemEstoque } from '@obras/shared';
 import { registrarEntrada } from '../acoes';
 import { Botao, classeEntrada } from '@/components/ui';
+import { X } from 'lucide-react';
 
 type Linha = { item_id: string; quantidade: string; valor_unitario: string };
 const vazia = (): Linha => ({ item_id: '', quantidade: '', valor_unitario: '' });
@@ -129,9 +130,7 @@ export function EntradaManual({ projetoId, materiais, hoje }: { projetoId: strin
                 aria-label={`Remover linha ${i + 1}`}
                 className="col-span-2 flex min-h-11 items-center justify-center rounded-medio text-sm text-regua hover:bg-concreto hover:text-marcador sm:col-span-1 sm:size-11"
               >
-                <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="m4 4 8 8M12 4l-8 8" />
-                </svg>
+                <X aria-hidden className="size-4" />
                 <span className="ml-2 sm:hidden">Remover linha</span>
               </button>
             </li>

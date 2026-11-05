@@ -11,6 +11,8 @@ import {
 import type { EstadoForm } from '../acoes';
 import { atualizarContratoMedicao, criarContratoMedicao, definirItemContrato, gerarMedicao, removerItemContrato } from './acoes';
 import { AvisoErro, Botao, Campo, classeEntrada } from '@/components/ui';
+import { useConfirmar } from '@/components/Confirmar';
+import { avisar } from '@/lib/avisos';
 
 export type EtapaOpcao = { codigo: string; nome: string; tarefas: string[] };
 export type TarefaOpcao = { id: string; codigo: string; nome: string; unidade: string | null; quantidade: number | null; custo: number | null };
@@ -302,17 +304,25 @@ export function FormularioItem({
 export function RemoverItem({ projetoId, itemId, nome }: { projetoId: string; itemId: string; nome: string }) {
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, iniciar] = useTransition();
+  const confirmar = useConfirmar();
   return (
     <div className="flex flex-col gap-2">
       <Botao
         type="button"
         variante="discreto"
         disabled={rodando}
-        onClick={() => {
-          if (!window.confirm(`Tirar "${nome}" do contrato?`)) return;
+        onClick={async () => {
+          const sim = await confirmar({
+            titulo: 'Tirar do contrato?',
+            texto: `${nome} deixa de ser medido neste contrato. Dá para acrescentar de novo depois.`,
+            confirmar: 'Tirar do contrato',
+            perigo: true,
+          });
+          if (!sim) return;
           iniciar(async () => {
             const r = await removerItemContrato(projetoId, itemId);
             setErro(r.ok ? null : r.erro);
+            if (r.ok) avisar.ok(`${nome} saiu do contrato.`);
           });
         }}
       >

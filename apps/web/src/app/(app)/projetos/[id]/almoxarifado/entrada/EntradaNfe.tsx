@@ -22,6 +22,7 @@ import {
 } from '@obras/shared';
 import { registrarEntrada, type PedidoEntrada } from '../acoes';
 import { Botao, classeEntrada } from '@/components/ui';
+import { FileText } from 'lucide-react';
 
 const NOVO = 'novo';
 const IGNORAR = 'ignorar';
@@ -149,10 +150,7 @@ export function EntradaNfe({
           arrastando ? 'border-cianotipia bg-cianotipia-claro' : 'border-campo/60 bg-concreto/40 hover:border-cianotipia'
         }`}
       >
-        <svg aria-hidden viewBox="0 0 24 24" className="size-8 text-cianotipia" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-          <path d="M14 3v5h5M9 13h6M9 17h6" />
-        </svg>
+        <FileText aria-hidden className="size-8 text-cianotipia" strokeWidth={1.8} />
         <span className="font-semibold">{arquivo ? `Lido: ${arquivo}. Escolher outro XML` : 'Escolher o XML da NF-e'}</span>
         <span className="text-sm text-regua">O arquivo .xml que o fornecedor manda junto com o DANFE. Fica no aparelho até você confirmar.</span>
         <input

@@ -7,6 +7,7 @@ import { excluirFoto, garantirDiario, registrarFoto } from './acoes';
 import { criarClienteNavegador } from '@/lib/supabase/client';
 import { classeEntrada } from '@/components/ui';
 import { reduzirFoto as reduzir } from '@/lib/imagem';
+import { Camera } from 'lucide-react';
 
 export function FotosDiario({
   projetoId,
@@ -141,10 +142,7 @@ export function FotosDiario({
               progresso ? 'pointer-events-none opacity-70' : ''
             }`}
           >
-            <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-              <circle cx="12" cy="13" r="3.5" />
-            </svg>
+            <Camera aria-hidden className="size-5" />
             {progresso ?? 'Tirar ou escolher fotos'}
             <input
               ref={entrada}
