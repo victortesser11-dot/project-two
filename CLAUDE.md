@@ -77,6 +77,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Módulo novo do projeto: crie `apps/web/src/app/(app)/projetos/[id]/<slug>/page.tsx` (substitui a
   página "em breve") e atualize `modulos.ts`.
 - Commits pequenos, CI verde (`.github/workflows/ci.yml`: banco + testes + build).
+- Depois do merge, espere a publicação de produção da Vercel aparecer antes de reapontar o branch de trabalho para o
+  `main`: o push do mesmo commit no branch faz a Vercel montar só a prévia e pular a produção.
 
 ## EAP e importação
 
