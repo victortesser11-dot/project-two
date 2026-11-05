@@ -171,6 +171,28 @@ select tests.deve_falhar($$update audit_log set acao = 'INSERT'$$, 'ninguém alt
 select tests.entrar('00000000-0000-0000-0000-00000000000b');
 select tests.afirmar((select count(*) from audit_log) = 0, 'quem não é admin não lê a auditoria');
 
+-- ---------------------------------------------------------------- privilégios das tabelas
+-- anon não tem nada em tabela nenhuma; authenticated só escreve direto nas tabelas com RLS de escrita
+-- (o resto muda só pelas funções). Tabela nova que esqueceu o "revoke all" quebra aqui.
+select tests.afirmar(
+  not exists (select 1 from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'r'
+                 and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('anon', c.oid, 'insert')
+                      or has_table_privilege('anon', c.oid, 'update') or has_table_privilege('anon', c.oid, 'delete'))),
+  'anon não tem privilégio em nenhuma tabela');
+select tests.afirmar(
+  (select coalesce(string_agg(t, ' '), '') from (
+     select c.relname || ':' || string_agg(x.p, ',' order by x.p) as t
+       from pg_class c
+       cross join lateral (values ('DELETE'), ('INSERT'), ('UPDATE')) x(p)
+      where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and has_table_privilege('authenticated', c.oid, x.p)
+      group by c.relname order by c.relname) y)
+  = 'empreiteira:INSERT,UPDATE empresa:UPDATE equipe_projeto:DELETE,INSERT,UPDATE item_estoque:INSERT,UPDATE '
+    'membro_empresa:DELETE,INSERT,UPDATE membro_projeto:DELETE,INSERT,UPDATE projeto:DELETE,UPDATE',
+  'authenticated só escreve direto onde há política de escrita');
+select tests.afirmar(
+  not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'execute')),
+  'anon não executa nenhuma função do schema public');
+
 -- ---------------------------------------------------------------- funções internas
 select tests.afirmar(
   not exists (select 1 from pg_proc p where p.pronamespace = 'app'::regnamespace and p.prorettype = 'trigger'::regtype

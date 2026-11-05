@@ -30,6 +30,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 1. **Toda tabela de negócio tem `empresa_id`, RLS ligada e teste.** Nova tabela = migração + políticas +
    casos em `supabase/tests/` cobrindo: outra empresa não vê, papel sem permissão não escreve.
+   O Supabase dá **todos os privilégios** em tabela nova para `anon` e `authenticated`: toda tabela nova leva
+   `revoke all ... from anon, authenticated` e só o `grant` necessário. O shim imita isso e `10_permissoes_test`
+   lista quem pode escrever direto (tabela nova fora da lista quebra o teste).
 2. **Permissão mora no banco.** Use as funções de `app` (`e_membro_empresa`, `e_admin_empresa`,
    `papel_no_projeto`, `pode_ver_projeto`, `pode_editar_projeto`). O front esconde botões, mas quem barra é o RLS.
 3. **Estoque, custo, cronograma e medição só mudam por função no banco** e geram `audit_log` (trigger

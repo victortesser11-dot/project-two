@@ -16,6 +16,13 @@ begin
 end;
 $$;
 
+-- Como no Supabase: tabela, sequência e função novas no schema public nascem com tudo liberado para
+-- anon, authenticated e service_role. As migrações precisam revogar; 10_permissoes_test confere.
+grant usage on schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+
 create schema if not exists extensions;
 create schema if not exists auth;
 
