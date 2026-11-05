@@ -1,3 +1,4 @@
+import { Logo } from '@/components/Logo';
 import type { Metadata } from 'next';
 import { supabaseConfigurado } from '@/lib/env';
 import { FormularioLogin } from './FormularioLogin';
@@ -22,11 +23,7 @@ export default async function PaginaLogin({
     <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <section className="flex flex-col justify-between gap-10 bg-papel px-4 py-8 sm:px-12 sm:py-10 lg:px-16">
         <span className="flex items-center gap-2.5 font-semibold">
-          <svg aria-hidden viewBox="0 0 32 32" className="size-7">
-            <rect width="32" height="32" rx="8" fill="#2346a0" />
-            <path d="M6 24h20M8 24V12l8-5 8 5v12" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinejoin="round" />
-            <path d="M13 24v-6h6v6" fill="none" stroke="#fff" strokeWidth="2.4" />
-          </svg>
+          <Logo />
           Controle de Obras
         </span>
         <div className="w-full max-w-sm">

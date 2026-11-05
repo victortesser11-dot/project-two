@@ -1,13 +1,14 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { ROTULO_STATUS, type StatusProjeto } from '@obras/shared';
 
-type Variante = 'primario' | 'secundario' | 'discreto';
+type Variante = 'primario' | 'secundario' | 'discreto' | 'perigo';
 
 const ESTILO_BOTAO: Record<Variante, string> = {
   primario:
     'bg-cianotipia text-white hover:bg-cianotipia-escuro disabled:bg-regua/50',
   secundario: 'bg-papel text-grafite border border-campo/60 hover:border-grafite hover:bg-concreto/50 disabled:text-regua',
   discreto: 'text-cianotipia hover:underline underline-offset-4 disabled:text-regua',
+  perigo: 'bg-marcador text-white hover:bg-marcador-escuro disabled:bg-regua/50',
 };
 
 export function classeBotao(variante: Variante = 'primario', extra = '') {
