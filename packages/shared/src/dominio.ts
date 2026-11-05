@@ -501,3 +501,27 @@ export interface ItemMedicao {
   valor: number;
   executado_acumulado: number;
 }
+
+// ---------------------------------------------------------------- atrasos
+export const CAUSAS_ATRASO = ['chuva', 'material', 'mao_de_obra', 'equipamento', 'projeto', 'cliente', 'fornecedor', 'outro'] as const;
+export type CausaAtraso = (typeof CAUSAS_ATRASO)[number];
+export const ROTULO_CAUSA_ATRASO: Record<CausaAtraso, string> = {
+  chuva: 'Chuva',
+  material: 'Falta de material',
+  mao_de_obra: 'Falta de mão de obra',
+  equipamento: 'Equipamento parado',
+  projeto: 'Projeto (falta ou revisão)',
+  cliente: 'Cliente (mudança ou decisão pendente)',
+  fornecedor: 'Fornecedor ou empreiteira',
+  outro: 'Outro',
+};
+
+export interface JustificativaAtraso {
+  id: string;
+  tarefa_id: string;
+  causa: CausaAtraso;
+  dias_impacto: number | null;
+  descricao: string;
+  registrado_nome: string | null;
+  criado_em: string;
+}

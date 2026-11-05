@@ -1462,6 +1462,67 @@ export type Database = {
           },
         ]
       }
+      justificativa_atraso: {
+        Row: {
+          causa: Database["public"]["Enums"]["causa_atraso"]
+          criado_em: string
+          descricao: string
+          dias_impacto: number | null
+          empresa_id: string
+          id: string
+          projeto_id: string
+          registrado_nome: string | null
+          registrado_por: string | null
+          tarefa_id: string
+        }
+        Insert: {
+          causa: Database["public"]["Enums"]["causa_atraso"]
+          criado_em?: string
+          descricao: string
+          dias_impacto?: number | null
+          empresa_id: string
+          id?: string
+          projeto_id: string
+          registrado_nome?: string | null
+          registrado_por?: string | null
+          tarefa_id: string
+        }
+        Update: {
+          causa?: Database["public"]["Enums"]["causa_atraso"]
+          criado_em?: string
+          descricao?: string
+          dias_impacto?: number | null
+          empresa_id?: string
+          id?: string
+          projeto_id?: string
+          registrado_nome?: string | null
+          registrado_por?: string | null
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "justificativa_atraso_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "justificativa_atraso_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "justificativa_atraso_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "eap_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linha_base: {
         Row: {
           definida_em: string
@@ -2292,6 +2353,15 @@ export type Database = {
         Args: { p_itens: Json; p_projeto_id: string; p_substituir?: boolean }
         Returns: number
       }
+      justificar_atraso: {
+        Args: {
+          p_causa: Database["public"]["Enums"]["causa_atraso"]
+          p_descricao: string
+          p_dias_impacto?: number
+          p_tarefa_id: string
+        }
+        Returns: string
+      }
       membros_do_projeto: {
         Args: { p_projeto_id: string }
         Returns: {
@@ -2461,6 +2531,15 @@ export type Database = {
         | "taxa"
         | "administracao"
         | "outros"
+      causa_atraso:
+        | "chuva"
+        | "material"
+        | "mao_de_obra"
+        | "equipamento"
+        | "projeto"
+        | "cliente"
+        | "fornecedor"
+        | "outro"
       clima_periodo: "sol" | "nublado" | "chuva" | "chuva_forte"
       criterio_medicao: "quantidade" | "percentual"
       origem_camera: "agente" | "manual"
@@ -2616,6 +2695,16 @@ export const Constants = {
         "taxa",
         "administracao",
         "outros",
+      ],
+      causa_atraso: [
+        "chuva",
+        "material",
+        "mao_de_obra",
+        "equipamento",
+        "projeto",
+        "cliente",
+        "fornecedor",
+        "outro",
       ],
       clima_periodo: ["sol", "nublado", "chuva", "chuva_forte"],
       criterio_medicao: ["quantidade", "percentual"],

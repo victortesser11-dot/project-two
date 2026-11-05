@@ -10,6 +10,7 @@ export function AbasProjeto({ projetoId }: { projetoId: string }) {
   const abas = [
     { href: base, nome: 'Painel' },
     { href: `${base}/hoje`, nome: 'Hoje' },
+    { href: `${base}/alertas`, nome: 'Alertas' },
     ...MODULOS.map((m) => ({ href: `${base}/${m.slug}`, nome: m.nome })),
   ];
 

@@ -13,3 +13,4 @@ export * from './cameras';
 export * from './orcamento';
 export * from './modelos';
 export * from './medicao';
+export * from './alertas';
