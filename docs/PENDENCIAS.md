@@ -37,8 +37,6 @@ a Vercel e o Supabase precisam da chave nas configurações deles.
 - [ ] **SMTP no Supabase** (Authentication → Emails → SMTP Settings → Enable custom SMTP): host `smtp.resend.com`,
       porta `465`, usuário `resend`, senha = a chave da Resend; remetente `nao-responda@moda-triade.com.br`, nome
       "Controle de Obras". Sem isso o Supabase manda poucos e-mails por hora e só para o time do projeto.
-- [ ] **Modelos no Supabase**: Authentication → Emails → Templates. Assunto e arquivo de cada aba em
-      `supabase/templates/README.md` (cole o arquivo inteiro).
 - [ ] **Site URL** = `https://moda-triade.com.br` (item "URLs de retorno" acima): os links dos e-mails e o logo saem dele.
 - [ ] **Variáveis na Vercel** (Settings → Environment Variables, Production e Preview), depois "Redeploy":
       - `RESEND_API_KEY` = a mesma chave;
@@ -136,3 +134,4 @@ por enquanto: a nuvem é o Supabase que já usamos.
 - [x] Alertas publicados: migrações `justificativa_atraso` e `revoga_padrao_supabase` no SQL Editor (05/11).
 - [x] Conta da Resend e chave de API criadas (05/11).
 - [x] Domínio próprio na produção (`moda-triade.com.br`): a equipe da obra entra sem conta na Vercel (05/11).
+- [x] Modelos dos e-mails colados no Supabase (Authentication → Emails → Templates) e e-mails publicados (05/11).
