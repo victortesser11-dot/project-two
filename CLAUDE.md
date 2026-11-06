@@ -261,6 +261,9 @@ Componentes (no estilo do shadcn/ui: código nosso sobre primitivos do Radix, ve
 - Aviso rápido depois de uma ação: `avisar.ok/erro` (`lib/avisos.ts`, Sonner). Erro de formulário fica junto do campo.
 - Menus: `components/MenuSuspenso.tsx` (Radix). Ícones só do `lucide-react`; SVG à mão só no logo (`Logo.tsx`),
   nos gráficos e nas formas do semáforo.
+- Marca: capacete amarelo de segurança (desenho do Phosphor, MIT) em quadrado azul-`noite` (`Logo.tsx`; `claro` = quadrado
+  amarelo sobre o menu). Mesma marca em `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180),
+  `public/icones/` (192, 512 e maskable para o PWA) e `public/email/logo.png`. Não use o ícone `HardHat` em outro lugar.
 - Data e lista de opções continuam nativas (`type="date"`, `<select>`): no celular o seletor do aparelho é o melhor.
 
 ## Glossário
