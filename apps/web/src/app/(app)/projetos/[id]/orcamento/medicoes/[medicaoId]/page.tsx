@@ -33,7 +33,7 @@ export default async function PaginaBoletim({ params }: { params: Promise<{ id: 
     return (
       <div className="flex flex-col gap-4">
         {voltar}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro, o financeiro e o admin veem as medições.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro, o financeiro e o admin veem as medições.</p>
       </div>
     );
   }

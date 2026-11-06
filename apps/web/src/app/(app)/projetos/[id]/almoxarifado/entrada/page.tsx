@@ -33,7 +33,7 @@ export default async function PaginaEntrada({ params, searchParams }: { params: 
         descricao="Suba o XML da NF-e e confira: os itens já conhecidos vêm ligados ao catálogo e o custo inclui frete, IPI e ST. Sem XML, lance à mão."
       />
       {!podeMovimentar ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro e o almoxarife da obra dão entrada no estoque.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro e o almoxarife da obra dão entrada no estoque.</p>
       ) : (
         <>
           <nav aria-label="Como dar entrada" className="inline-flex self-start rounded-medio border border-linha bg-concreto p-0.5">

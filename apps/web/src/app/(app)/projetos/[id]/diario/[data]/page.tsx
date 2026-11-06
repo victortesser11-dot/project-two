@@ -102,7 +102,7 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
         <p className="rounded-medio bg-concreto px-4 py-3 text-sm text-regua">Este dia ainda não chegou.</p>
       ) : !editavel ? (
         diario ? (
-          <div className="rounded-medio border border-linha bg-papel p-4 sm:p-6">
+          <div className="cartao p-4 sm:p-6">
             <DocumentoDiario
               conteudo={conteudoParaExibir(projeto, data, diario, efetivo, fotos, avancos)}
               assinatura={assinado && diario.assinado_em && diario.hash_conteudo ? { nome: diario.assinado_nome, em: diario.assinado_em, hash: diario.hash_conteudo } : null}
@@ -134,7 +134,7 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
           <FormularioDiario projetoId={id} data={data} diario={diario} sugestao={sugestao} />
           <EditorEfetivo projetoId={id} data={data} inicial={efetivo} daChamada={daChamada} />
 
-          <section aria-labelledby="titulo-servicos" className="flex flex-col gap-3 rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-servicos" className="flex flex-col gap-3 cartao p-4 sm:p-5">
             <div className="flex items-baseline justify-between gap-3">
               <h3 id="titulo-servicos" className="text-base font-semibold">
                 Serviços do dia
@@ -161,7 +161,7 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
 
           <FotosDiario projetoId={id} data={data} diarioId={diario?.id ?? null} fotos={fotos} tarefas={tarefas} podeEnviar />
 
-          <section aria-labelledby="titulo-assinatura" className="flex flex-col gap-3 rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-assinatura" className="flex flex-col gap-3 cartao p-4 sm:p-5">
             <h3 id="titulo-assinatura" className="text-base font-semibold">
               Assinatura
             </h3>

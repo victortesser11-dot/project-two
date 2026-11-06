@@ -6,6 +6,7 @@ import { resumoDaObra, type ResumoPortfolio } from '@/lib/portfolio';
 import { classeBotao, SeloStatus } from '@/components/ui';
 import { Regua } from '@/components/Regua';
 import { SeloSemaforo } from '@/components/Semaforo';
+import { Building2, CircleCheck, TriangleAlert, Wallet, type LucideIcon } from 'lucide-react';
 import { FormularioEmpresa } from './FormularioEmpresa';
 import { RegrasSemaforo } from './RegrasSemaforo';
 import { ObraExemplo } from './ObraExemplo';
@@ -18,7 +19,7 @@ export default async function Portfolio() {
   if (!empresa) {
     return (
       <section className="mx-auto max-w-lg">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Cadastre sua empresa</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Cadastre sua empresa</h1>
         <p className="mt-3 mb-8 text-regua">
           Cada obra vira um projeto dentro da empresa. Você fica como administrador e pode convidar a equipe depois.
         </p>
@@ -33,7 +34,7 @@ export default async function Portfolio() {
   if (projetos.length === 0) {
     return (
       <section className="mx-auto max-w-lg py-8">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Nenhuma obra cadastrada</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Nenhuma obra cadastrada</h1>
         <p className="mt-3 mb-8 text-regua">
           Crie o primeiro projeto com endereço, prazo e orçamento. Cronograma, câmeras, almoxarifado e equipe ficam dentro dele.
         </p>
@@ -71,38 +72,43 @@ export default async function Portfolio() {
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold sm:text-3xl">Obras</h1>
-          <p className="numeros mt-2 text-regua">
-            {projetos.length} {projetos.length === 1 ? 'projeto' : 'projetos'}
-            {porStatus.map(({ s, n }) => `, ${n} ${ROTULO_STATUS[s].toLowerCase()}`).join('')}.
-            {orcamentoTotal > 0 && ` Orçamento somado: ${formatarMoeda(orcamentoTotal, { compacta: true })}.`}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Obras</h1>
+          <p className="mt-1 text-regua">Prazo, custo e situação de cada obra, da que pede mais atenção para a que menos pede.</p>
         </div>
         <Link href="/projetos/novo" className={classeBotao()}>
           Criar projeto
         </Link>
       </div>
 
-      {contagem.some((x) => x.c !== 'sem_dados' && x.n > 0) && (
-        <ul className="mt-6 flex flex-wrap gap-3" aria-label="Obras por situação">
-          {contagem
-            .filter((x) => x.n > 0)
-            .map(({ c, n }) => (
-              <li key={c} className="numeros flex items-center gap-2 text-sm">
-                <SeloSemaforo cor={c} /> {n} {n === 1 ? 'obra' : 'obras'}
-              </li>
-            ))}
-        </ul>
-      )}
+      <ul className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Resumo das obras">
+        <Indicador icone={Building2} rotulo="Obras" valor={String(projetos.length)} detalhe={porStatus.map(({ s, n }) => `${n} ${ROTULO_STATUS[s].toLowerCase()}`).join(' · ')} />
+        <Indicador
+          icone={Wallet}
+          rotulo="Orçamento somado"
+          valor={orcamentoTotal > 0 ? formatarMoeda(orcamentoTotal, { compacta: true }) : '—'}
+          detalhe="Todas as obras da empresa"
+        />
+        <Indicador
+          icone={TriangleAlert}
+          rotulo="Pedem atenção"
+          valor={String(contagem.filter((x) => x.c === 'vermelho' || x.c === 'amarelo').reduce((t, x) => t + x.n, 0))}
+          detalhe={contagem
+            .filter((x) => (x.c === 'vermelho' || x.c === 'amarelo') && x.n > 0)
+            .map(({ c, n }) => `${n} ${c === 'vermelho' ? 'em vermelho' : 'em amarelo'}`)
+            .join(' · ') || 'Nenhuma obra em amarelo ou vermelho'}
+          tom={contagem.some((x) => x.c === 'vermelho' && x.n > 0) ? 'alerta' : undefined}
+        />
+        <Indicador icone={CircleCheck} rotulo="Em dia" valor={String(contagem.find((x) => x.c === 'verde')?.n ?? 0)} detalhe="Prazo e custo dentro das regras" tom="ok" />
+      </ul>
 
-      <ul className="mt-6 divide-y divide-linha overflow-hidden rounded-medio border border-linha bg-papel">
+      <ul className="mt-6 divide-y divide-linha overflow-hidden cartao">
         {ordenados.map((p) => (
           <LinhaProjeto key={p.id} projeto={p} hoje={hoje} resumo={resumos.get(p.id) ?? null} />
         ))}
       </ul>
 
       {empresa.papel === 'admin' && (
-        <details className="mt-6 rounded-medio border border-linha bg-papel">
+        <details className="mt-6 cartao">
           <summary className="flex min-h-11 cursor-pointer items-center px-5 font-semibold">Regras do semáforo</summary>
           <div className="border-t border-linha px-5 py-4">
             <p className="mb-4 text-sm text-regua">
@@ -115,7 +121,7 @@ export default async function Portfolio() {
       )}
 
       {empresa.papel === 'admin' && (
-        <details className="mt-3 rounded-medio border border-linha bg-papel" open={!projetos.some((p) => p.exemplo) && projetos.length < 2}>
+        <details className="mt-3 cartao" open={!projetos.some((p) => p.exemplo) && projetos.length < 2}>
           <summary className="flex min-h-11 cursor-pointer items-center px-5 font-semibold">Obra de exemplo</summary>
           <div className="border-t border-linha px-5 py-4">
             <ObraExemplo existe={projetos.some((p) => p.exemplo)} />
@@ -157,6 +163,34 @@ function LinhaProjeto({ projeto: p, hoje, resumo }: { projeto: Projeto; hoje: st
           {p.orcamento_total ? formatarMoeda(p.orcamento_total, { compacta: true }) : <span className="font-normal text-regua">Sem orçamento</span>}
         </p>
       </Link>
+    </li>
+  );
+}
+
+function Indicador({
+  icone: Icone,
+  rotulo,
+  valor,
+  detalhe,
+  tom,
+}: {
+  icone: LucideIcon;
+  rotulo: string;
+  valor: string;
+  detalhe?: string;
+  tom?: 'alerta' | 'ok';
+}) {
+  const cor = tom === 'alerta' ? 'bg-marcador-claro text-marcador' : tom === 'ok' ? 'bg-obra-ok/10 text-obra-ok' : 'bg-cianotipia-claro text-cianotipia';
+  return (
+    <li className="cartao flex flex-col gap-3 p-4 sm:p-5">
+      <span className="flex items-center gap-2.5 text-sm font-semibold text-regua">
+        <span aria-hidden className={`flex size-8 items-center justify-center rounded-medio ${cor}`}>
+          <Icone className="size-[18px]" />
+        </span>
+        {rotulo}
+      </span>
+      <span className="numeros text-3xl font-bold tracking-tight">{valor}</span>
+      {detalhe && <span className="text-sm text-regua">{detalhe}</span>}
     </li>
   );
 }

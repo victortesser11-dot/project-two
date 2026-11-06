@@ -39,7 +39,7 @@ export default async function PaginaGaleria({
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhuma câmera cadastrada.</p>
+        <p className="cartao p-4 text-regua">Nenhuma câmera cadastrada.</p>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default async function PaginaGaleria({
       <SeletorCamera cameras={cameras} atual={camera.id} href={(c) => link(c)} />
 
       {dias.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">{camera.nome} ainda não tem fotos.</p>
+        <p className="cartao p-4 text-regua">{camera.nome} ainda não tem fotos.</p>
       ) : (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -111,11 +111,11 @@ export default async function PaginaGaleria({
           </nav>
 
           {fotos.length === 0 ? (
-            <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Sem fotos de {camera.nome} neste dia.</p>
+            <p className="cartao p-4 text-regua">Sem fotos de {camera.nome} neste dia.</p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2">
               {fotos.map((f) => (
-                <li key={f.id} className="overflow-hidden rounded-medio border border-linha bg-papel">
+                <li key={f.id} className="overflow-hidden cartao">
                   {f.url ? (
                     <a href={f.url} target="_blank" rel="noreferrer" className="block aspect-video bg-concreto">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

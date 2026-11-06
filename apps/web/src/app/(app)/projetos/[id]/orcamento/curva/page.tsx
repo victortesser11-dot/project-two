@@ -45,7 +45,7 @@ export default async function PaginaCurva({ params }: { params: Promise<{ id: st
         descricao={`Avanço acumulado da obra, planejado (${referencia}) contra o real: em dinheiro e em % físico.`}
       />
       {financeiro && (
-        <section aria-labelledby="titulo-curva-financeira" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+        <section aria-labelledby="titulo-curva-financeira" className="cartao p-4 sm:p-5">
           <h3 id="titulo-curva-financeira" className="text-base font-semibold">
             Curva S financeira
           </h3>
@@ -59,7 +59,7 @@ export default async function PaginaCurva({ params }: { params: Promise<{ id: st
           )}
         </section>
       )}
-      <section aria-labelledby="titulo-curva-fisica" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+      <section aria-labelledby="titulo-curva-fisica" className="cartao p-4 sm:p-5">
         <h3 id="titulo-curva-fisica" className="text-base font-semibold">
           Curva S física
         </h3>

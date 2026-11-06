@@ -61,7 +61,7 @@ export default async function PaginaOrcamento({ params, searchParams }: { params
       />
 
       {tarefas.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">
+        <p className="cartao p-4 text-regua">
           A obra ainda não tem EAP.{' '}
           <Link href={`/projetos/${id}/cronograma`} className="font-semibold text-cianotipia underline underline-offset-4">
             Monte ou importe a EAP
@@ -71,7 +71,7 @@ export default async function PaginaOrcamento({ params, searchParams }: { params
       ) : (
         <>
           <section aria-label="Resumo do orçamento" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="text-sm font-semibold text-regua">Previsto na EAP</h3>
               <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(previsto, { compacta: true })}</p>
               <p className="numeros text-sm text-regua">
@@ -89,7 +89,7 @@ export default async function PaginaOrcamento({ params, searchParams }: { params
                 )}
               </p>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4 lg:col-span-2">
+            <div className="cartao p-4 lg:col-span-2">
               <h3 className="text-sm font-semibold text-regua">Composição do custo</h3>
               {composto > 0 ? (
                 <dl className="numeros mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
@@ -120,7 +120,7 @@ export default async function PaginaOrcamento({ params, searchParams }: { params
             </div>
           </section>
 
-          <section aria-labelledby="titulo-versoes" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-versoes" className="cartao p-4 sm:p-5">
             <h3 id="titulo-versoes" className="text-base font-semibold">
               Versões do orçamento
             </h3>

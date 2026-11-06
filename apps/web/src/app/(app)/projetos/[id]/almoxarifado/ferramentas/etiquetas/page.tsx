@@ -49,7 +49,7 @@ export default async function PaginaEtiquetas({ params }: { params: Promise<{ id
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-2">
           {etiquetas.map((f) => (
-            <li key={f.id} className="flex break-inside-avoid flex-col items-center gap-2 rounded-medio border border-linha bg-papel p-3 text-center print:rounded-none print:border-grafite">
+            <li key={f.id} className="flex break-inside-avoid flex-col items-center gap-2 cartao p-3 text-center print:rounded-none print:border-grafite">
               <div className="aspect-square w-full max-w-36 [&_svg]:h-full [&_svg]:w-full" role="img" aria-label={`QR de ${f.nome}`} dangerouslySetInnerHTML={{ __html: f.svg }} />
               <p className="line-clamp-2 text-sm leading-tight font-semibold">{f.nome}</p>
               <p className="numeros text-sm font-semibold">{f.codigo}</p>

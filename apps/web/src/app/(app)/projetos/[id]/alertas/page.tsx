@@ -47,7 +47,7 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
 
       {temLocal ? (
         previsao.length > 0 && (
-          <section aria-labelledby="titulo-previsao" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-previsao" className="cartao p-4 sm:p-5">
             <h3 id="titulo-previsao" className="mb-3 text-base font-semibold">
               Chuva nos próximos dias
             </h3>
@@ -66,19 +66,19 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
           </section>
         )
       ) : (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-sm text-regua">
+        <p className="cartao p-4 text-sm text-regua">
           A obra ainda não tem localização: os alertas de chuva prevista não aparecem. Grave a localização pelo diário de obra.
         </p>
       )}
 
       {alertas.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhum alerta agora. Tudo em dia.</p>
+        <p className="cartao p-4 text-regua">Nenhum alerta agora. Tudo em dia.</p>
       ) : (
         ORDEM_SECOES.map((secao) => {
           const lista = alertas.filter((a) => a.secao === secao);
           if (lista.length === 0) return null;
           return (
-            <section key={secao} aria-labelledby={`titulo-${secao}`} className="rounded-medio border border-linha bg-papel">
+            <section key={secao} aria-labelledby={`titulo-${secao}`} className="cartao">
               <h3 id={`titulo-${secao}`} className="border-b border-linha px-4 py-3 text-base font-semibold sm:px-5">
                 {ROTULO_SECAO_ALERTA[secao]} <span className="numeros font-normal text-regua">({lista.length})</span>
               </h3>
@@ -113,7 +113,7 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
         })
       )}
 
-      <section aria-labelledby="titulo-justificativas" className="rounded-medio border border-linha bg-papel">
+      <section aria-labelledby="titulo-justificativas" className="cartao">
         <div className="border-b border-linha px-4 py-3 sm:px-5">
           <h3 id="titulo-justificativas" className="text-base font-semibold">
             Justificativas registradas <span className="numeros font-normal text-regua">({justificativas.length})</span>

@@ -83,14 +83,14 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
       {verCustos && total && (
         <section aria-labelledby="titulo-custo-mo" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 id="titulo-custo-mo" className="text-sm font-semibold text-regua">
                 Mão de obra na obra
               </h3>
               <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(total.custo, { compacta: true })}</p>
               <p className="numeros text-sm text-regua">{horasBr.format(total.horas)} h apontadas</p>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="text-sm font-semibold text-regua">Últimos 7 dias</h3>
               <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(semana?.custo ?? 0, { compacta: true })}</p>
               <p className="numeros text-sm text-regua">{horasBr.format(semana?.horas ?? 0)} h</p>
@@ -102,7 +102,7 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
             )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-medio border border-linha bg-papel">
+            <div className="cartao">
               <h3 className="border-b border-linha px-4 py-3 text-sm font-semibold">Por tarefa</h3>
               {porTarefa.length === 0 ? (
                 <p className="px-4 py-3 text-sm text-regua">Sem chamada registrada.</p>
@@ -117,7 +117,7 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
                 </ul>
               )}
             </div>
-            <div className="rounded-medio border border-linha bg-papel">
+            <div className="cartao">
               <h3 className="border-b border-linha px-4 py-3 text-sm font-semibold">Por dia</h3>
               {porDia.length === 0 ? (
                 <p className="px-4 py-3 text-sm text-regua">Sem chamada registrada.</p>
@@ -141,7 +141,7 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
         </section>
       )}
 
-      <section aria-labelledby="titulo-equipe-obra" className="rounded-medio border border-linha bg-papel">
+      <section aria-labelledby="titulo-equipe-obra" className="cartao">
         <div className="flex items-baseline justify-between gap-3 border-b border-linha px-4 py-3 sm:px-5">
           <h3 id="titulo-equipe-obra" className="text-base font-semibold">
             Equipe da obra
@@ -190,13 +190,13 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
 
       {podeGerir && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section aria-labelledby="titulo-cadastrar" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-cadastrar" className="cartao p-4 sm:p-5">
             <h3 id="titulo-cadastrar" className="mb-4 text-base font-semibold">
               Cadastrar pessoa
             </h3>
             <FormularioPessoa projetoId={id} empreiteiras={empreiteiras} />
           </section>
-          <section aria-labelledby="titulo-trazer" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-trazer" className="cartao p-4 sm:p-5">
             <h3 id="titulo-trazer" className="mb-4 text-base font-semibold">
               Trazer pessoas de outras obras da empresa
             </h3>

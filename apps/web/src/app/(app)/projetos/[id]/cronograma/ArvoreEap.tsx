@@ -183,7 +183,7 @@ export function ArvoreEap({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-medio border border-linha bg-papel">
+      <div className="overflow-hidden cartao">
         {/* Cabeçalho das colunas (telas largas) */}
         <div className="hidden grid-cols-[minmax(0,1fr)_7rem_8.5rem_5.5rem_5.5rem_3.5rem_2.75rem] gap-3 border-b border-linha px-4 py-2 text-xs font-semibold text-regua md:grid">
           <span>Item</span>

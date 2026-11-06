@@ -32,7 +32,7 @@ export function MembrosProjeto({
   const mensagem = estado.ok && estado.mensagem ? { ok: true, texto: estado.mensagem } : null;
 
   return (
-    <section className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-pessoas">
+    <section className="cartao" aria-labelledby="titulo-pessoas">
       <h2 id="titulo-pessoas" className="border-b border-linha px-5 py-4 text-base font-semibold">
         Pessoas com acesso
       </h2>

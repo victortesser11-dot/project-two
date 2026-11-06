@@ -62,7 +62,7 @@ export default async function PaginaFisicoFinanceiro({ params, searchParams }: {
       )}
 
       {ff.meses.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">
+        <p className="cartao p-4 text-regua">
           Para distribuir o custo pelos meses, as tarefas precisam de custo e de datas.{' '}
           <Link href={`/projetos/${id}/cronograma`} className="font-semibold text-cianotipia underline underline-offset-4">
             Abrir o cronograma
@@ -71,15 +71,15 @@ export default async function PaginaFisicoFinanceiro({ params, searchParams }: {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <p className="text-sm font-semibold text-regua">Total distribuído</p>
               <p className="numeros mt-1 text-xl font-semibold">{formatarMoeda(ff.total, { compacta: true })}</p>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <p className="text-sm font-semibold text-regua">Meses</p>
               <p className="numeros mt-1 text-xl font-semibold">{ff.meses.length}</p>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <p className="text-sm font-semibold text-regua">Mês de maior desembolso</p>
               <p className="numeros mt-1 text-xl font-semibold">
                 {rotuloMes(ff.meses[ff.porMes.indexOf(Math.max(...ff.porMes))]!)}
@@ -94,7 +94,7 @@ export default async function PaginaFisicoFinanceiro({ params, searchParams }: {
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-medio border border-linha bg-papel">
+          <div className="overflow-x-auto cartao">
             <table className="numeros w-full min-w-max text-sm">
               <caption className="sr-only">Custo por mês de cada item da EAP</caption>
               <thead className="bg-concreto">

@@ -98,7 +98,7 @@ export function FormularioDiario({
       <input type="hidden" name="data" value={data} />
       <input type="hidden" name="clima_automatico" value={automatico ? 'true' : 'false'} />
 
-      <section aria-labelledby="titulo-clima" className="flex flex-col gap-4 rounded-medio border border-linha bg-papel p-4 sm:p-5">
+      <section aria-labelledby="titulo-clima" className="flex flex-col gap-4 cartao p-4 sm:p-5">
         <div>
           <h3 id="titulo-clima" className="text-base font-semibold">
             Clima
@@ -124,7 +124,7 @@ export function FormularioDiario({
         </div>
       </section>
 
-      <section aria-labelledby="titulo-ocorrencias" className="flex flex-col gap-4 rounded-medio border border-linha bg-papel p-4 sm:p-5">
+      <section aria-labelledby="titulo-ocorrencias" className="flex flex-col gap-4 cartao p-4 sm:p-5">
         <h3 id="titulo-ocorrencias" className="text-base font-semibold">
           Ocorrências e observações
         </h3>

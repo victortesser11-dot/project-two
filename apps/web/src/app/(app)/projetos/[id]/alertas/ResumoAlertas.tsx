@@ -8,7 +8,7 @@ export function ResumoAlertas({ projetoId, alertas }: { projetoId: string; alert
   if (importantes.length === 0) return null;
   const urgentes = importantes.filter((a) => a.gravidade === 'alta').length;
   return (
-    <section aria-labelledby="titulo-resumo-alertas" className="rounded-medio border border-linha bg-papel">
+    <section aria-labelledby="titulo-resumo-alertas" className="cartao">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-linha px-4 py-3 sm:px-5">
         <h2 id="titulo-resumo-alertas" className="text-base font-semibold">
           {importantes.length} {importantes.length === 1 ? 'alerta' : 'alertas'}

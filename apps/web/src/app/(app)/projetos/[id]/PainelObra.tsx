@@ -21,7 +21,7 @@ import { MembrosProjeto } from './MembrosProjeto';
 import { MODULOS } from './modulos';
 import { CurvaS } from './CurvaS';
 import { montarPainel } from './painel';
-import { Check, TriangleAlert } from 'lucide-react';
+import { Banknote, CalendarClock, Check, HardHat, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
 
 // Passo a passo de configuração (PRD, "Fluxo de criação de um projeto").
 const PASSOS = [
@@ -118,7 +118,7 @@ export function PainelObra({
       <section aria-label="Indicadores da obra" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <CartaoPrazo projecao={p.projecao} fimProjeto={projeto.data_fim_prevista} />
         <Cartao rotulo="Avanço físico">
-          <p className="numeros text-3xl font-semibold">
+          <p className="numeros text-3xl font-bold tracking-tight">
             {Math.round(p.projecao.real)}% <span className="text-base font-normal text-regua">feito</span>
           </p>
           <BarraDupla real={p.projecao.real} planejado={p.projecao.planejado} />
@@ -128,7 +128,7 @@ export function PainelObra({
           </p>
         </Cartao>
         <Cartao rotulo="Valor executado">
-          <p className="numeros text-3xl font-semibold">{formatarMoeda(p.valorExecutado, { compacta: true })}</p>
+          <p className="numeros text-3xl font-bold tracking-tight">{formatarMoeda(p.valorExecutado, { compacta: true })}</p>
           <p className="numeros mt-1 text-sm text-regua">
             {p.custoTotal !== null
               ? `de ${formatarMoeda(p.custoTotal, { compacta: true })} previstos na EAP`
@@ -169,7 +169,7 @@ export function PainelObra({
           )}
         </Cartao>
         <Cartao rotulo="Hoje na obra">
-          <p className="numeros text-3xl font-semibold">
+          <p className="numeros text-3xl font-bold tracking-tight">
             {p.hoje.previstas} <span className="text-base font-normal text-regua">{p.hoje.previstas === 1 ? 'tarefa prevista' : 'tarefas previstas'}</span>
           </p>
           <p className="numeros mt-1 text-sm">
@@ -206,7 +206,7 @@ export function PainelObra({
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-8">
-          <section aria-labelledby="titulo-curva" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-curva" className="cartao p-4 sm:p-5">
             <h2 id="titulo-curva" className="text-base font-semibold">
               Curva S física
             </h2>
@@ -219,7 +219,7 @@ export function PainelObra({
           </section>
 
           {p.etapas.length > 0 && (
-            <section aria-labelledby="titulo-etapas" className="rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-etapas" className="cartao">
               <div className="border-b border-linha px-4 py-4 sm:px-5">
                 <h2 id="titulo-etapas" className="text-base font-semibold">
                   Etapas
@@ -263,7 +263,7 @@ export function PainelObra({
 
         <div className="flex min-w-0 flex-col gap-6">
           {ultimaFoto && (
-            <section aria-labelledby="titulo-ultima-foto" className="overflow-hidden rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-ultima-foto" className="overflow-hidden cartao">
               <Link href={`${base}/cameras`} className="block aspect-video bg-concreto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ultimaFoto.url} alt={`Última foto de ${ultimaFoto.camera}`} className="h-full w-full object-cover" />
@@ -278,7 +278,7 @@ export function PainelObra({
               </div>
             </section>
           )}
-          <aside className="rounded-medio border border-linha bg-papel" aria-labelledby="titulo-resumo">
+          <aside className="cartao" aria-labelledby="titulo-resumo">
             <h2 id="titulo-resumo" className="border-b border-linha px-5 py-4 text-base font-semibold">
               Resumo
             </h2>
@@ -297,7 +297,7 @@ export function PainelObra({
 
           <MembrosProjeto projetoId={projeto.id} membros={membros} podeEditar={podeEditar} />
 
-          <section aria-labelledby="titulo-config" className="rounded-medio border border-linha bg-papel px-5 py-4">
+          <section aria-labelledby="titulo-config" className="cartao px-5 py-4">
             <h2 id="titulo-config" className="text-base font-semibold">
               Configuração da obra
             </h2>
@@ -333,10 +333,25 @@ export function PainelObra({
   );
 }
 
+const ICONE_CARTAO: Record<string, LucideIcon> = {
+  Prazo: CalendarClock,
+  'Avanço físico': TrendingUp,
+  'Valor executado': Banknote,
+  'Hoje na obra': HardHat,
+};
+
 function Cartao({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  const Icone = ICONE_CARTAO[rotulo];
   return (
-    <div className="flex flex-col rounded-medio border border-linha bg-papel p-4 sm:p-5">
-      <h2 className="mb-2 text-sm font-semibold text-regua">{rotulo}</h2>
+    <div className="flex flex-col cartao p-4 sm:p-5">
+      <h2 className="mb-3 flex items-center gap-2.5 text-sm font-semibold text-regua">
+        {Icone && (
+          <span aria-hidden className="flex size-8 items-center justify-center rounded-medio bg-cianotipia-claro text-cianotipia">
+            <Icone className="size-[18px]" />
+          </span>
+        )}
+        {rotulo}
+      </h2>
       {children}
     </div>
   );

@@ -44,7 +44,7 @@ export default async function PaginaTimelapse({
         descricao="Uma foto por dia, sempre perto do mesmo horário, passando em sequência: a obra crescendo em segundos."
       />
       {!camera ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhuma câmera cadastrada.</p>
+        <p className="cartao p-4 text-regua">Nenhuma câmera cadastrada.</p>
       ) : (
         <>
           <SeletorCamera cameras={cameras} atual={camera.id} href={(c) => link({ camera: c })} />
@@ -81,7 +81,7 @@ export default async function PaginaTimelapse({
             ))}
           </div>
           {quadros.length < 2 ? (
-            <p className="rounded-medio border border-linha bg-papel p-4 text-regua">
+            <p className="cartao p-4 text-regua">
               O time-lapse aparece quando {camera.nome} tiver foto em pelo menos dois dias {periodo === 'semana' ? 'da última semana' : ''}.
             </p>
           ) : (

@@ -182,7 +182,7 @@ export function ListaFerramentas({
           {aviso.texto}
         </p>
       )}
-      <section aria-labelledby="titulo-ferramentas" className="rounded-medio border border-linha bg-papel">
+      <section aria-labelledby="titulo-ferramentas" className="cartao">
         <div className="flex flex-col gap-3 border-b border-linha px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <h3 id="titulo-ferramentas" className="text-base font-semibold">
             Ferramentas da empresa
@@ -252,7 +252,7 @@ export function ListaFerramentas({
                     )}
                   </div>
                   {destacado && podeAgir && (
-                    <div className="rounded-medio border border-linha bg-papel p-3">
+                    <div className="cartao p-3">
                       {e ? (
                         <BotaoDevolucao
                           projetoId={projetoId}

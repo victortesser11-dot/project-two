@@ -31,7 +31,7 @@ export default async function PaginaCameras({ params }: { params: Promise<{ id: 
         descricao="A última foto de cada câmera e se ela está em dia. As fotos chegam sozinhas pelo agente da obra nos horários definidos; o celular serve de reserva."
       />
       {ativas.length === 0 ? (
-        <section className="rounded-medio border border-linha bg-papel p-5">
+        <section className="cartao p-5">
           <h3 className="text-base font-semibold">Nenhuma câmera cadastrada</h3>
           <p className="mt-1 max-w-2xl text-regua">
             Cadastre as câmeras da obra (Intelbras direto ou pelo NVR) e o agente que vai buscar as fotos. Sem agente ainda? Cadastre uma câmera

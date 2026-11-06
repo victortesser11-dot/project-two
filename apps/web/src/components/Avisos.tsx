@@ -19,7 +19,7 @@ export function Avisos() {
         unstyled: true,
         classNames: {
           toast:
-            'flex w-full items-start gap-3 rounded-medio border border-linha bg-papel px-4 py-3 text-[15px] text-grafite sm:w-[360px]',
+            'flex w-full items-start gap-3 cartao px-4 py-3 text-[15px] text-grafite sm:w-[360px]',
           success: 'border-obra-ok/40',
           error: 'border-marcador/50 bg-marcador-claro',
           title: 'font-semibold',

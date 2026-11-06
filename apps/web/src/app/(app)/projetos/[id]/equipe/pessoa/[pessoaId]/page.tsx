@@ -40,7 +40,7 @@ export default async function PaginaPessoa({ params }: { params: Promise<{ id: s
       </div>
 
       {verCustos && (
-        <section aria-labelledby="titulo-custos" className="rounded-medio border border-linha bg-papel">
+        <section aria-labelledby="titulo-custos" className="cartao">
           <h3 id="titulo-custos" className="border-b border-linha px-4 py-3 text-base font-semibold sm:px-5">
             Custo (histórico com vigência)
           </h3>
@@ -70,7 +70,7 @@ export default async function PaginaPessoa({ params }: { params: Promise<{ id: s
       )}
 
       {podeGerir && (
-        <section aria-labelledby="titulo-dados" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+        <section aria-labelledby="titulo-dados" className="cartao p-4 sm:p-5">
           <h3 id="titulo-dados" className="mb-4 text-base font-semibold">
             Dados da pessoa
           </h3>

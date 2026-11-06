@@ -94,7 +94,7 @@ export default async function PaginaFerramenta({ params, searchParams }: { param
       </section>
 
       {historico.length > 0 && (
-        <section aria-labelledby="titulo-historico" className="rounded-medio border border-linha bg-papel">
+        <section aria-labelledby="titulo-historico" className="cartao">
           <h2 id="titulo-historico" className="border-b border-linha px-4 py-3 text-base font-semibold sm:px-5">
             Histórico
           </h2>

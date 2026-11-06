@@ -84,7 +84,7 @@ export function EntradaManual({ projetoId, materiais, hoje }: { projetoId: strin
         {linhas.map((l, i) => {
           const item = porId.get(l.item_id);
           return (
-            <li key={i} className="grid grid-cols-2 gap-2 rounded-medio border border-linha bg-papel p-3 sm:grid-cols-[minmax(0,1fr)_8rem_9rem_auto] sm:items-end sm:border-0 sm:p-0">
+            <li key={i} className="grid grid-cols-2 gap-2 cartao p-3 sm:grid-cols-[minmax(0,1fr)_8rem_9rem_auto] sm:items-end sm:border-0 sm:p-0">
               <div className="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
                 <label htmlFor={`m-item-${i}`} className="text-sm font-semibold sm:sr-only">
                   Material

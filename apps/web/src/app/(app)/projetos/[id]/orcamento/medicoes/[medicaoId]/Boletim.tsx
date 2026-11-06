@@ -141,7 +141,7 @@ export function Boletim({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-medio border border-linha bg-papel">
+      <div className="overflow-x-auto cartao">
         <table className="numeros w-full min-w-[860px] text-left text-sm">
           <thead className="bg-concreto">
             <tr>
@@ -347,7 +347,7 @@ function FormularioPagamento({ projetoId, medicao, hoje, cliente }: { projetoId:
   const [estado, acao, salvando] = useActionState<EstadoForm, FormData>(registrarPagamentoMedicao, {});
   const e = estado.erros ?? {};
   return (
-    <form action={acao} className="flex flex-col gap-3 rounded-medio border border-linha bg-papel p-4 sm:flex-row sm:items-end print:hidden">
+    <form action={acao} className="flex flex-col gap-3 cartao p-4 sm:flex-row sm:items-end print:hidden">
       <input type="hidden" name="projeto_id" value={projetoId} />
       <input type="hidden" name="medicao_id" value={medicao.id} />
       <div className="sm:w-48">

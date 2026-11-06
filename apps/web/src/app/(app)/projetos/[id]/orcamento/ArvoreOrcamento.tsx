@@ -27,7 +27,7 @@ export function ArvoreOrcamento({
 }) {
   const [aberta, setAberta] = useState<string | null>(null);
   return (
-    <ul className="divide-y divide-linha rounded-medio border border-linha bg-papel">
+    <ul className="divide-y divide-linha cartao">
       <li aria-hidden className="hidden grid-cols-[minmax(0,1fr)_9rem_16rem] gap-3 px-5 py-2 text-xs font-semibold text-regua md:grid">
         <span>Item</span>
         <span className="text-right">Custo previsto</span>

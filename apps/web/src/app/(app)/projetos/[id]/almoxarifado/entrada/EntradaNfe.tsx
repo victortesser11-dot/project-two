@@ -196,7 +196,7 @@ export function EntradaNfe({
 
       {nota && (
         <>
-          <section aria-labelledby="titulo-nota" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-nota" className="cartao p-4 sm:p-5">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <h3 id="titulo-nota" className="text-base font-semibold">
                 NF {nota.numero}

@@ -48,9 +48,9 @@ export default async function PaginaMovimentos({ params, searchParams }: { param
       </nav>
 
       {filtrados.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhum movimento {tipo ? 'desse tipo ' : ''}ainda.</p>
+        <p className="cartao p-4 text-regua">Nenhum movimento {tipo ? 'desse tipo ' : ''}ainda.</p>
       ) : (
-        <section aria-label="Lista de movimentos" className="rounded-medio border border-linha bg-papel">
+        <section aria-label="Lista de movimentos" className="cartao">
           <ul className="divide-y divide-linha">
             {filtrados.map((m) => {
               const it = porItem.get(m.item_id);

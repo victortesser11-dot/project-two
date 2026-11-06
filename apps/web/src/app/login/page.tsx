@@ -32,9 +32,17 @@ export default async function PaginaLogin({
         <p className="text-xs text-regua">Seus dados ficam isolados por empresa.</p>
       </section>
 
-      <section aria-hidden className="relative hidden overflow-hidden border-l border-linha bg-concreto lg:flex lg:flex-col lg:justify-end lg:p-16">
+      <section
+        aria-hidden
+        className="relative hidden overflow-hidden bg-noite text-white lg:flex lg:flex-col lg:justify-end lg:p-16"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      >
         {/* Planta baixa em traço de cianotipia */}
-        <svg viewBox="0 0 480 320" className="absolute top-16 right-12 w-[min(560px,80%)] text-cianotipia" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg viewBox="0 0 480 320" className="absolute top-16 right-12 w-[min(560px,80%)] text-white/45" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="20" y="20" width="440" height="280" />
           <path d="M20 140h170M190 20v120M190 190v110M260 140h200M330 140v160M260 140v50" />
           <path d="M190 140v14M190 176v14" strokeWidth="4" />
@@ -47,8 +55,11 @@ export default async function PaginaLogin({
             <text x="370" y="228">Dorm. 2</text>
           </g>
         </svg>
-        <p className="relative max-w-md text-3xl leading-tight font-semibold">O que a obra mostra, consome e custa, num painel só.</p>
-        <p className="relative mt-4 max-w-md text-regua">
+        <span className="relative mb-5 inline-flex w-fit items-center rounded-full bg-seguranca px-3 py-1 text-xs font-bold tracking-wide text-noite uppercase">
+          Para construtoras e engenheiros
+        </span>
+        <p className="relative max-w-md text-4xl leading-tight font-bold tracking-tight">O que a obra mostra, consome e custa, num painel só.</p>
+        <p className="relative mt-4 max-w-md text-lg text-white/70">
           Fotos diárias das câmeras, cronograma, almoxarifado, equipe e orçamento amarrados a cada tarefa.
         </p>
       </section>

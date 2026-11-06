@@ -1,10 +1,6 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { hojeIso } from '@obras/shared';
 import { buscarProjeto } from '@/lib/dados';
-import { SeloStatus } from '@/components/ui';
-import { Regua } from '@/components/Regua';
-import { AbasProjeto } from './AbasProjeto';
+import { CabecalhoObra } from './CabecalhoObra';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,31 +26,8 @@ export default async function LayoutProjeto({
 
   return (
     <div>
-      <div className="print:hidden">
-        <Link href="/" className="text-sm font-medium text-cianotipia hover:underline underline-offset-4">
-          Todas as obras
-        </Link>
-        {projeto.exemplo && (
-          <p role="note" className="mt-4 rounded-medio bg-concreto px-4 py-3 text-sm">
-            <span className="font-semibold">Obra de exemplo.</span> Dados fictícios para conhecer o app. Pode mexer à vontade; o admin
-            apaga tudo na tela inicial, em "Obra de exemplo".
-          </p>
-        )}
-        <header className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-end">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold break-words sm:text-3xl">{projeto.nome}</h1>
-              <SeloStatus status={projeto.status} />
-            </div>
-            {projeto.endereco && <p className="mt-2 text-regua">{projeto.endereco}</p>}
-          </div>
-          <Regua inicio={projeto.data_inicio} fim={projeto.data_fim_prevista} hoje={hojeIso()} />
-        </header>
-        <div className="mt-8">
-          <AbasProjeto projetoId={projeto.id} />
-        </div>
-      </div>
-      <div className="pt-8 print:pt-0">{children}</div>
+      <CabecalhoObra projeto={projeto} />
+      <div className="pt-6 print:pt-0">{children}</div>
     </div>
   );
 }

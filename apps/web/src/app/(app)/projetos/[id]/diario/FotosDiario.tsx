@@ -74,7 +74,7 @@ export function FotosDiario({
   }
 
   return (
-    <section aria-labelledby="titulo-fotos" className="flex flex-col gap-4 rounded-medio border border-linha bg-papel p-4 sm:p-5">
+    <section aria-labelledby="titulo-fotos" className="flex flex-col gap-4 cartao p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-3">
         <h3 id="titulo-fotos" className="text-base font-semibold">
           Fotos

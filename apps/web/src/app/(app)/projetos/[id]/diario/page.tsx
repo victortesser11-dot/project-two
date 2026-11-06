@@ -71,7 +71,7 @@ export default async function PaginaDiarios({ params }: { params: Promise<{ id: 
           <p className="mt-1 text-sm text-regua">O primeiro diário nasce quando alguém preenche o dia.</p>
         </div>
       ) : (
-        <ul className="divide-y divide-linha rounded-medio border border-linha bg-papel">
+        <ul className="divide-y divide-linha cartao">
           {diarios.map((d) => (
             <li key={d.id}>
               <Link href={`${base}/${d.data}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-concreto/60 sm:px-5">
