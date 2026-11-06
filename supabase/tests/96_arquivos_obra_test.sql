@@ -77,18 +77,45 @@ select tests.deve_falhar(
   format($$select editar_arquivo_obra(%L, 'Planta baixa.pdf', 'arquitetonico')$$, current_setting('t.id')),
   'o nome mantém a extensão do arquivo');
 
--- ---------------------------------------------------------------- mestre e leitura
+-- ---------------------------------------------------------------- mestre: envia e manda nova versão
 select tests.entrar('00000000-0000-0000-0000-00000000000c');
 select tests.afirmar((select count(*) from arquivo_obra) = 1, 'mestre vê os arquivos da obra');
+select set_config('t.v2', '30000000-0000-4000-8000-000000000010', true);
+select set_config('t.cv2', current_setting('t.p') || '/' || current_setting('t.v2') || '/planta-baixa-rev03.dwg', true);
+select tests.afirmar(
+  tests.linhas_afetadas(format($$insert into storage.objects (bucket_id, name) values ('arquivos', %L)$$, current_setting('t.cv2'))) = 1,
+  'mestre envia arquivo para a obra');
+select tests.afirmar(
+  registrar_arquivo_obra(current_setting('t.v2')::uuid, current_setting('t.p')::uuid, current_setting('t.cv2'),
+    'Planta baixa rev03.dwg', 'outros', 2048, null, 'Revisão 03', current_setting('t.id')::uuid) = current_setting('t.v2')::uuid,
+  'mestre registra uma nova versão da planta');
+select tests.afirmar(
+  (select versao = 2 and documento_id = current_setting('t.id')::uuid and categoria = 'arquitetonico'
+     from arquivo_obra where id = current_setting('t.v2')::uuid),
+  'nova versão é a 2, no mesmo documento e na mesma pasta (a pasta pedida é ignorada)');
+select tests.afirmar(
+  (select versao = 1 from arquivo_obra where id = current_setting('t.id')::uuid),
+  'a versão 1 continua guardada');
 select tests.deve_falhar(
-  format($$insert into storage.objects (bucket_id, name) values ('arquivos', %L)$$,
-    current_setting('t.p') || '/' || gen_random_uuid() || '/croqui.pdf'),
-  'mestre não envia arquivo');
+  format($$select registrar_arquivo_obra(%L, %L, %L, 'X.pdf', 'outros', 10, null, null, %L)$$,
+    '30000000-0000-4000-8000-000000000011', current_setting('t.p2'),
+    current_setting('t.p2') || '/30000000-0000-4000-8000-000000000011/x.pdf', current_setting('t.id')),
+  'versão não pode apontar para arquivo de outra obra');
 select tests.deve_falhar(format($$select excluir_arquivo_obra(%L)$$, current_setting('t.id')), 'mestre não apaga arquivo');
+select tests.deve_falhar(
+  format($$select editar_arquivo_obra(%L, 'X.dwg', 'outros')$$, current_setting('t.id')), 'mestre não corrige nome nem pasta');
+select tests.afirmar(
+  tests.linhas_afetadas(format($$delete from storage.objects where bucket_id = 'arquivos' and name = %L$$, current_setting('t.cv2'))) = 0,
+  'mestre não apaga do Storage um arquivo já registrado');
+select set_config('t.solto', current_setting('t.p') || '/' || gen_random_uuid() || '/croqui.pdf', true);
+select tests.linhas_afetadas(format($$insert into storage.objects (bucket_id, name) values ('arquivos', %L)$$, current_setting('t.solto')));
+select tests.afirmar(
+  tests.linhas_afetadas(format($$delete from storage.objects where bucket_id = 'arquivos' and name = %L$$, current_setting('t.solto'))) = 1,
+  'mestre apaga o próprio envio que não chegou a ser registrado (limpeza)');
 
 select tests.entrar('00000000-0000-0000-0000-00000000000e');
 select tests.afirmar(
-  (select count(*) from arquivo_obra) = 1
+  (select count(*) from arquivo_obra) = 2
   and exists (select 1 from storage.objects where bucket_id = 'arquivos' and name = current_setting('t.caminho')),
   'leitura vê o registro e o arquivo no Storage (para baixar)');
 select tests.deve_falhar(
@@ -111,6 +138,14 @@ select tests.deve_falhar(format($$select excluir_arquivo_obra(%L)$$, current_set
 
 -- ---------------------------------------------------------------- exclusão pelo engenheiro
 select tests.entrar('00000000-0000-0000-0000-00000000000b');
+select editar_arquivo_obra(current_setting('t.v2')::uuid, 'Planta baixa rev03.dwg', 'estrutural');
+select tests.afirmar(
+  (select bool_and(categoria = 'estrutural') from arquivo_obra where documento_id = current_setting('t.id')::uuid),
+  'mudar de pasta leva todas as versões');
+select tests.afirmar(excluir_arquivo_obra(current_setting('t.v2')::uuid) = current_setting('t.cv2'), 'excluir a versão 2 devolve o caminho');
+select tests.afirmar(
+  (select count(*) = 1 and max(versao) = 1 from arquivo_obra where documento_id = current_setting('t.id')::uuid),
+  'sem a versão 2, a 1 volta a valer');
 select tests.afirmar(excluir_arquivo_obra(current_setting('t.id')::uuid) = current_setting('t.caminho'), 'excluir devolve o caminho');
 select tests.afirmar(
   tests.linhas_afetadas(format($$delete from storage.objects where bucket_id = 'arquivos' and name = %L$$, current_setting('t.caminho'))) = 1,
@@ -119,7 +154,7 @@ select tests.afirmar((select count(*) from arquivo_obra) = 0, 'arquivo saiu da o
 
 reset role;
 select tests.afirmar(
-  (select count(*) from audit_log where tabela = 'arquivo_obra') = 3,
-  'envio, correção e exclusão no audit_log');
+  (select count(*) from audit_log where tabela = 'arquivo_obra') >= 6,
+  'envios, correções e exclusões no audit_log');
 
 rollback;

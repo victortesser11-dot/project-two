@@ -110,6 +110,9 @@ export const arquivoEditadoSchema = z.object({
 export interface ArquivoObra {
   id: string;
   projeto_id: string;
+  /** Id da primeira versão; todas as versões do documento dividem este id. */
+  documento_id: string;
+  versao: number;
   categoria: CategoriaArquivo;
   nome: string;
   descricao: string | null;
@@ -118,4 +121,21 @@ export interface ArquivoObra {
   tipo_mime: string | null;
   enviado_nome: string | null;
   criado_em: string;
+}
+
+/** Um documento com a versão vigente (maior número) e as anteriores, da mais nova para a mais antiga. */
+export interface DocumentoObra {
+  atual: ArquivoObra;
+  anteriores: ArquivoObra[];
+}
+
+export function agruparVersoes(arquivos: ArquivoObra[]): DocumentoObra[] {
+  const porDocumento = new Map<string, ArquivoObra[]>();
+  for (const a of arquivos) porDocumento.set(a.documento_id, [...(porDocumento.get(a.documento_id) ?? []), a]);
+  return [...porDocumento.values()]
+    .map((versoes) => {
+      const [atual, ...anteriores] = [...versoes].sort((x, y) => y.versao - x.versao);
+      return { atual: atual!, anteriores };
+    })
+    .sort((x, y) => y.atual.criado_em.localeCompare(x.atual.criado_em) || x.atual.id.localeCompare(y.atual.id));
 }

@@ -18,9 +18,10 @@ const registroSchema = z.object({
   tamanho: z.number().int().positive().max(LIMITE_ARQUIVO_BYTES),
   tipoMime: z.string().max(120).nullable(),
   descricao: z.string().trim().max(500).nullable(),
+  novaVersaoDe: uuid.nullable().optional(),
 });
 
-/** Registra o arquivo que o navegador acabou de enviar ao Storage. */
+/** Registra o arquivo que o navegador acabou de enviar ao Storage (com novaVersaoDe, vira a próxima versão daquele). */
 export async function registrarArquivo(projetoId: string, dados: z.input<typeof registroSchema>): Promise<Resultado> {
   const p = uuid.safeParse(projetoId);
   const d = registroSchema.safeParse(dados);
@@ -38,6 +39,7 @@ export async function registrarArquivo(projetoId: string, dados: z.input<typeof 
     p_tamanho: d.data.tamanho,
     p_tipo_mime: d.data.tipoMime ?? undefined,
     p_descricao: d.data.descricao ?? undefined,
+    p_nova_versao_de: d.data.novaVersaoDe ?? undefined,
   });
   if (error) {
     // Registro recusado: o arquivo enviado não pode ficar solto no Storage.

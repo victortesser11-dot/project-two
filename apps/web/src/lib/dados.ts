@@ -852,7 +852,7 @@ export const listarArquivos = cache(async (projetoId: string): Promise<ArquivoOb
   const { data, error } = await emPaginas((de, ate) =>
     supabase
       .from('arquivo_obra')
-      .select('id, projeto_id, categoria, nome, descricao, caminho, tamanho, tipo_mime, enviado_nome, criado_em')
+      .select('id, projeto_id, documento_id, versao, categoria, nome, descricao, caminho, tamanho, tipo_mime, enviado_nome, criado_em')
       .eq('projeto_id', projetoId)
       .order('criado_em', { ascending: false })
       .order('id')

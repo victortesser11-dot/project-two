@@ -149,6 +149,7 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_arquivo"]
           criado_em: string
           descricao: string | null
+          documento_id: string
           empresa_id: string
           enviado_nome: string | null
           enviado_por: string | null
@@ -157,6 +158,7 @@ export type Database = {
           projeto_id: string
           tamanho: number
           tipo_mime: string | null
+          versao: number
         }
         Insert: {
           atualizado_em?: string
@@ -164,6 +166,7 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_arquivo"]
           criado_em?: string
           descricao?: string | null
+          documento_id: string
           empresa_id: string
           enviado_nome?: string | null
           enviado_por?: string | null
@@ -172,6 +175,7 @@ export type Database = {
           projeto_id: string
           tamanho: number
           tipo_mime?: string | null
+          versao?: number
         }
         Update: {
           atualizado_em?: string
@@ -179,6 +183,7 @@ export type Database = {
           categoria?: Database["public"]["Enums"]["categoria_arquivo"]
           criado_em?: string
           descricao?: string | null
+          documento_id?: string
           empresa_id?: string
           enviado_nome?: string | null
           enviado_por?: string | null
@@ -187,6 +192,7 @@ export type Database = {
           projeto_id?: string
           tamanho?: number
           tipo_mime?: string | null
+          versao?: number
         }
         Relationships: [
           {
@@ -2482,6 +2488,7 @@ export type Database = {
           p_descricao?: string
           p_id: string
           p_nome: string
+          p_nova_versao_de?: string
           p_projeto_id: string
           p_tamanho: number
           p_tipo_mime?: string

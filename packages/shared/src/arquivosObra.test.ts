@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   abreNoNavegador,
+  agruparVersoes,
   arquivoEditadoSchema,
   extensaoDoArquivo,
   extensaoPermitida,
@@ -53,5 +54,16 @@ describe('arquivos da obra', () => {
     expect(arquivoEditadoSchema.safeParse({ nome: 'Planta.dwg', categoria: 'arquitetonico', descricao: '' }).data?.descricao).toBeNull();
     expect(arquivoEditadoSchema.safeParse({ nome: ' ', categoria: 'arquitetonico' }).success).toBe(false);
     expect(arquivoEditadoSchema.safeParse({ nome: 'a.pdf', categoria: 'qualquer' }).success).toBe(false);
+  });
+
+  it('agrupa as versões: a maior é a vigente, as outras ficam no histórico', () => {
+    const v = (id: string, doc: string, versao: number, criado: string) => ({
+      id, projeto_id: 'p', documento_id: doc, versao, categoria: 'arquitetonico' as const, nome: `${id}.dwg`, descricao: null,
+      caminho: id, tamanho: 1, tipo_mime: null, enviado_nome: null, criado_em: criado,
+    });
+    const docs = agruparVersoes([v('a1', 'a1', 1, '2026-11-01'), v('b1', 'b1', 1, '2026-11-02'), v('a3', 'a1', 3, '2026-11-05'), v('a2', 'a1', 2, '2026-11-03')]);
+    expect(docs.map((d) => d.atual.id)).toEqual(['a3', 'b1']);
+    expect(docs[0]!.anteriores.map((a) => a.versao)).toEqual([2, 1]);
+    expect(docs[1]!.anteriores).toEqual([]);
   });
 });

@@ -222,7 +222,12 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   `arquivos`, caminho `<projeto>/<arquivo>/<nome-seguro.ext>` (`nomeSeguroArquivo`). O navegador envia direto ao Storage
   (arquivo grande não passa pela Vercel) e depois chama `registrar_arquivo_obra`, que confere caminho, extensão e se o
   arquivo chegou; se o registro falhar, o app apaga o arquivo enviado.
-- Todos da obra leem e baixam (link assinado de 5 min, gerado no clique); quem edita a obra envia, corrige e apaga.
+- Versões: cada linha é uma versão; as do mesmo documento dividem `documento_id` (id da primeira) e contam `versao`.
+  "Enviar nova versão" (`p_nova_versao_de`) herda a pasta e guarda a anterior; a vigente é a de maior número
+  (`agruparVersoes` no shared). Excluir tira só aquela versão. Mudar de pasta leva todas as versões.
+- Todos da obra leem e baixam (link assinado de 5 min, gerado no clique). Engenheiro, mestre e admin enviam
+  (`app.pode_apontar_campo`); corrigir e excluir é de quem edita a obra. No Storage, quem enviou só apaga o próprio
+  arquivo ainda não registrado (limpeza quando o registro falha).
 - Extensões aceitas iguais no banco (`app.extensao_arquivo_permitida`) e no shared (`EXTENSOES_ARQUIVO`): nada de
   executável nem HTML. Até 50 MB (limite do plano grátis). Só PDF e imagem abrem no navegador; o resto baixa.
 

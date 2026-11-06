@@ -16,8 +16,6 @@ Endereço do piloto: **https://moda-triade.com.br** (domínio ligado na Vercel e
 
 - [ ] Quando quiser publicar: rodar a migração `20261106090000_arquivos_obra.sql` no SQL Editor **antes** do merge (cria a
       tabela, as funções e o bucket privado `arquivos`).
-- [ ] Decidir se o mestre também envia arquivos (hoje só engenheiro e admin) e se precisa guardar versões antigas de um
-      projeto (hoje uma revisão nova é um arquivo novo; a descrição diz qual é a vigente).
 
 ## Medição (03/11)
 
