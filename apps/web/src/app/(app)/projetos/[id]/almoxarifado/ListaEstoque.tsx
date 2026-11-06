@@ -26,7 +26,7 @@ export function ListaEstoque({ materiais }: { materiais: ItemComSaldo[] }) {
   ];
 
   return (
-    <section aria-labelledby="titulo-materiais" className="rounded-medio border border-linha bg-papel">
+    <section aria-labelledby="titulo-materiais" className="cartao">
       <div className="flex flex-col gap-3 border-b border-linha px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <h3 id="titulo-materiais" className="text-base font-semibold">
           Materiais

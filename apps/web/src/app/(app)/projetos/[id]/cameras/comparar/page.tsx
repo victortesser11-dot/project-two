@@ -57,15 +57,15 @@ export default async function PaginaComparar({
         descricao="A mesma câmera em dois dias, com a foto mais perto do mesmo horário: o que andou na obra entre uma data e outra."
       />
       {!camera ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhuma câmera cadastrada.</p>
+        <p className="cartao p-4 text-regua">Nenhuma câmera cadastrada.</p>
       ) : (
         <>
           <SeletorCamera cameras={cameras} atual={camera.id} href={(c) => `${base}?camera=${c}`} />
           {dias.length < 2 ? (
-            <p className="rounded-medio border border-linha bg-papel p-4 text-regua">É preciso foto de pelo menos dois dias de {camera.nome} para comparar.</p>
+            <p className="cartao p-4 text-regua">É preciso foto de pelo menos dois dias de {camera.nome} para comparar.</p>
           ) : (
             <>
-              <form action={base} className="grid gap-3 rounded-medio border border-linha bg-papel p-4 sm:grid-cols-[1fr_1fr_8rem_auto] sm:items-end">
+              <form action={base} className="grid gap-3 cartao p-4 sm:grid-cols-[1fr_1fr_8rem_auto] sm:items-end">
                 <input type="hidden" name="camera" value={camera.id} />
                 {(
                   [
@@ -99,7 +99,7 @@ export default async function PaginaComparar({
               {par ? (
                 <Comparador antes={par.antes} depois={par.depois} />
               ) : (
-                <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Escolha dois dias diferentes.</p>
+                <p className="cartao p-4 text-regua">Escolha dois dias diferentes.</p>
               )}
             </>
           )}

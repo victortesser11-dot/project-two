@@ -328,7 +328,7 @@ export function Importador({
           </div>
 
           <div className="grid gap-4 text-sm sm:grid-cols-2">
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="font-semibold">Orçamento ou cronograma em planilha</h3>
               <p className="mt-1 text-regua">
                 Uma linha por item, com descrição e, de preferência, o código (1, 1.1, 1.1.1) que diz o que fica dentro de cada etapa.
@@ -338,7 +338,7 @@ export function Importador({
                 Baixar planilha-modelo
               </button>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="font-semibold">MS Project ou ProjectLibre</h3>
               <p className="mt-1 text-regua">
                 Salve como XML (Arquivo → Salvar como → XML). Vêm tarefas-resumo como etapas, tarefas, datas e custos.
@@ -464,7 +464,7 @@ function MapeamentoColunas({
         </label>
       </div>
 
-      <fieldset className="grid gap-x-6 gap-y-4 rounded-medio border border-linha bg-papel p-4 sm:grid-cols-2 sm:p-5">
+      <fieldset className="grid gap-x-6 gap-y-4 cartao p-4 sm:grid-cols-2 sm:p-5">
         <legend className="px-1 text-sm font-semibold">Colunas</legend>
         {CAMPOS.map(({ campo, rotulo, dica }) => (
           <label key={campo} className="flex flex-col gap-1.5 text-sm">
@@ -631,7 +631,7 @@ function Previa({
       )}
 
       {r.itens.length > 0 && (
-        <div className="overflow-hidden rounded-medio border border-linha bg-papel">
+        <div className="overflow-hidden cartao">
           <ol className="max-h-[28rem] divide-y divide-linha overflow-y-auto">
             {r.itens.slice(0, LIMITE_PREVIA).map((item, i) => (
               <li
@@ -660,7 +660,7 @@ function Previa({
       )}
 
       {itensAtuais > 0 && r.itens.length > 0 && erros.length === 0 && (
-        <fieldset className="flex flex-col gap-2 rounded-medio border border-linha bg-papel p-4">
+        <fieldset className="flex flex-col gap-2 cartao p-4">
           <legend className="px-1 text-sm font-semibold">
             O projeto já tem {itensAtuais} {itensAtuais === 1 ? 'item' : 'itens'} na EAP
           </legend>

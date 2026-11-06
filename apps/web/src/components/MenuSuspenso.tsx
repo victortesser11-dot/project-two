@@ -16,7 +16,7 @@ export function MenuConteudo({ className = '', ...props }: ComponentProps<typeof
         align="end"
         sideOffset={6}
         collisionPadding={8}
-        className={`z-50 min-w-60 rounded-medio border border-linha bg-papel p-1.5 data-[state=open]:animate-surgir ${className}`}
+        className={`z-50 min-w-60 cartao p-1.5 data-[state=open]:animate-surgir ${className}`}
         {...props}
       />
     </Radix.Portal>

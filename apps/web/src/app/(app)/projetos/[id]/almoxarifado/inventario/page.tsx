@@ -29,9 +29,9 @@ export default async function PaginaInventario({ params }: { params: Promise<{ i
         descricao="Conte o que há no almoxarifado e digite a quantidade. Só os itens com diferença viram ajuste, com o motivo e o valor da perda ou sobra."
       />
       {!podeMovimentar ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro e o almoxarife da obra fazem o inventário.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro e o almoxarife da obra fazem o inventário.</p>
       ) : materiais.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Nenhum material no catálogo ainda.</p>
+        <p className="cartao p-4 text-regua">Nenhum material no catálogo ainda.</p>
       ) : (
         <Inventario projetoId={id} materiais={materiais} hoje={hojeIso()} />
       )}

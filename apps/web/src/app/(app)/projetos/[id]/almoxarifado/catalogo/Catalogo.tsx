@@ -146,7 +146,7 @@ export function ListaCatalogo({ projetoId, itens, podeGerir }: { projetoId: stri
   const visiveis = itens.filter((i) => termo === '' || normalizarTexto(`${i.nome} ${i.codigo} ${i.categoria ?? ''} ${i.patrimonio ?? ''}`).includes(termo));
 
   return (
-    <section aria-labelledby="titulo-catalogo" className="rounded-medio border border-linha bg-papel">
+    <section aria-labelledby="titulo-catalogo" className="cartao">
       <div className="flex flex-col gap-3 border-b border-linha px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <h3 id="titulo-catalogo" className="text-base font-semibold">
           {itens.length} {itens.length === 1 ? 'item' : 'itens'}

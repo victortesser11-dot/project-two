@@ -227,10 +227,14 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## Interface
 
-Claro e limpo, legível sob sol no canteiro (escolha do cliente; tokens em `apps/web/src/app/globals.css`):
-fundo e cartões brancos (`papel`) com borda fina `linha`, preenchimentos sutis em `concreto` (cinza claro),
-texto `grafite`/`regua`, borda de campo `campo` (3:1), ações e progresso em `cianotipia`, alertas em `marcador`.
-Sem sombras nem texturas; hierarquia por peso (títulos semibold) e espaço. Fonte única Archivo em largura normal;
+Claro e limpo, legível sob sol no canteiro (tokens em `apps/web/src/app/globals.css`). Direção "prancheta" (skill
+ui-ux-pro-max para construção: cinza industrial + azul de planta + amarelo de segurança, estilo suíço):
+- Casca (`components/Casca.tsx`): menu lateral azul-`noite` no computador; no celular, barra de cima `noite` e, dentro
+  da obra, barra de baixo (Painel, Hoje, Alertas, Diário, Mais). As seções vêm de `components/navegacao/secoes.ts`.
+- Conteúdo sobre `fundo` (cinza frio) em cartões: utilitário `cartao` (branco, borda `linha`, raio 14px, sombra
+  quase nula). Preenchimentos sutis em `concreto`; texto `grafite`/`regua`; borda de campo `campo` (3:1); ações e
+  progresso em `cianotipia`; alertas em `marcador`; `seguranca` (amarelo) só como destaque sobre o azul-noite.
+- Títulos em negrito com `tracking-tight`; indicadores com ícone num quadrado `cianotipia-claro`. Fonte única Archivo em largura normal;
 números com a utilidade `numeros` (tabulares). A régua de prazo (`components/Regua.tsx`) é o elemento marcante.
 Textos em linguagem de obra, voz ativa, botões dizem o que fazem ("Criar projeto", não "Enviar").
 Mobile primeiro: corpo 16px no celular, campos com 16px (iPhone não dá zoom) e alvos de toque de 44px;

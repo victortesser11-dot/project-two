@@ -29,7 +29,7 @@ export default async function ImprimirDiario({ params }: { params: Promise<{ id:
         </Link>
         <BotaoImprimir />
       </div>
-      <div className="rounded-medio border border-linha bg-papel p-5 sm:p-8 print:border-0 print:p-0">
+      <div className="cartao p-5 sm:p-8 print:border-0 print:p-0">
         <DocumentoDiario
           conteudo={conteudoParaExibir(dados.projeto, data, diario, efetivo, fotos, avancos)}
           assinatura={assinado && diario.assinado_em && diario.hash_conteudo ? { nome: diario.assinado_nome, em: diario.assinado_em, hash: diario.hash_conteudo } : null}

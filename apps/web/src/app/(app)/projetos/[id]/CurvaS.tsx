@@ -182,7 +182,7 @@ export function CurvaS({ pontos, hoje, referencia }: { pontos: PontoCurva[]; hoj
 
         {pf && (
           <div
-            className="numeros pointer-events-none absolute top-2 z-10 rounded-medio border border-linha bg-papel px-3 py-2 text-xs shadow-[0_2px_8px_rgb(0_0_0/0.08)]"
+            className="numeros pointer-events-none absolute top-2 z-10 cartao px-3 py-2 text-xs shadow-[0_2px_8px_rgb(0_0_0/0.08)]"
             style={{
               left: Math.min(Math.max(0, x(pf.data) - 70), largura - 150),
             }}

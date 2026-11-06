@@ -75,7 +75,7 @@ export function EstoqueObra({
       />
 
       {itens.length === 0 ? (
-        <section className="rounded-medio border border-linha bg-papel p-5">
+        <section className="cartao p-5">
           <h3 className="text-base font-semibold">O catálogo ainda está vazio</h3>
           <p className="mt-1 max-w-2xl text-regua">
             Cadastre os materiais e ferramentas da empresa ou suba o XML de uma NF-e: os itens da nota entram no catálogo e no estoque desta obra de uma vez.
@@ -94,12 +94,12 @@ export function EstoqueObra({
       ) : (
         <>
           <section aria-label="Resumo do almoxarifado" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="text-sm font-semibold text-regua">Em estoque</h3>
               <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(emEstoque, { compacta: true })}</p>
               <p className="numeros text-sm text-regua">{materiais.filter((i) => i.quantidade > 0).length} materiais com saldo</p>
             </div>
-            <div className="rounded-medio border border-linha bg-papel p-4">
+            <div className="cartao p-4">
               <h3 className="text-sm font-semibold text-regua">Aplicado nas tarefas</h3>
               <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(resumo.aplicado, { compacta: true })}</p>
               <p className="numeros text-sm text-regua">de {formatarMoeda(resumo.comprado, { compacta: true })} comprados</p>
@@ -131,7 +131,7 @@ export function EstoqueObra({
           <ListaEstoque materiais={materiais} />
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <section aria-labelledby="titulo-por-tarefa" className="rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-por-tarefa" className="cartao">
               <h3 id="titulo-por-tarefa" className="border-b border-linha px-4 py-3 text-base font-semibold sm:px-5">
                 Material aplicado por tarefa
               </h3>
@@ -148,7 +148,7 @@ export function EstoqueObra({
                 </ul>
               )}
             </section>
-            <section aria-labelledby="titulo-recentes" className="rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-recentes" className="cartao">
               <div className="flex items-baseline justify-between gap-3 border-b border-linha px-4 py-3 sm:px-5">
                 <h3 id="titulo-recentes" className="text-base font-semibold">
                   Últimos movimentos

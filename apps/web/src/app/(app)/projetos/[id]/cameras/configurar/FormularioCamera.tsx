@@ -27,7 +27,7 @@ function MontarEndereco({ aoMontar }: { aoMontar: (endereco: string) => void }) 
           <span className="text-sm" id="mont-onde">
             Ligada
           </span>
-          <div role="radiogroup" aria-labelledby="mont-onde" className="inline-flex rounded-medio border border-linha bg-papel p-0.5">
+          <div role="radiogroup" aria-labelledby="mont-onde" className="inline-flex cartao p-0.5">
             {(['camera', 'nvr'] as const).map((o) => (
               <button
                 key={o}

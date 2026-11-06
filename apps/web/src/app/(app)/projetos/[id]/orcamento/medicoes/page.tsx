@@ -47,7 +47,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro, o financeiro e o admin veem as medições.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro, o financeiro e o admin veem as medições.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Monte a EAP antes: cada item medido é uma tarefa do cronograma.</p>
+        <p className="cartao p-4 text-regua">Monte a EAP antes: cada item medido é uma tarefa do cronograma.</p>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <section className="rounded-medio border border-linha bg-papel p-4 sm:p-5" aria-labelledby="titulo-novo-contrato">
+        <section className="cartao p-4 sm:p-5" aria-labelledby="titulo-novo-contrato">
           <h3 id="titulo-novo-contrato" className="text-base font-semibold">
             Comece pelo contrato com o cliente
           </h3>
@@ -157,7 +157,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
         ))}
       </dl>
 
-      <section aria-labelledby="titulo-boletins" className="rounded-medio border border-linha bg-papel">
+      <section aria-labelledby="titulo-boletins" className="cartao">
         <div className="flex flex-col gap-4 border-b border-linha px-4 py-4 sm:px-5">
           <h3 id="titulo-boletins" className="text-base font-semibold">
             Boletins de medição
@@ -213,7 +213,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
         )}
       </section>
 
-      <section aria-labelledby="titulo-previsto-medido" className="rounded-medio border border-linha bg-papel">
+      <section aria-labelledby="titulo-previsto-medido" className="cartao">
         <div className="border-b border-linha px-4 py-3 sm:px-5">
           <h3 id="titulo-previsto-medido" className="text-base font-semibold">
             Físico-financeiro: previsto × medido
@@ -280,7 +280,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
         )}
       </section>
 
-      <details className="rounded-medio border border-linha bg-papel">
+      <details className="cartao">
         <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold sm:px-5">
           Itens do contrato ({itensC.length}) · {formatarMoeda(resumo.contratado)}
         </summary>
@@ -336,7 +336,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
         )}
       </details>
 
-      <details className="rounded-medio border border-linha bg-papel">
+      <details className="cartao">
         <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold sm:px-5">Dados do contrato</summary>
         <div className="border-t border-linha px-4 py-4 sm:px-5">
           {cliente && contrato.bdi_pct > 0 && (
@@ -348,7 +348,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
         </div>
       </details>
 
-      <details className="rounded-medio border border-linha bg-papel">
+      <details className="cartao">
         <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold sm:px-5">
           {temCliente ? 'Novo contrato com empreiteira' : 'Novo contrato de medição'}
         </summary>

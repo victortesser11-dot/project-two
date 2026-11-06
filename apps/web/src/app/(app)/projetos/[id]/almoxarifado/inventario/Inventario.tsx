@@ -72,7 +72,7 @@ export function Inventario({ projetoId, materiais, hoje }: { projetoId: string; 
         </div>
       </div>
 
-      <ul className="divide-y divide-linha rounded-medio border border-linha bg-papel">
+      <ul className="divide-y divide-linha cartao">
         {visiveis.map((m) => {
           const d = diferencas.find((x) => x.item.id === m.id);
           return (

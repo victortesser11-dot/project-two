@@ -12,7 +12,7 @@ export function TelaAcesso({ titulo, texto, children }: { titulo: string; texto?
       </Link>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 py-10">
         <div>
-          <h1 className="text-2xl font-semibold sm:text-3xl">{titulo}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{titulo}</h1>
           {texto && <p className="mt-2 text-regua">{texto}</p>}
         </div>
         {children}

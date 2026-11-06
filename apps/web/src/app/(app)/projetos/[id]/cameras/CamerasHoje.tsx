@@ -33,7 +33,7 @@ export function CamerasHoje({
         const foto = ultimas.get(c.id);
         const s = situacaoCamera(c, c.agente_id ? (porAgente.get(c.agente_id) ?? null) : null, agora);
         return (
-          <li key={c.id} className="flex flex-col overflow-hidden rounded-medio border border-linha bg-papel">
+          <li key={c.id} className="flex flex-col overflow-hidden cartao">
             <Link href={`${base}/galeria?camera=${c.id}`} className="relative block aspect-video bg-concreto" aria-label={`Galeria de ${c.nome}`}>
               {foto?.url ? (
                 // eslint-disable-next-line @next/next/no-img-element

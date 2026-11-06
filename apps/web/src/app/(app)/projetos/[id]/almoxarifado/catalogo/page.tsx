@@ -47,7 +47,7 @@ export default async function PaginaCatalogo({ params, searchParams }: { params:
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
         <ListaCatalogo projetoId={id} itens={doTipo} podeGerir={podeGerir} />
         {podeGerir && (
-          <section aria-labelledby="titulo-novo-item" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+          <section aria-labelledby="titulo-novo-item" className="cartao p-4 sm:p-5">
             <h3 id="titulo-novo-item" className="mb-4 text-base font-semibold">
               Cadastrar {tipo === 'ferramenta' ? 'ferramenta' : 'material'}
             </h3>

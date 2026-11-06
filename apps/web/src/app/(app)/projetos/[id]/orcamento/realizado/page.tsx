@@ -39,7 +39,7 @@ export default async function PaginaRealizado({ params, searchParams }: { params
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro, o financeiro e o admin veem os custos realizados.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro, o financeiro e o admin veem os custos realizados.</p>
       </div>
     );
   }
@@ -55,19 +55,19 @@ export default async function PaginaRealizado({ params, searchParams }: { params
     <div className="flex flex-col gap-6">
       {topo}
       <section aria-label="Resumo dos custos" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-medio border border-linha bg-papel p-4">
+        <div className="cartao p-4">
           <h3 className="text-sm font-semibold text-regua">Orçado</h3>
           <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(obra.orcado, { compacta: true })}</p>
           <p className="numeros text-sm text-regua">feito vale {formatarMoeda(obra.agregado, { compacta: true })}</p>
         </div>
-        <div className="rounded-medio border border-linha bg-papel p-4">
+        <div className="cartao p-4">
           <h3 className="text-sm font-semibold text-regua">Comprometido</h3>
           <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(obra.comprometido, { compacta: true })}</p>
           <p className="numeros text-sm text-regua">
             {obra.orcado > 0 ? `${Math.round((obra.comprometido / obra.orcado) * 100)}% do orçado em contratos e pedidos` : 'contratos e pedidos'}
           </p>
         </div>
-        <div className="rounded-medio border border-linha bg-papel p-4">
+        <div className="cartao p-4">
           <h3 className="text-sm font-semibold text-regua">Realizado</h3>
           <p className="numeros mt-1 text-2xl font-semibold">{formatarMoeda(obra.realizado, { compacta: true })}</p>
           <p className="numeros text-sm text-regua">
@@ -110,9 +110,9 @@ export default async function PaginaRealizado({ params, searchParams }: { params
       </div>
 
       {visiveis.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Sem orçamento nem custos lançados ainda.</p>
+        <p className="cartao p-4 text-regua">Sem orçamento nem custos lançados ainda.</p>
       ) : (
-        <div className="overflow-x-auto rounded-medio border border-linha bg-papel">
+        <div className="overflow-x-auto cartao">
           <table className="numeros w-full min-w-[720px] text-sm">
             <caption className="sr-only">Orçado, comprometido, realizado e valor agregado por item</caption>
             <thead className="bg-concreto">

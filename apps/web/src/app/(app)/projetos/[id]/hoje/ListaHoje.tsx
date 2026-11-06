@@ -355,7 +355,7 @@ function CartaoTarefa({
   }
 
   return (
-    <li className="rounded-medio border border-linha bg-papel">
+    <li className="cartao">
       <div className="px-4 pt-4 pb-3">
         {etapa && <p className="text-xs text-regua">{etapa}</p>}
         <p className="font-semibold break-words">
@@ -389,7 +389,7 @@ function CartaoTarefa({
         (aberto ? (
           <div className="flex flex-col gap-3 border-t border-linha bg-concreto/60 px-4 py-4">
             {temQuantidade && (
-              <div role="group" aria-label="Como apontar" className="inline-flex self-start rounded-medio border border-linha bg-papel p-0.5">
+              <div role="group" aria-label="Como apontar" className="inline-flex self-start cartao p-0.5">
                 {(['qtd', 'pct'] as const).map((m) => (
                   <button
                     key={m}

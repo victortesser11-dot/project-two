@@ -26,7 +26,7 @@ export default async function PaginaLancamentos({ params }: { params: Promise<{ 
     return (
       <div className="flex flex-col gap-6">
         {topo}
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro, o financeiro e o admin lançam despesas e contratos.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro, o financeiro e o admin lançam despesas e contratos.</p>
       </div>
     );
   }
@@ -47,17 +47,17 @@ export default async function PaginaLancamentos({ params }: { params: Promise<{ 
     <div className="flex flex-col gap-6">
       {topo}
       {tarefas.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Monte a EAP antes: toda despesa e todo contrato vão para uma tarefa.</p>
+        <p className="cartao p-4 text-regua">Monte a EAP antes: toda despesa e todo contrato vão para uma tarefa.</p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <div className="flex flex-col gap-6">
-            <section aria-labelledby="titulo-nova-despesa" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+            <section aria-labelledby="titulo-nova-despesa" className="cartao p-4 sm:p-5">
               <h3 id="titulo-nova-despesa" className="mb-4 text-base font-semibold">
                 Lançar despesa
               </h3>
               <FormularioDespesa projetoId={id} tarefas={tarefas} compromissos={compromissos} />
             </section>
-            <section aria-labelledby="titulo-despesas" className="rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-despesas" className="cartao">
               <div className="flex items-baseline justify-between gap-3 border-b border-linha px-4 py-3 sm:px-5">
                 <h3 id="titulo-despesas" className="text-base font-semibold">
                   Despesas
@@ -68,13 +68,13 @@ export default async function PaginaLancamentos({ params }: { params: Promise<{ 
             </section>
           </div>
           <div className="flex flex-col gap-6">
-            <section aria-labelledby="titulo-novo-compromisso" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+            <section aria-labelledby="titulo-novo-compromisso" className="cartao p-4 sm:p-5">
               <h3 id="titulo-novo-compromisso" className="mb-4 text-base font-semibold">
                 Lançar contrato ou pedido
               </h3>
               <FormularioCompromisso projetoId={id} tarefas={tarefas} empreiteiras={empreiteiras} />
             </section>
-            <section aria-labelledby="titulo-compromissos" className="rounded-medio border border-linha bg-papel">
+            <section aria-labelledby="titulo-compromissos" className="cartao">
               <div className="flex items-baseline justify-between gap-3 border-b border-linha px-4 py-3 sm:px-5">
                 <h3 id="titulo-compromissos" className="text-base font-semibold">
                   Contratos e pedidos

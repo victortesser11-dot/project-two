@@ -14,11 +14,11 @@ export default async function NovoProjeto() {
       <Link href="/" className="text-sm font-medium text-cianotipia hover:underline underline-offset-4">
         Voltar para as obras
       </Link>
-      <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">Novo projeto</h1>
+      <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Novo projeto</h1>
       <p className="mt-3 mb-8 text-regua">
         Comece pelo básico. Cronograma, câmeras, almoxarifado e equipe são configurados dentro do projeto.
       </p>
-      <div className="rounded-medio border border-linha bg-papel p-5 sm:p-8">
+      <div className="cartao p-5 sm:p-8">
         <FormularioProjeto />
       </div>
     </section>

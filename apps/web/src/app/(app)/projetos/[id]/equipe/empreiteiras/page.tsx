@@ -31,7 +31,7 @@ export default async function PaginaEmpreiteiras({ params }: { params: Promise<{
       {empreiteiras.length === 0 ? (
         <p className="rounded-medio border border-dashed border-campo/60 px-5 py-8 text-center text-sm text-regua">Nenhuma empreiteira cadastrada.</p>
       ) : (
-        <ul className="divide-y divide-linha rounded-medio border border-linha bg-papel">
+        <ul className="divide-y divide-linha cartao">
           {empreiteiras.map((e) => {
             const irregular = e.situacao_cnpj && e.situacao_cnpj !== 'ATIVA';
             return (
@@ -56,7 +56,7 @@ export default async function PaginaEmpreiteiras({ params }: { params: Promise<{
         </ul>
       )}
       {podeGerir && (
-        <section aria-labelledby="titulo-nova-emp" className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+        <section aria-labelledby="titulo-nova-emp" className="cartao p-4 sm:p-5">
           <h3 id="titulo-nova-emp" className="mb-4 text-base font-semibold">
             Cadastrar empreiteira
           </h3>

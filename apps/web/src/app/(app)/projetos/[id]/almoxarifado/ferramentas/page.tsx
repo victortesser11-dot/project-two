@@ -46,7 +46,7 @@ export default async function PaginaFerramentas({ params }: { params: Promise<{ 
         }
       />
       {ferramentas.length === 0 ? (
-        <section className="rounded-medio border border-linha bg-papel p-5">
+        <section className="cartao p-5">
           <h3 className="text-base font-semibold">Nenhuma ferramenta cadastrada</h3>
           <p className="mt-1 text-regua">Cadastre as ferramentas da empresa (furadeira, betoneira, serra…) e imprima as etiquetas com QR.</p>
           {podeMovimentar && (

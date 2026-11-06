@@ -55,9 +55,9 @@ export default async function PaginaSaida({ params, searchParams }: { params: Pr
         descricao="Toda saída vai para uma tarefa: é assim que o custo de material chega ao orçado × realizado. Sai pelo custo médio da obra."
       />
       {!podeMovimentar ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">Só o engenheiro e o almoxarife da obra registram saídas.</p>
+        <p className="cartao p-4 text-regua">Só o engenheiro e o almoxarife da obra registram saídas.</p>
       ) : tarefas.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">
+        <p className="cartao p-4 text-regua">
           A obra ainda não tem tarefas. Monte a EAP no{' '}
           <Link href={`/projetos/${id}/cronograma`} className="font-semibold text-cianotipia underline underline-offset-4">
             cronograma
@@ -65,20 +65,20 @@ export default async function PaginaSaida({ params, searchParams }: { params: Pr
           para registrar saídas.
         </p>
       ) : materiais.length === 0 ? (
-        <p className="rounded-medio border border-linha bg-papel p-4 text-regua">
+        <p className="cartao p-4 text-regua">
           Nenhum material com saldo nesta obra.{' '}
           <Link href={`/projetos/${id}/almoxarifado/entrada`} className="font-semibold text-cianotipia underline underline-offset-4">
             Dar entrada
           </Link>
         </p>
       ) : (
-        <section className="rounded-medio border border-linha bg-papel p-4 sm:p-5">
+        <section className="cartao p-4 sm:p-5">
           <FormularioSaida projetoId={id} materiais={materiais} grupos={grupos} equipe={equipe.filter((p) => p.na_obra)} hoje={hoje} itemInicial={item} />
         </section>
       )}
 
       {saidas.length > 0 && (
-        <section aria-labelledby="titulo-ultimas-saidas" className="rounded-medio border border-linha bg-papel">
+        <section aria-labelledby="titulo-ultimas-saidas" className="cartao">
           <h3 id="titulo-ultimas-saidas" className="border-b border-linha px-4 py-3 text-base font-semibold sm:px-5">
             Últimas saídas
           </h3>
