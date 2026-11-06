@@ -38,7 +38,7 @@ import type {
   Projeto,
   StatusDiario,
 } from '@obras/shared';
-import { REGRA_SEMAFORO_PADRAO } from '@obras/shared';
+import { REGRA_SEMAFORO_PADRAO, type ArquivoObra } from '@obras/shared';
 import { emPaginas } from '@/lib/paginas';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
@@ -843,5 +843,21 @@ export const listarJustificativas = cache(async (projetoId: string): Promise<Jus
       .range(de, ate),
   );
   if (error) throw new Error(`Não foi possível carregar as justificativas de atraso: ${error.message}`);
+  return data;
+});
+
+/** Arquivos da obra (projetos, legalização, contratos), mais recentes primeiro. O link sai na hora do clique. */
+export const listarArquivos = cache(async (projetoId: string): Promise<ArquivoObra[]> => {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('arquivo_obra')
+      .select('id, projeto_id, categoria, nome, descricao, caminho, tamanho, tipo_mime, enviado_nome, criado_em')
+      .eq('projeto_id', projetoId)
+      .order('criado_em', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar os arquivos da obra: ${error.message}`);
   return data;
 });

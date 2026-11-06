@@ -142,6 +142,69 @@ export type Database = {
           },
         ]
       }
+      arquivo_obra: {
+        Row: {
+          atualizado_em: string
+          caminho: string
+          categoria: Database["public"]["Enums"]["categoria_arquivo"]
+          criado_em: string
+          descricao: string | null
+          empresa_id: string
+          enviado_nome: string | null
+          enviado_por: string | null
+          id: string
+          nome: string
+          projeto_id: string
+          tamanho: number
+          tipo_mime: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          caminho: string
+          categoria: Database["public"]["Enums"]["categoria_arquivo"]
+          criado_em?: string
+          descricao?: string | null
+          empresa_id: string
+          enviado_nome?: string | null
+          enviado_por?: string | null
+          id: string
+          nome: string
+          projeto_id: string
+          tamanho: number
+          tipo_mime?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          caminho?: string
+          categoria?: Database["public"]["Enums"]["categoria_arquivo"]
+          criado_em?: string
+          descricao?: string | null
+          empresa_id?: string
+          enviado_nome?: string | null
+          enviado_por?: string | null
+          id?: string
+          nome?: string
+          projeto_id?: string
+          tamanho?: number
+          tipo_mime?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivo_obra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_obra_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           acao: string
@@ -2324,6 +2387,15 @@ export type Database = {
           unidade: string
         }[]
       }
+      editar_arquivo_obra: {
+        Args: {
+          p_categoria: Database["public"]["Enums"]["categoria_arquivo"]
+          p_descricao?: string
+          p_id: string
+          p_nome: string
+        }
+        Returns: undefined
+      }
       emprestar_ferramenta: {
         Args: {
           p_devolver_ate?: string
@@ -2339,6 +2411,7 @@ export type Database = {
         Args: { p_encerrado?: boolean; p_id: string }
         Returns: undefined
       }
+      excluir_arquivo_obra: { Args: { p_id: string }; Returns: string }
       excluir_despesa: { Args: { p_id: string }; Returns: undefined }
       excluir_foto_camera: { Args: { p_id: string }; Returns: string }
       excluir_foto_diario: { Args: { p_id: string }; Returns: string }
@@ -2401,6 +2474,19 @@ export type Database = {
           p_quantidade_contada: number
         }
         Returns: number
+      }
+      registrar_arquivo_obra: {
+        Args: {
+          p_caminho: string
+          p_categoria: Database["public"]["Enums"]["categoria_arquivo"]
+          p_descricao?: string
+          p_id: string
+          p_nome: string
+          p_projeto_id: string
+          p_tamanho: number
+          p_tipo_mime?: string
+        }
+        Returns: string
       }
       registrar_avanco: {
         Args: {
@@ -2523,6 +2609,16 @@ export type Database = {
       }
     }
     Enums: {
+      categoria_arquivo:
+        | "arquitetonico"
+        | "estrutural"
+        | "eletrico"
+        | "hidrossanitario"
+        | "outros_projetos"
+        | "legalizacao"
+        | "contrato"
+        | "orcamento"
+        | "outros"
       categoria_despesa:
         | "equipamento"
         | "servico"
@@ -2687,6 +2783,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      categoria_arquivo: [
+        "arquitetonico",
+        "estrutural",
+        "eletrico",
+        "hidrossanitario",
+        "outros_projetos",
+        "legalizacao",
+        "contrato",
+        "orcamento",
+        "outros",
+      ],
       categoria_despesa: [
         "equipamento",
         "servico",

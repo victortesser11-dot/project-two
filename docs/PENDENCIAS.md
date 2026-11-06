@@ -12,6 +12,13 @@ Endereço do piloto: **https://moda-triade.com.br** (domínio ligado na Vercel e
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
+## Arquivos da obra (06/11, ainda não publicado)
+
+- [ ] Quando quiser publicar: rodar a migração `20261106090000_arquivos_obra.sql` no SQL Editor **antes** do merge (cria a
+      tabela, as funções e o bucket privado `arquivos`).
+- [ ] Decidir se o mestre também envia arquivos (hoje só engenheiro e admin) e se precisa guardar versões antigas de um
+      projeto (hoje uma revisão nova é um arquivo novo; a descrição diz qual é a vigente).
+
 ## Medição (03/11)
 
 - [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o

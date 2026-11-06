@@ -3,6 +3,7 @@ import {
   Camera,
   ChartGantt,
   ClipboardCheck,
+  FolderOpen,
   HardHat,
   LayoutDashboard,
   Package,
@@ -24,6 +25,7 @@ const ICONES: Record<string, LucideIcon> = {
   equipe: HardHat,
   orcamento: Wallet,
   diario: BookOpen,
+  arquivos: FolderOpen,
 };
 
 /** Partes da obra, na ordem do menu (lateral no computador, barra de baixo e "Mais" no celular). */

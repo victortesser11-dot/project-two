@@ -41,6 +41,13 @@ export const MODULOS: Modulo[] = [
     sprint: 6,
     disponivel: true,
   },
+  {
+    slug: 'arquivos',
+    nome: 'Arquivos',
+    resumo: 'Projetos (DWG, PDF, IFC), alvará, ART e contratos da obra, para abrir e baixar no celular ou no computador.',
+    sprint: 7,
+    disponivel: true,
+  },
   { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, equipe, serviços, ocorrências e fotos do dia, com assinatura e PDF.', sprint: 2, disponivel: true },
 ];
 

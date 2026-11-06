@@ -53,7 +53,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, e as da obra de exemplo:
+   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -215,6 +215,16 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Convite: `adicionar_membro_projeto` devolve `P0002` quando não há conta → se quem pede é admin da empresa, o app manda
   `auth.admin.inviteUserByEmail` (única coisa feita com `SUPABASE_SECRET_KEY`, em `lib/supabase/admin.ts`) e chama a
   função de novo; o banco confere tudo outra vez. Quem já tinha conta recebe o aviso "Você agora acessa a obra".
+
+## Arquivos da obra
+
+- `arquivo_obra` (projetos DWG/PDF/IFC, legalização, contratos), em pastas pelo enum `categoria_arquivo`. Bucket privado
+  `arquivos`, caminho `<projeto>/<arquivo>/<nome-seguro.ext>` (`nomeSeguroArquivo`). O navegador envia direto ao Storage
+  (arquivo grande não passa pela Vercel) e depois chama `registrar_arquivo_obra`, que confere caminho, extensão e se o
+  arquivo chegou; se o registro falhar, o app apaga o arquivo enviado.
+- Todos da obra leem e baixam (link assinado de 5 min, gerado no clique); quem edita a obra envia, corrige e apaga.
+- Extensões aceitas iguais no banco (`app.extensao_arquivo_permitida`) e no shared (`EXTENSOES_ARQUIVO`): nada de
+  executável nem HTML. Até 50 MB (limite do plano grátis). Só PDF e imagem abrem no navegador; o resto baixa.
 
 ## Obra de exemplo
 
