@@ -120,7 +120,7 @@ export function CurvaFinanceira({ pontos, hoje, referencia }: { pontos: PontoFin
       </ul>
 
       <div ref={caixa} className="relative w-full">
-        <svg width={largura} height={ALTURA} role="img" aria-label={`Curva S financeira. ${resumo}`} className="block">
+        <svg width={largura} height={ALTURA} role="img" aria-label={`Curva S financeira. ${resumo}`} className="block max-w-full">
           {[0, 0.25, 0.5, 0.75, 1].map((f) => (
             <g key={f}>
               <line x1={MARGEM.esquerda} x2={MARGEM.esquerda + w} y1={y(maximo * f)} y2={y(maximo * f)} stroke="var(--color-linha)" strokeWidth="1" />

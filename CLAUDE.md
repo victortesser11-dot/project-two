@@ -53,7 +53,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, e as da obra de exemplo:
+   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -88,6 +88,13 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - O importador (`packages/shared/src/importacao`) roda no navegador: CSV, XLSX (`read-excel-file`) e MS Project XML
   viram uma prévia; só ao confirmar o navegador chama `importar_eap` (tudo ou nada, até 5.000 itens).
   Custos do MS Project XML vêm em centavos (÷100). `.mpp` não é lido: peça "Salvar como XML".
+- Planilha sem hierarquia (uma linha por atividade) com coluna de **lote** ("Torre A Térreo"): cada lote vira etapa e
+  os lotes que começam com as mesmas duas palavras ficam dentro de uma etapa maior ("Torre A"). Coluna "Serviço" entra
+  no nome ("Pacote: serviço"). Vale só quando não há coluna de nível nem código em árvore.
+- Obra em andamento: a coluna "Realizado"/"% concluído" (e `PercentComplete` do MS Project) vira `percentual` do item;
+  `importar_eap` grava cada um por `registrar_avanco` (data = término se concluída no passado, senão hoje).
+- Cronograma grande não abre inteiro: `recolhidasDeInicio` (`cronograma/recolher.ts`) decide quais etapas começam
+  fechadas na árvore (acima de 80 itens) e no Gantt (acima de 120).
 - Modelos de cronograma (`packages/shared/src/modelos`): a estrutura padrão de um tipo de obra (hoje "Residência
   unifamiliar", do documento da engenharia) vira itens da mesma prévia, com datas proporcionais ao prazo e a sequência
   entre tarefas; ao gravar, o app chama `importar_eap` e depois `salvar_dependencia` (ligadas pelo `codigo_externo`
@@ -216,6 +223,25 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   `auth.admin.inviteUserByEmail` (única coisa feita com `SUPABASE_SECRET_KEY`, em `lib/supabase/admin.ts`) e chama a
   função de novo; o banco confere tudo outra vez. Quem já tinha conta recebe o aviso "Você agora acessa a obra".
 
+## Arquivos da obra
+
+- `arquivo_obra` (projetos DWG/PDF/IFC, legalização, contratos), em pastas pelo enum `categoria_arquivo`. Bucket privado
+  `arquivos`, caminho `<projeto>/<arquivo>/<nome-seguro.ext>` (`nomeSeguroArquivo`). O navegador envia direto ao Storage
+  (arquivo grande não passa pela Vercel) e depois chama `registrar_arquivo_obra`, que confere caminho, extensão e se o
+  arquivo chegou; se o registro falhar, o app apaga o arquivo enviado.
+- Versões: cada linha é uma versão; as do mesmo documento dividem `documento_id` (id da primeira) e contam `versao`.
+  "Enviar nova versão" (`p_nova_versao_de`) herda a pasta e guarda a anterior; a vigente é a de maior número
+  (`agruparVersoes` no shared). Excluir tira só aquela versão. Mudar de pasta leva todas as versões.
+- Todos da obra leem e baixam (link assinado de 5 min, gerado no clique). Engenheiro, mestre e admin enviam
+  (`app.pode_apontar_campo`); corrigir e excluir é de quem edita a obra. No Storage, quem enviou só apaga o próprio
+  arquivo ainda não registrado (limpeza quando o registro falha).
+- Extensões aceitas iguais no banco (`app.extensao_arquivo_permitida`) e no shared (`EXTENSOES_ARQUIVO`): nada de
+  executável nem HTML. Até 50 MB (limite do plano grátis). Só PDF e imagem abrem no navegador; o resto baixa.
+- Pasta inteira do projeto: o botão "Enviar uma pasta inteira" (`webkitdirectory`, só no computador) e o arraste de
+  pasta (`arquivos/arraste.ts`) mandam tudo de uma vez. A sigla do nome escolhe a pasta (`categoriaPeloNome`: ARQ, EST,
+  ELE, HID, ESG...; sem sigla vale a pasta da tela) e as sobras do AutoCAD e do computador (`arquivoAuxiliar`: .bak,
+  plot.log, .dwl) ficam de fora sem contar como erro. Na lista, as pranchas ficam em ordem de nome (`compararNomesArquivo`).
+
 ## Obra de exemplo
 
 - `criar_obra_exemplo(empresa)` (só admin, uma por empresa) monta no banco uma obra fictícia com ~140 tarefas e três
@@ -246,6 +272,9 @@ Componentes (no estilo do shadcn/ui: código nosso sobre primitivos do Radix, ve
 - Aviso rápido depois de uma ação: `avisar.ok/erro` (`lib/avisos.ts`, Sonner). Erro de formulário fica junto do campo.
 - Menus: `components/MenuSuspenso.tsx` (Radix). Ícones só do `lucide-react`; SVG à mão só no logo (`Logo.tsx`),
   nos gráficos e nas formas do semáforo.
+- Marca: capacete amarelo de segurança (desenho do Phosphor, MIT) em quadrado azul-`noite` (`Logo.tsx`; `claro` = quadrado
+  amarelo sobre o menu). Mesma marca em `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180),
+  `public/icones/` (192, 512 e maskable para o PWA) e `public/email/logo.png`. Não use o ícone `HardHat` em outro lugar.
 - Data e lista de opções continuam nativas (`type="date"`, `<select>`): no celular o seletor do aparelho é o melhor.
 
 ## Glossário

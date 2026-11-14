@@ -1,0 +1,202 @@
+import { z } from 'zod';
+
+// Arquivos da obra (projetos, legalização, contratos). Espelha o enum categoria_arquivo e
+// app.extensao_arquivo_permitida do banco: mudou um, muda o outro.
+
+export const CATEGORIAS_ARQUIVO = [
+  'arquitetonico',
+  'estrutural',
+  'eletrico',
+  'hidrossanitario',
+  'outros_projetos',
+  'legalizacao',
+  'contrato',
+  'orcamento',
+  'outros',
+] as const;
+export type CategoriaArquivo = (typeof CATEGORIAS_ARQUIVO)[number];
+
+export const ROTULO_CATEGORIA_ARQUIVO: Record<CategoriaArquivo, string> = {
+  arquitetonico: 'Projeto arquitetônico',
+  estrutural: 'Projeto estrutural',
+  eletrico: 'Projeto elétrico',
+  hidrossanitario: 'Projeto hidrossanitário',
+  outros_projetos: 'Outros projetos',
+  legalizacao: 'Legalização (alvará, ART, habite-se)',
+  contrato: 'Contratos',
+  orcamento: 'Orçamentos e propostas',
+  outros: 'Outros',
+};
+
+/** 50 MB: limite do Storage no plano grátis (e do check no banco). */
+export const LIMITE_ARQUIVO_BYTES = 50 * 1024 * 1024;
+
+export type TipoArquivo = 'cad' | 'pdf' | 'imagem' | 'planilha' | 'documento' | 'compactado' | 'outro';
+
+const TIPO_POR_EXTENSAO: Record<string, TipoArquivo> = {
+  dwg: 'cad', dxf: 'cad', dwf: 'cad', rvt: 'cad', rfa: 'cad', ifc: 'cad', skp: 'cad', nwd: 'cad', nwc: 'cad', pln: 'cad',
+  pdf: 'pdf',
+  jpg: 'imagem', jpeg: 'imagem', png: 'imagem', webp: 'imagem', heic: 'imagem',
+  xlsx: 'planilha', xls: 'planilha', csv: 'planilha', ods: 'planilha', mpp: 'planilha',
+  docx: 'documento', doc: 'documento', odt: 'documento', pptx: 'documento', txt: 'documento', xml: 'documento',
+  zip: 'compactado', rar: 'compactado', '7z': 'compactado', kmz: 'compactado', kml: 'outro',
+};
+
+/** Extensões aceitas (a mesma lista do banco). */
+export const EXTENSOES_ARQUIVO = Object.keys(TIPO_POR_EXTENSAO);
+
+/** Para o campo <input type="file" accept>. */
+export const ACEITA_ARQUIVO = EXTENSOES_ARQUIVO.map((e) => `.${e}`).join(',');
+
+export function extensaoDoArquivo(nome: string): string | null {
+  const m = /\.([A-Za-z0-9]{1,5})$/.exec(nome.trim());
+  return m ? m[1]!.toLowerCase() : null;
+}
+
+export function tipoDoArquivo(nome: string): TipoArquivo {
+  const ext = extensaoDoArquivo(nome);
+  return (ext && TIPO_POR_EXTENSAO[ext]) || 'outro';
+}
+
+export function extensaoPermitida(nome: string): boolean {
+  const ext = extensaoDoArquivo(nome);
+  return ext !== null && ext in TIPO_POR_EXTENSAO;
+}
+
+/** O navegador mostra direto (PDF e imagem comum); o resto é para baixar. */
+export function abreNoNavegador(nome: string): boolean {
+  const ext = extensaoDoArquivo(nome);
+  return ext === 'pdf' || ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'webp';
+}
+
+/** Nome para o caminho no Storage: sem acento, espaço vira hífen, só letras, números, ponto, hífen e sublinhado. */
+export function nomeSeguroArquivo(nome: string): string {
+  const ext = extensaoDoArquivo(nome);
+  const base = (ext ? nome.trim().slice(0, -(ext.length + 1)) : nome.trim())
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[-.]+|[-.]+$/g, '')
+    .toLowerCase()
+    .slice(0, 80);
+  return `${base || 'arquivo'}${ext ? `.${ext}` : ''}`;
+}
+
+export function formatarTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toLocaleString('pt-BR', { maximumFractionDigits: mb < 10 ? 1 : 0 })} MB`;
+}
+
+// Sobras que o AutoCAD, o Windows e o Mac deixam na pasta do projeto: cópia de segurança (.bak), registro de
+// plotagem (plot.log), trava de edição (.dwl), miniaturas. Ninguém precisa delas na obra.
+const EXTENSOES_AUXILIARES = new Set(['bak', 'log', 'dwl', 'dwl2', 'tmp', 'err', 'ini', 'db', 'lnk']);
+
+/** Arquivo auxiliar que vem junto quando se envia a pasta inteira do projeto (não é para guardar). */
+export function arquivoAuxiliar(nome: string): boolean {
+  const limpo = nome.trim();
+  if (limpo.startsWith('~$') || limpo.startsWith('.')) return true;
+  const ext = extensaoDoArquivo(limpo);
+  return ext !== null && EXTENSOES_AUXILIARES.has(ext);
+}
+
+/** Problema do arquivo antes de enviar (null = pode enviar). */
+export function problemaDoArquivo(arquivo: { name: string; size: number }): string | null {
+  if (arquivoAuxiliar(arquivo.name)) {
+    return `${arquivo.name}: arquivo auxiliar (sobra do AutoCAD ou do computador). Não precisa ir para a obra.`;
+  }
+  if (!extensaoPermitida(arquivo.name)) {
+    return `${arquivo.name}: tipo não aceito. Envie projeto (DWG, PDF, IFC, RVT, SKP), imagem, planilha, documento ou ZIP.`;
+  }
+  if (arquivo.size <= 0) return `${arquivo.name}: o arquivo está vazio.`;
+  if (arquivo.size > LIMITE_ARQUIVO_BYTES) return `${arquivo.name}: passa de 50 MB. Compacte em ZIP ou divida em partes.`;
+  return null;
+}
+
+function semAcento(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Sigla ou palavra do nome → pasta. As siglas são as que os escritórios de projeto usam no nome da prancha
+// ("Obra - ARQ 03-24.pdf", "EST 02 - Formas.dwg"); palavras longas valem pelo começo.
+const SIGLAS_DE_PASTA: Record<string, CategoriaArquivo> = {
+  ARQ: 'arquitetonico',
+  EST: 'estrutural', FUND: 'estrutural',
+  ELE: 'eletrico', ELET: 'eletrico',
+  HID: 'hidrossanitario', HIDRO: 'hidrossanitario', ESG: 'hidrossanitario', PLU: 'hidrossanitario', AGUA: 'hidrossanitario',
+  PCI: 'outros_projetos', PPCI: 'outros_projetos', SPDA: 'outros_projetos', GAS: 'outros_projetos',
+  ART: 'legalizacao', RRT: 'legalizacao', CNO: 'legalizacao',
+};
+const PALAVRAS_DE_PASTA: [string, CategoriaArquivo][] = [
+  ['ARQUITET', 'arquitetonico'],
+  ['ESTRUTUR', 'estrutural'], ['FUNDAC', 'estrutural'],
+  ['ELETRIC', 'eletrico'],
+  ['HIDRAUL', 'hidrossanitario'], ['HIDROSS', 'hidrossanitario'], ['SANITAR', 'hidrossanitario'], ['ESGOT', 'hidrossanitario'],
+  ['PLUVIA', 'hidrossanitario'],
+  ['INCEND', 'outros_projetos'], ['CLIMATIZ', 'outros_projetos'], ['PAISAGIS', 'outros_projetos'], ['TOPOGRAF', 'outros_projetos'],
+  ['ALVARA', 'legalizacao'], ['HABITE', 'legalizacao'], ['MATRICULA', 'legalizacao'], ['LICENC', 'legalizacao'],
+  ['CONTRATO', 'contrato'], ['ADITIVO', 'contrato'],
+  ['ORCAMENTO', 'orcamento'], ['PROPOSTA', 'orcamento'], ['COTAC', 'orcamento'],
+];
+
+/** Pasta sugerida pelo nome do arquivo (a primeira sigla ou palavra reconhecida), ou null. */
+export function categoriaPeloNome(nome: string): CategoriaArquivo | null {
+  const ext = extensaoDoArquivo(nome);
+  const base = ext ? nome.trim().slice(0, -(ext.length + 1)) : nome.trim();
+  for (const palavra of semAcento(base).toUpperCase().split(/[^A-Z0-9]+/)) {
+    if (!palavra) continue;
+    const sigla = SIGLAS_DE_PASTA[palavra];
+    if (sigla) return sigla;
+    const longa = PALAVRAS_DE_PASTA.find(([inicio]) => palavra.startsWith(inicio));
+    if (longa) return longa[1];
+  }
+  return null;
+}
+
+/** Ordem das pranchas na pasta: pelo nome, com número valendo como número ("ARQ 2" antes de "ARQ 10"). */
+export function compararNomesArquivo(a: string, b: string): number {
+  return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
+}
+
+export const arquivoEditadoSchema = z.object({
+  nome: z.string().trim().min(1, 'Dê um nome ao arquivo').max(200, 'Use no máximo 200 caracteres'),
+  categoria: z.enum(CATEGORIAS_ARQUIVO, { message: 'Escolha a pasta' }),
+  descricao: z.string().trim().max(500, 'Use no máximo 500 caracteres').optional().transform((v) => v || null),
+});
+
+export interface ArquivoObra {
+  id: string;
+  projeto_id: string;
+  /** Id da primeira versão; todas as versões do documento dividem este id. */
+  documento_id: string;
+  versao: number;
+  categoria: CategoriaArquivo;
+  nome: string;
+  descricao: string | null;
+  caminho: string;
+  tamanho: number;
+  tipo_mime: string | null;
+  enviado_nome: string | null;
+  criado_em: string;
+}
+
+/** Um documento com a versão vigente (maior número) e as anteriores, da mais nova para a mais antiga. */
+export interface DocumentoObra {
+  atual: ArquivoObra;
+  anteriores: ArquivoObra[];
+}
+
+export function agruparVersoes(arquivos: ArquivoObra[]): DocumentoObra[] {
+  const porDocumento = new Map<string, ArquivoObra[]>();
+  for (const a of arquivos) porDocumento.set(a.documento_id, [...(porDocumento.get(a.documento_id) ?? []), a]);
+  return [...porDocumento.values()]
+    .map((versoes) => {
+      const [atual, ...anteriores] = [...versoes].sort((x, y) => y.versao - x.versao);
+      return { atual: atual!, anteriores };
+    })
+    .sort((x, y) => y.atual.criado_em.localeCompare(x.atual.criado_em) || x.atual.id.localeCompare(y.atual.id));
+}

@@ -134,7 +134,7 @@ describe('detectarColunas', () => {
     const r = detectarColunas([
       ['Id', 'Modo da Tarefa', 'Nome da Tarefa', 'Duração', 'Início', 'Término', 'Nível da estrutura de tópicos'],
     ]);
-    expect(r.mapeamento).toEqual({ nome: 2, inicio: 4, fim: 5, nivel: 6 });
+    expect(r.mapeamento).toEqual({ codigo: 0, nome: 2, inicio: 4, fim: 5, nivel: 6 });
   });
 
   it('com duas colunas de total, fica com a da direita (com BDI)', () => {
@@ -190,7 +190,7 @@ describe('montarEap', () => {
     ]);
     expect(r.itens[1]!.custo_previsto).toBe(40);
     expect(r.itens[0]!.custo_previsto).toBeNull();
-    expect(r.resumo).toEqual({ etapas: 1, tarefas: 3, niveis: 2, custoTotal: 100, inicio: '2026-11-01', fim: '2026-11-10' });
+    expect(r.resumo).toEqual({ etapas: 1, tarefas: 3, niveis: 2, custoTotal: 100, inicio: '2026-11-01', fim: '2026-11-10', comAvanco: 0, concluidas: 0 });
     expect(r.problemas).toEqual([]);
   });
 
@@ -307,5 +307,108 @@ describe('MS Project XML', () => {
   it('recusa XML que não é do MS Project', () => {
     const r = lerMsProjectXml('<?xml version="1.0"?><nota>oi</nota>');
     expect(r.problemas[0]!.gravidade).toBe('erro');
+  });
+});
+
+describe('planilha por lote (obra em andamento)', () => {
+  // Mesmo formato do export de linha de balanço: título, data, cabeçalho em duas linhas e uma coluna vazia à esquerda.
+  const planilha: unknown[][] = [
+    ['Projeto Aurora'],
+    ['Planilha gerada em 09/11/2026'],
+    [null, null, null, null, null, null, null, null, 'Avanço físico (%)'],
+    [null, 'ID', 'Pacote de trabalho/tarefas', 'Serviço', 'Lote', 'Data de Início', 'Data de Término', 'Data de referência', 'Base', 'Previsto', 'Realizado'],
+    [null, 101, 'Ter - Terraplanagem', '-', 'Torre A Térreo', '2026-01-05', '2026-01-16', '2026-11-09', 100, 100, 100],
+    [null, 201, 'Ter - Terraplanagem', '-', 'Torre B Térreo', '2026-02-04', '2026-02-17', '2026-11-09', 100, 100, 100],
+    [null, 102, 'Hid - Água e Esgoto', 'Prumadas de Esgoto', 'Torre A Térreo', '2026-06-01', '2026-06-12', '2026-11-09', 100, 100, 96],
+    [null, 103, 'Hid - Água e Esgoto', 'Ramais de Esgoto', 'Torre A Térreo', '2026-06-15', '2026-06-26', '2026-11-09', 100, 100, 0],
+    [null, 111, 'Alv - Alvenaria', '-', 'Torre A 2º Pavimento', '2026-07-01', '2027-07-20', '2026-11-09', 40, 40, 30],
+    [null, 301, 'Pav - Pavimentação', '-', 'Predio Garagem', '2027-01-18', '2027-02-18', '2026-11-09', 0, 0, 0],
+    [null, 211, 'Alv - Alvenaria', '-', 'torre b 2º pavimento', '2026-08-01', '2026-08-20', '2026-11-09', 100, 100, 100],
+  ];
+
+  it('reconhece pacote, serviço, lote, ID e avanço realizado', () => {
+    const det = detectarColunas(planilha);
+    expect(det.linhaCabecalho).toBe(3);
+    expect(det.mapeamento).toEqual({ codigo: 1, nome: 2, detalhe: 3, grupo: 4, inicio: 5, fim: 6, percentual: 10 });
+  });
+
+  it('planilha comum com coluna "Serviço" continua usando ela como descrição', () => {
+    const det = detectarColunas([['Item', 'Serviço', 'Unid', 'Total']]);
+    expect(det.mapeamento).toMatchObject({ codigo: 0, nome: 1 });
+    expect(det.mapeamento.detalhe).toBeUndefined();
+  });
+
+  it('lote vira etapa, torres juntam os pavimentos e o serviço completa o nome', () => {
+    const det = detectarColunas(planilha);
+    const conv = converterLinhas(planilha, det.linhaCabecalho, det.mapeamento);
+    expect(conv.porLote).toBe(true);
+    const r = montarEap(conv.linhas, conv.problemas, '2026-11-09');
+    expect(r.itens.map((i) => `${i.nivel} ${i.tipo} ${i.nome}`)).toEqual([
+      '1 etapa Torre A',
+      '2 etapa Torre A Térreo',
+      '3 tarefa Ter - Terraplanagem',
+      '3 tarefa Hid - Água e Esgoto: Prumadas de Esgoto',
+      '3 tarefa Hid - Água e Esgoto: Ramais de Esgoto',
+      '2 etapa Torre A 2º Pavimento',
+      '3 tarefa Alv - Alvenaria',
+      '1 etapa Torre B',
+      '2 etapa Torre B Térreo',
+      '3 tarefa Ter - Terraplanagem',
+      '2 etapa torre b 2º pavimento',
+      '3 tarefa Alv - Alvenaria',
+      '1 etapa Predio Garagem',
+      '2 tarefa Pav - Pavimentação',
+    ]);
+    expect(r.problemas.filter((p) => p.gravidade === 'erro')).toEqual([]);
+    expect(r.problemas.some((p) => p.mensagem.includes('5 lotes, reunidos em 3 etapas (Torre A, Torre B e os demais)'))).toBe(true);
+    expect(r.itens.find((i) => i.codigo_externo === '101')).toMatchObject({ tipo: 'tarefa', inicio_previsto: '2026-01-05' });
+    expect(r.resumo).toMatchObject({ etapas: 7, tarefas: 7, niveis: 3, comAvanco: 5, concluidas: 3 });
+  });
+
+  it('avanço: concluída entra no dia em que terminava, em andamento entra hoje, zero não entra', () => {
+    const det = detectarColunas(planilha);
+    const conv = converterLinhas(planilha, det.linhaCabecalho, det.mapeamento);
+    const r = montarEap(conv.linhas, conv.problemas, '2026-11-09');
+    const por = (id: string) => r.itens.find((i) => i.codigo_externo === id)!;
+    expect(por('101')).toMatchObject({ percentual: 100, avanco_data: '2026-01-16' });
+    expect(por('102')).toMatchObject({ percentual: 96, avanco_data: '2026-11-09' });
+    expect(por('111')).toMatchObject({ percentual: 30, avanco_data: '2026-11-09' });
+    expect(por('103').percentual).toBeUndefined();
+    expect(r.itens.filter((i) => i.tipo === 'etapa').every((i) => i.percentual === undefined)).toBe(true);
+    // vai ao banco só em quem tem avanço
+    const banco = paraBanco(r.itens);
+    expect(banco.find((i) => i.codigo_externo === '101')).toMatchObject({ percentual: 100, avanco_data: '2026-01-16' });
+    expect('percentual' in banco.find((i) => i.codigo_externo === '103')!).toBe(false);
+  });
+
+  it('concluída com término no futuro entra hoje', () => {
+    const r = montarEap([linha({ nome: 'Adiantada', inicio: '2026-11-01', fim: '2026-12-20', percentual: 100 })], [], '2026-11-09');
+    expect(r.itens[0]).toMatchObject({ percentual: 100, avanco_data: '2026-11-09' });
+  });
+
+  it('avanço em fração do Excel (0,85) vira porcentagem; fora de 0 a 100 é ignorado com aviso', () => {
+    const fracao = converterLinhas([['Descrição', '% concluído'], ['A', 1], ['B', 0.85], ['C', 0]], 0, { nome: 0, percentual: 1 });
+    expect(fracao.linhas.map((l) => l.percentual)).toEqual([100, 85, 0]);
+    expect(fracao.problemas[0]!.mensagem).toContain('fração');
+    const dinheiro = converterLinhas([['Descrição', 'Realizado'], ['A', 15000], ['B', 80]], 0, { nome: 0, percentual: 1 });
+    expect(dinheiro.linhas.map((l) => l.percentual)).toEqual([null, null]);
+    expect(dinheiro.problemas[0]!.mensagem).toContain('fora de 0 a 100');
+  });
+
+  it('com código em árvore, a coluna de lote é ignorada com aviso', () => {
+    const conv = converterLinhas(
+      [['Item', 'Descrição', 'Local'], ['1', 'Fundações', 'Bloco 1'], ['1.1', 'Estacas', 'Bloco 1'], ['1.2', 'Blocos', 'Bloco 2']],
+      0,
+      { codigo: 0, nome: 1, grupo: 2 },
+    );
+    expect(conv.porLote).toBe(false);
+    expect(conv.problemas[0]!.mensagem).toContain('coluna de lote foi ignorada');
+    expect(montarEap(conv.linhas, conv.problemas).itens.map((i) => i.nivel)).toEqual([1, 2, 2]);
+  });
+
+  it('linha sem lote fica no primeiro nível', () => {
+    const conv = converterLinhas([['Tarefa', 'Lote'], ['Mobilização', ''], ['Estacas', 'Bloco 1'], ['Vigas', 'Bloco 1']], 0, { nome: 0, grupo: 1 });
+    const r = montarEap(conv.linhas, conv.problemas);
+    expect(r.itens.map((i) => `${i.nivel} ${i.tipo} ${i.nome}`)).toEqual(['1 etapa Bloco 1', '2 tarefa Estacas', '2 tarefa Vigas', '1 tarefa Mobilização']);
   });
 });

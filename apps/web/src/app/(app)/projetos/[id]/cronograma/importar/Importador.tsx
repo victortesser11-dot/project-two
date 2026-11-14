@@ -171,9 +171,9 @@ export function Importador({
   }
 
   function gerarPrevia() {
-    const { linhas: origem, problemas } = converterLinhas(linhas, linhaCabecalho, mapeamento, decimal);
+    const { linhas: origem, problemas, porLote } = converterLinhas(linhas, linhaCabecalho, mapeamento, decimal);
     const r = montarEap(origem, problemas);
-    setResultado({ ...r, origem: abas.length > 1 ? `${nomeArquivo}, aba "${abas[abaAtual]?.nome}"` : nomeArquivo });
+    setResultado({ ...r, criterio: porLote ? 'lote' : r.criterio, origem: abas.length > 1 ? `${nomeArquivo}, aba "${abas[abaAtual]?.nome}"` : nomeArquivo });
     setTodosProblemas(false);
     setPasso('previa');
   }
@@ -571,6 +571,7 @@ function Previa({
     codigo: 'Etapas montadas pelo código do item (1, 1.1, 1.1.1).',
     nivel: 'Etapas montadas pela coluna de nível.',
     plano: 'Sem código nem nível: todos os itens no mesmo nível.',
+    lote: 'Etapas montadas pela coluna de lote (torre, pavimento, bloco): cada tarefa fica dentro do lote dela.',
   }[r.criterio];
   const podeImportar = r.itens.length > 0 && erros.length === 0 && (itensAtuais === 0 || modo !== null) && !enviando;
 
@@ -606,6 +607,15 @@ function Previa({
           <dd className="mt-0.5 font-semibold">{r.resumo.inicio ? `${formatarData(r.resumo.inicio)} a ${formatarData(r.resumo.fim)}` : '—'}</dd>
         </div>
       </dl>
+
+      {r.resumo.comAvanco > 0 && (
+        <p className="numeros rounded-medio border border-cianotipia/30 bg-cianotipia-claro px-4 py-3 text-sm text-cianotipia">
+          <strong className="font-semibold">Obra em andamento:</strong> {r.resumo.comAvanco}{' '}
+          {r.resumo.comAvanco === 1 ? 'tarefa chega' : 'tarefas chegam'} com avanço já feito ({r.resumo.concluidas}{' '}
+          {r.resumo.concluidas === 1 ? 'concluída' : 'concluídas'}). Cada uma ganha um apontamento no histórico: a concluída, no dia em que
+          terminava; a que está em andamento, hoje.
+        </p>
+      )}
 
       {problemas.length > 0 && (
         <div className={`rounded-medio border px-4 py-3 ${erros.length > 0 ? 'border-marcador/40 bg-marcador-claro' : 'border-linha bg-papel'}`}>
@@ -647,7 +657,18 @@ function Previa({
                     </span>
                   )}
                 </p>
-                <span className="numeros text-right">{item.custo_previsto !== null ? formatarMoeda(item.custo_previsto) : ''}</span>
+                <span className="numeros flex items-start gap-3 text-right">
+                  {item.percentual !== undefined && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        item.percentual >= 100 ? 'bg-obra-ok/10 text-obra-ok' : 'bg-cianotipia-claro text-cianotipia'
+                      }`}
+                    >
+                      {item.percentual >= 100 ? 'Concluída' : `${Math.round(item.percentual)}% feito`}
+                    </span>
+                  )}
+                  {item.custo_previsto !== null ? formatarMoeda(item.custo_previsto) : ''}
+                </span>
               </li>
             ))}
           </ol>

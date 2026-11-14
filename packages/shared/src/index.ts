@@ -14,3 +14,4 @@ export * from './orcamento';
 export * from './modelos';
 export * from './medicao';
 export * from './alertas';
+export * from './arquivosObra';

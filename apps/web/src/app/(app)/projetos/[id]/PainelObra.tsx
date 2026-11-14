@@ -21,7 +21,7 @@ import { MembrosProjeto } from './MembrosProjeto';
 import { MODULOS } from './modulos';
 import { CurvaS } from './CurvaS';
 import { montarPainel } from './painel';
-import { Banknote, CalendarClock, Check, HardHat, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Banknote, CalendarClock, Check, ClipboardList, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
 
 // Passo a passo de configuração (PRD, "Fluxo de criação de um projeto").
 const PASSOS = [
@@ -337,7 +337,7 @@ const ICONE_CARTAO: Record<string, LucideIcon> = {
   Prazo: CalendarClock,
   'Avanço físico': TrendingUp,
   'Valor executado': Banknote,
-  'Hoje na obra': HardHat,
+  'Hoje na obra': ClipboardList,
 };
 
 function Cartao({ rotulo, children }: { rotulo: string; children: ReactNode }) {

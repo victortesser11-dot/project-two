@@ -258,6 +258,8 @@ export function montarModeloCronograma(modelo: ModeloCronograma, opcoes: OpcoesM
       custoTotal: null,
       inicio: tarefas.map((t) => t.inicio_previsto!).sort()[0] ?? null,
       fim: tarefas.map((t) => t.fim_previsto!).sort().at(-1) ?? null,
+      comAvanco: 0,
+      concluidas: 0,
     },
   };
 }

@@ -17,6 +17,7 @@ import {
 } from './escala';
 import { PainelTarefa } from './PainelTarefa';
 import { BotaoLinhaBase } from './BotaoLinhaBase';
+import { recolhidasDeInicio } from '../recolher';
 import { ChevronDown } from 'lucide-react';
 
 const ALTURA_LINHA = 40;
@@ -55,7 +56,8 @@ export function Gantt({
     obs.observe(caixa);
     return () => obs.disconnect();
   }, []);
-  const [recolhidos, setRecolhidos] = useState<Set<string>>(() => new Set());
+  // Obra grande abre nas etapas (torres, pavimentos); as tarefas aparecem ao abrir cada uma.
+  const [recolhidos, setRecolhidos] = useState<Set<string>>(() => recolhidasDeInicio(itens, 120));
   const [selecionada, setSelecionada] = useState<string | null>(null);
 
   const visiveis = useMemo(() => {
@@ -72,6 +74,8 @@ export function Gantt({
     return saida;
   }, [itens, recolhidos]);
 
+  const etapas = useMemo(() => itens.filter((i) => i.tipo === 'etapa'), [itens]);
+  const tudoAberto = etapas.every((e) => !recolhidos.has(e.id));
   const temBase = linhaBase !== null;
   const atrasadas = itens.filter((i) => i.tipo === 'tarefa' && (desvioDaBase(i) ?? 0) > 0).length;
 
@@ -124,6 +128,22 @@ export function Gantt({
         </div>
         <BotaoLinhaBase projetoId={projetoId} linhaBase={linhaBase} podeEditar={podeEditar} />
       </div>
+
+      {etapas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+          <p className="text-regua">
+            Mostrando <span className="numeros">{visiveis.length}</span> de <span className="numeros">{itens.length}</span> linhas.
+            {visiveis.length < itens.length && ' Abra uma etapa para ver as tarefas dela.'}
+          </p>
+          <button
+            type="button"
+            className="min-h-9 font-medium text-cianotipia underline-offset-4 hover:underline"
+            onClick={() => setRecolhidos(tudoAberto ? new Set(etapas.map((e) => e.id)) : new Set())}
+          >
+            {tudoAberto ? 'Recolher todas as etapas' : 'Abrir todas as etapas'}
+          </button>
+        </div>
+      )}
 
       {temBase && atrasadas > 0 && (
         <p className="rounded-medio bg-marcador-claro px-4 py-3 text-sm text-marcador">

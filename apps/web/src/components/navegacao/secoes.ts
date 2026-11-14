@@ -3,10 +3,11 @@ import {
   Camera,
   ChartGantt,
   ClipboardCheck,
-  HardHat,
+  FolderOpen,
   LayoutDashboard,
   Package,
   TriangleAlert,
+  Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
@@ -21,9 +22,10 @@ const ICONES: Record<string, LucideIcon> = {
   cronograma: ChartGantt,
   cameras: Camera,
   almoxarifado: Package,
-  equipe: HardHat,
+  equipe: Users,
   orcamento: Wallet,
   diario: BookOpen,
+  arquivos: FolderOpen,
 };
 
 /** Partes da obra, na ordem do menu (lateral no computador, barra de baixo e "Mais" no celular). */
