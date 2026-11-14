@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from 'react';
 import {
   CircleAlert,
   CircleCheck,
+  CircleMinus,
   CloudUpload,
   Download,
   Ellipsis,
@@ -16,6 +17,7 @@ import {
   FileSpreadsheet,
   FileText,
   FolderOpen,
+  FolderUp,
   History,
   LoaderCircle,
   PencilRuler,
@@ -30,7 +32,10 @@ import {
   abreNoNavegador,
   ACEITA_ARQUIVO,
   agruparVersoes,
+  arquivoAuxiliar,
+  categoriaPeloNome,
   CATEGORIAS_ARQUIVO,
+  compararNomesArquivo,
   dataDoInstante,
   extensaoDoArquivo,
   formatarData,
@@ -50,6 +55,7 @@ import { Menu, MenuConteudo, MenuGatilho, MenuOpcao, MenuSeparador } from '@/com
 import { avisar } from '@/lib/avisos';
 import { criarClienteNavegador } from '@/lib/supabase/client';
 import { editarArquivo, excluirArquivo, linkDoArquivo, registrarArquivo } from './acoes';
+import { arquivosDoArraste } from './arraste';
 
 const ICONE_TIPO: Record<TipoArquivo, { icone: LucideIcon; cor: string }> = {
   cad: { icone: PencilRuler, cor: 'bg-cianotipia-claro text-cianotipia' },
@@ -61,7 +67,15 @@ const ICONE_TIPO: Record<TipoArquivo, { icone: LucideIcon; cor: string }> = {
   outro: { icone: File, cor: 'bg-concreto text-grafite' },
 };
 
-type Envio = { chave: string; nome: string; tamanho: number; situacao: 'enviando' | 'feito' | 'erro'; erro?: string };
+type Envio = {
+  chave: string;
+  nome: string;
+  tamanho: number;
+  /** `ignorado`: sobra do AutoCAD ou do computador que veio junto com a pasta. */
+  situacao: 'enviando' | 'feito' | 'erro' | 'ignorado';
+  pasta: CategoriaArquivo;
+  erro?: string;
+};
 
 /** Manda um arquivo direto ao Storage e registra no banco. Devolve o erro para mostrar, ou null. */
 async function enviarUm(
@@ -120,9 +134,11 @@ export function Arquivos({
     );
   }, [documentos, filtro, busca]);
 
-  const grupos = CATEGORIAS_ARQUIVO.map((c) => ({ categoria: c, itens: visiveis.filter((d) => d.atual.categoria === c) })).filter(
-    (g) => g.itens.length > 0,
-  );
+  // Dentro da pasta, as pranchas ficam na ordem do nome (ARQ 01, 02... 24), não na ordem em que chegaram.
+  const grupos = CATEGORIAS_ARQUIVO.map((c) => ({
+    categoria: c,
+    itens: visiveis.filter((d) => d.atual.categoria === c).sort((x, y) => compararNomesArquivo(x.atual.nome, y.atual.nome)),
+  })).filter((g) => g.itens.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -453,35 +469,48 @@ function VersaoAnterior({ projetoId, arquivo: v, podeEditar }: { projetoId: stri
 function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; categoriaInicial: CategoriaArquivo }) {
   const [categoria, setCategoria] = useState<CategoriaArquivo>(categoriaInicial);
   const [descricao, setDescricao] = useState('');
+  const [porSigla, setPorSigla] = useState(true);
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [arrastando, setArrastando] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
+  const entradaPasta = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const enviando = envios.some((e) => e.situacao === 'enviando');
 
   async function enviar(lista: FileList | File[]) {
     const arquivos = Array.from(lista);
     if (arquivos.length === 0) return;
-    const novos: Envio[] = arquivos.map((f) => ({ chave: crypto.randomUUID(), nome: f.name, tamanho: f.size, situacao: 'enviando' }));
-    setEnvios((e) => [...novos, ...e.filter((x) => x.situacao !== 'feito')]);
+    // Com "separar pela sigla", ARQ, EST, ELE, HID, ESG... no nome escolhem a pasta; sem sigla, vale a pasta da tela.
+    const novos: Envio[] = arquivos.map((f) => ({
+      chave: crypto.randomUUID(),
+      nome: f.name,
+      tamanho: f.size,
+      situacao: arquivoAuxiliar(f.name) ? 'ignorado' : 'enviando',
+      pasta: (porSigla && categoriaPeloNome(f.name)) || categoria,
+    }));
+    setEnvios((e) => [...novos, ...e.filter((x) => x.situacao === 'erro')]);
     const atualizar = (chave: string, parte: Partial<Envio>) => setEnvios((e) => e.map((x) => (x.chave === chave ? { ...x, ...parte } : x)));
 
     let feitos = 0;
     for (const [i, f] of arquivos.entries()) {
-      const chave = novos[i]!.chave;
-      const erro = await enviarUm(projetoId, f, { categoria, descricao: descricao.trim() || null });
-      if (erro) atualizar(chave, { situacao: 'erro', erro });
+      const envio = novos[i]!;
+      if (envio.situacao === 'ignorado') continue;
+      const erro = await enviarUm(projetoId, f, { categoria: envio.pasta, descricao: descricao.trim() || null });
+      if (erro) atualizar(envio.chave, { situacao: 'erro', erro });
       else {
         feitos += 1;
-        atualizar(chave, { situacao: 'feito' });
+        atualizar(envio.chave, { situacao: 'feito' });
       }
     }
+    const ignorados = novos.filter((n) => n.situacao === 'ignorado').length;
     if (feitos > 0) {
-      avisar.ok(feitos === 1 ? 'Arquivo enviado.' : `${feitos} arquivos enviados.`);
+      const sobra = ignorados > 0 ? ` ${ignorados} ${ignorados === 1 ? 'arquivo auxiliar ficou' : 'arquivos auxiliares ficaram'} de fora.` : '';
+      avisar.ok((feitos === 1 ? 'Arquivo enviado.' : `${feitos} arquivos enviados.`) + sobra);
       setDescricao('');
       router.refresh();
     }
     if (entrada.current) entrada.current.value = '';
+    if (entradaPasta.current) entradaPasta.current.value = '';
   }
 
   return (
@@ -506,6 +535,22 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
               ))}
             </select>
           </Campo>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={porSigla}
+              onChange={(e) => setPorSigla(e.target.checked)}
+              disabled={enviando}
+              className="mt-0.5 size-5 shrink-0 accent-cianotipia"
+            />
+            <span>
+              <span className="font-medium">Separar pela sigla do nome</span>
+              <span className="block text-regua">
+                ARQ vai para o arquitetônico, EST para o estrutural, ELE para o elétrico, HID e ESG para o hidrossanitário. Sem
+                sigla, o arquivo fica na pasta escolhida acima.
+              </span>
+            </span>
+          </label>
           <Campo rotulo="Descrição (opcional)" nome="arquivo-descricao" dica="Vale para os arquivos deste envio. Ex.: Revisão 03, aprovada na prefeitura.">
             <input
               id="arquivo-descricao"
@@ -527,7 +572,8 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
             onDrop={(e) => {
               e.preventDefault();
               setArrastando(false);
-              if (!enviando) void enviar(e.dataTransfer.files);
+              // A leitura das pastas arrastadas precisa começar dentro do evento (depois o navegador descarta os itens).
+              if (!enviando) void arquivosDoArraste(e.dataTransfer).then(enviar);
             }}
             className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-cartao border-2 border-dashed px-4 py-6 text-center transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-cianotipia ${
               arrastando ? 'border-cianotipia bg-cianotipia-claro' : 'border-campo/50 bg-concreto/50 hover:border-cianotipia'
@@ -535,6 +581,7 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
           >
             <CloudUpload aria-hidden className="size-8 text-cianotipia" strokeWidth={1.8} />
             <span className="font-semibold">{enviando ? 'Enviando…' : 'Escolher arquivos ou arrastar para cá'}</span>
+            <span className="text-sm text-regua">Pode arrastar a pasta inteira do projeto.</span>
             <span className="text-sm text-regua">DWG, DXF, PDF, IFC, RVT, SKP, imagens, planilhas, documentos e ZIP. Até 50 MB cada.</span>
             <input
               ref={entrada}
@@ -546,6 +593,29 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
               onChange={(e) => e.target.files && void enviar(e.target.files)}
             />
           </label>
+          {/* Escolher a pasta inteira: só no computador (o celular não tem seletor de pasta). */}
+          <div className="hidden sm:block">
+            <button
+              type="button"
+              className={classeBotao('secundario', 'text-sm')}
+              disabled={enviando}
+              onClick={() => entradaPasta.current?.click()}
+            >
+              <FolderUp aria-hidden className="size-4" />
+              Enviar uma pasta inteira
+            </button>
+            <input
+              ref={entradaPasta}
+              type="file"
+              multiple
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              disabled={enviando}
+              {...{ webkitdirectory: '' }}
+              onChange={(e) => e.target.files && void enviar(e.target.files)}
+            />
+          </div>
           {envios.length > 0 && (
             <ul className="flex flex-col gap-1.5 text-sm" aria-live="polite">
               {envios.map((e) => (
@@ -554,6 +624,8 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
                     <LoaderCircle aria-hidden className="mt-0.5 size-4 shrink-0 animate-spin text-cianotipia" />
                   ) : e.situacao === 'feito' ? (
                     <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-obra-ok" />
+                  ) : e.situacao === 'ignorado' ? (
+                    <CircleMinus aria-hidden className="mt-0.5 size-4 shrink-0 text-regua" />
                   ) : (
                     <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-marcador" />
                   )}
@@ -561,7 +633,13 @@ function EnviarArquivos({ projetoId, categoriaInicial }: { projetoId: string; ca
                     <span className="block truncate">
                       {e.nome} <span className="numeros text-regua">· {formatarTamanho(e.tamanho)}</span>
                     </span>
-                    {e.erro && <span className="block text-marcador">{e.erro}</span>}
+                    {e.situacao === 'ignorado' ? (
+                      <span className="block text-regua">Arquivo auxiliar (sobra do AutoCAD ou do computador): ficou de fora.</span>
+                    ) : e.erro ? (
+                      <span className="block text-marcador">{e.erro}</span>
+                    ) : (
+                      <span className="block text-regua">{ROTULO_CATEGORIA_ARQUIVO[e.pasta]}</span>
+                    )}
                   </span>
                 </li>
               ))}

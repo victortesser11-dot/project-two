@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   abreNoNavegador,
   agruparVersoes,
+  arquivoAuxiliar,
   arquivoEditadoSchema,
+  categoriaPeloNome,
+  compararNomesArquivo,
   extensaoDoArquivo,
   extensaoPermitida,
   formatarTamanho,
@@ -32,6 +35,7 @@ describe('arquivos da obra', () => {
   it('gera nome seguro para o Storage, mantendo a extensão', () => {
     expect(nomeSeguroArquivo('Planta Baixa – Térreo (rev. 02).DWG')).toBe('planta-baixa-terreo-rev.-02.dwg');
     expect(nomeSeguroArquivo('../../segredo.pdf')).toBe('segredo.pdf');
+    expect(nomeSeguroArquivo('Obra - ARQ 01-24 - Carimbado.pdf')).toBe('obra-arq-01-24-carimbado.pdf');
     expect(nomeSeguroArquivo('ção.pdf')).toBe('cao.pdf');
     expect(nomeSeguroArquivo('###.pdf')).toBe('arquivo.pdf');
   });
@@ -48,6 +52,44 @@ describe('arquivos da obra', () => {
     expect(problemaDoArquivo({ name: 'a.exe', size: 1000 })).toContain('tipo não aceito');
     expect(problemaDoArquivo({ name: 'a.pdf', size: 0 })).toContain('vazio');
     expect(problemaDoArquivo({ name: 'a.pdf', size: LIMITE_ARQUIVO_BYTES + 1 })).toContain('50 MB');
+  });
+
+  it('pasta inteira do projeto aprovado: sobras do AutoCAD ficam de fora, o resto entra na pasta certa', () => {
+    // Os nomes de uma pasta real: 24 pranchas, a carimbada, o esgoto, dois DWG, a cópia .bak e o plot.log.
+    const pranchas = Array.from({ length: 24 }, (_, i) => `Obra - ARQ ${String(i + 1).padStart(2, '0')}-24.pdf`);
+    const pasta = [
+      ...pranchas,
+      'Obra - ARQ 01-24 - Carimbado.pdf',
+      'Obra - ESG 01.pdf',
+      'Obra - Projeto Arquitetônico.dwg',
+      'Obra - Projeto Arquitetônico Aprovado.dwg',
+      'Obra - Projeto Arquitetônico Aprovado.bak',
+      'plot.log',
+    ].map((name) => ({ name, size: 1000 }));
+    const entram = pasta.filter((a) => problemaDoArquivo(a) === null);
+    expect(entram).toHaveLength(28);
+    expect(pasta.filter((a) => arquivoAuxiliar(a.name)).map((a) => a.name)).toEqual(['Obra - Projeto Arquitetônico Aprovado.bak', 'plot.log']);
+    expect(problemaDoArquivo({ name: 'plot.log', size: 513 })).toContain('Não precisa ir para a obra');
+    expect(entram.filter((a) => categoriaPeloNome(a.name) === 'arquitetonico')).toHaveLength(27);
+    expect(categoriaPeloNome('Obra - ESG 01.pdf')).toBe('hidrossanitario');
+  });
+
+  it('sugere a pasta pela sigla ou pela palavra do nome', () => {
+    expect(categoriaPeloNome('EST 02 - Formas do térreo.dwg')).toBe('estrutural');
+    expect(categoriaPeloNome('ele-03_quadros.pdf')).toBe('eletrico');
+    expect(categoriaPeloNome('Projeto Hidrossanitário rev02.pdf')).toBe('hidrossanitario');
+    expect(categoriaPeloNome('PPCI aprovado.pdf')).toBe('outros_projetos');
+    expect(categoriaPeloNome('Alvará de construção.pdf')).toBe('legalizacao');
+    expect(categoriaPeloNome('Contrato empreiteira.docx')).toBe('contrato');
+    expect(categoriaPeloNome('Orçamento esquadrias.xlsx')).toBe('orcamento');
+    // Sigla dentro de outra palavra não conta; sem pista, quem decide é a pasta escolhida na tela.
+    expect(categoriaPeloNome('Restaurante.pdf')).toBeNull();
+    expect(categoriaPeloNome('foto 12.jpg')).toBeNull();
+  });
+
+  it('ordena as pranchas pelo nome, com número valendo como número', () => {
+    const nomes = ['Obra - ARQ 10-24.pdf', 'Obra - ARQ 2-24.pdf', 'obra - arq 1-24.pdf'];
+    expect([...nomes].sort(compararNomesArquivo)).toEqual(['obra - arq 1-24.pdf', 'Obra - ARQ 2-24.pdf', 'Obra - ARQ 10-24.pdf']);
   });
 
   it('valida a edição', () => {

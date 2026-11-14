@@ -25,8 +25,10 @@ recolhidos quando o cronograma é grande.
 
 - [ ] Quando quiser publicar: rodar também `20261114090000_importar_avanco.sql` no SQL Editor **antes** do merge
       (troca a função `importar_eap`: o avanço da planilha entra como apontamento na importação).
-- [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos, depois de publicada (vários de uma vez, até 50 MB
-      cada). Só você ou o cliente conseguem: os arquivos estão no seu computador.
+- [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos, depois de publicada: botão "Enviar uma pasta
+      inteira" (ou arrastar a pasta). Conferi a pasta do Drive (30 arquivos, 95 MB): entram 28, 72 MB (24 pranchas ARQ, a
+      carimbada e os 2 DWG no arquitetônico; ESG 01 no hidrossanitário); o `.bak` e o `plot.log` ficam de fora.
+      Só quem tem login na obra envia (você ou o cliente).
 - [ ] **Custos das tarefas**: a planilha não traz valores. Sem custo, orçamento, curva financeira e medição ficam
       vazios, e o avanço das etapas é ponderado pela duração. Se o cliente tiver o orçamento por serviço, mande.
 - [ ] **Plano do Supabase**: no grátis o projeto pausa depois de 7 dias sem uso, guarda 1 GB de arquivos e não tem

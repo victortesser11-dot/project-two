@@ -237,6 +237,10 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   arquivo ainda não registrado (limpeza quando o registro falha).
 - Extensões aceitas iguais no banco (`app.extensao_arquivo_permitida`) e no shared (`EXTENSOES_ARQUIVO`): nada de
   executável nem HTML. Até 50 MB (limite do plano grátis). Só PDF e imagem abrem no navegador; o resto baixa.
+- Pasta inteira do projeto: o botão "Enviar uma pasta inteira" (`webkitdirectory`, só no computador) e o arraste de
+  pasta (`arquivos/arraste.ts`) mandam tudo de uma vez. A sigla do nome escolhe a pasta (`categoriaPeloNome`: ARQ, EST,
+  ELE, HID, ESG...; sem sigla vale a pasta da tela) e as sobras do AutoCAD e do computador (`arquivoAuxiliar`: .bak,
+  plot.log, .dwl) ficam de fora sem contar como erro. Na lista, as pranchas ficam em ordem de nome (`compararNomesArquivo`).
 
 ## Obra de exemplo
 

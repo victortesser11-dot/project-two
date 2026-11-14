@@ -76,6 +76,7 @@ export function nomeSeguroArquivo(nome: string): string {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
     .replace(/\.{2,}/g, '.')
     .replace(/^[-.]+|[-.]+$/g, '')
     .toLowerCase()
@@ -91,14 +92,74 @@ export function formatarTamanho(bytes: number): string {
   return `${mb.toLocaleString('pt-BR', { maximumFractionDigits: mb < 10 ? 1 : 0 })} MB`;
 }
 
+// Sobras que o AutoCAD, o Windows e o Mac deixam na pasta do projeto: cópia de segurança (.bak), registro de
+// plotagem (plot.log), trava de edição (.dwl), miniaturas. Ninguém precisa delas na obra.
+const EXTENSOES_AUXILIARES = new Set(['bak', 'log', 'dwl', 'dwl2', 'tmp', 'err', 'ini', 'db', 'lnk']);
+
+/** Arquivo auxiliar que vem junto quando se envia a pasta inteira do projeto (não é para guardar). */
+export function arquivoAuxiliar(nome: string): boolean {
+  const limpo = nome.trim();
+  if (limpo.startsWith('~$') || limpo.startsWith('.')) return true;
+  const ext = extensaoDoArquivo(limpo);
+  return ext !== null && EXTENSOES_AUXILIARES.has(ext);
+}
+
 /** Problema do arquivo antes de enviar (null = pode enviar). */
 export function problemaDoArquivo(arquivo: { name: string; size: number }): string | null {
+  if (arquivoAuxiliar(arquivo.name)) {
+    return `${arquivo.name}: arquivo auxiliar (sobra do AutoCAD ou do computador). Não precisa ir para a obra.`;
+  }
   if (!extensaoPermitida(arquivo.name)) {
     return `${arquivo.name}: tipo não aceito. Envie projeto (DWG, PDF, IFC, RVT, SKP), imagem, planilha, documento ou ZIP.`;
   }
   if (arquivo.size <= 0) return `${arquivo.name}: o arquivo está vazio.`;
   if (arquivo.size > LIMITE_ARQUIVO_BYTES) return `${arquivo.name}: passa de 50 MB. Compacte em ZIP ou divida em partes.`;
   return null;
+}
+
+function semAcento(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Sigla ou palavra do nome → pasta. As siglas são as que os escritórios de projeto usam no nome da prancha
+// ("Obra - ARQ 03-24.pdf", "EST 02 - Formas.dwg"); palavras longas valem pelo começo.
+const SIGLAS_DE_PASTA: Record<string, CategoriaArquivo> = {
+  ARQ: 'arquitetonico',
+  EST: 'estrutural', FUND: 'estrutural',
+  ELE: 'eletrico', ELET: 'eletrico',
+  HID: 'hidrossanitario', HIDRO: 'hidrossanitario', ESG: 'hidrossanitario', PLU: 'hidrossanitario', AGUA: 'hidrossanitario',
+  PCI: 'outros_projetos', PPCI: 'outros_projetos', SPDA: 'outros_projetos', GAS: 'outros_projetos',
+  ART: 'legalizacao', RRT: 'legalizacao', CNO: 'legalizacao',
+};
+const PALAVRAS_DE_PASTA: [string, CategoriaArquivo][] = [
+  ['ARQUITET', 'arquitetonico'],
+  ['ESTRUTUR', 'estrutural'], ['FUNDAC', 'estrutural'],
+  ['ELETRIC', 'eletrico'],
+  ['HIDRAUL', 'hidrossanitario'], ['HIDROSS', 'hidrossanitario'], ['SANITAR', 'hidrossanitario'], ['ESGOT', 'hidrossanitario'],
+  ['PLUVIA', 'hidrossanitario'],
+  ['INCEND', 'outros_projetos'], ['CLIMATIZ', 'outros_projetos'], ['PAISAGIS', 'outros_projetos'], ['TOPOGRAF', 'outros_projetos'],
+  ['ALVARA', 'legalizacao'], ['HABITE', 'legalizacao'], ['MATRICULA', 'legalizacao'], ['LICENC', 'legalizacao'],
+  ['CONTRATO', 'contrato'], ['ADITIVO', 'contrato'],
+  ['ORCAMENTO', 'orcamento'], ['PROPOSTA', 'orcamento'], ['COTAC', 'orcamento'],
+];
+
+/** Pasta sugerida pelo nome do arquivo (a primeira sigla ou palavra reconhecida), ou null. */
+export function categoriaPeloNome(nome: string): CategoriaArquivo | null {
+  const ext = extensaoDoArquivo(nome);
+  const base = ext ? nome.trim().slice(0, -(ext.length + 1)) : nome.trim();
+  for (const palavra of semAcento(base).toUpperCase().split(/[^A-Z0-9]+/)) {
+    if (!palavra) continue;
+    const sigla = SIGLAS_DE_PASTA[palavra];
+    if (sigla) return sigla;
+    const longa = PALAVRAS_DE_PASTA.find(([inicio]) => palavra.startsWith(inicio));
+    if (longa) return longa[1];
+  }
+  return null;
+}
+
+/** Ordem das pranchas na pasta: pelo nome, com número valendo como número ("ARQ 2" antes de "ARQ 10"). */
+export function compararNomesArquivo(a: string, b: string): number {
+  return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
 }
 
 export const arquivoEditadoSchema = z.object({
