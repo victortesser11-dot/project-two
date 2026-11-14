@@ -137,10 +137,40 @@ select tests.afirmar(
   registrar_avanco(gen_random_uuid(), tests.tarefa('Limpeza'), tests.hoje(), 100) = 100,
   'engenheiro aponta o avanço de hoje');
 
+-- ---------------------------------------------------------------- importação de obra em andamento
+select set_config('t.p2', criar_projeto(current_setting('t.empresa_a')::uuid, 'Obra em andamento')::text, true);
+select tests.afirmar(
+  importar_eap(current_setting('t.p2')::uuid, format('[
+    {"chave":"e","tipo":"etapa","nome":"Torre A","percentual":80},
+    {"chave":"t1","pai":"e","tipo":"tarefa","nome":"Fundação importada","inicio_previsto":"2026-01-05","fim_previsto":"2026-01-16","percentual":100,"avanco_data":"2026-01-16"},
+    {"chave":"t2","pai":"e","tipo":"tarefa","nome":"Alvenaria importada","inicio_previsto":"2026-01-19","fim_previsto":"2026-02-27","percentual":40,"avanco_data":"%s"},
+    {"chave":"t3","pai":"e","tipo":"tarefa","nome":"Pintura importada","inicio_previsto":"2026-03-02","fim_previsto":"2026-03-20","percentual":0}
+  ]', tests.hoje(30))::jsonb) = 4,
+  'importa a EAP com o avanço já realizado');
+select tests.afirmar(
+  (select percentual_fisico = 100 and avanco_em = date '2026-01-16' from eap_item where nome = 'Fundação importada'),
+  'tarefa concluída entra com 100% no dia em que terminou');
+select tests.afirmar(
+  (select percentual_fisico = 40 and avanco_em = tests.hoje() from eap_item where nome = 'Alvenaria importada'),
+  'avanço com data no futuro entra com a data de hoje');
+select tests.afirmar(
+  (select count(*) from avanco_tarefa where projeto_id = current_setting('t.p2')::uuid) = 2
+  and (select percentual_fisico = 0 and avanco_em is null from eap_item where nome = 'Pintura importada'),
+  'tarefa sem avanço e etapa não ganham apontamento');
+select tests.afirmar(
+  (select bool_and(observacao = 'Avanço trazido na importação do cronograma') from avanco_tarefa where projeto_id = current_setting('t.p2')::uuid),
+  'o apontamento diz que veio da importação');
+select tests.deve_falhar(
+  format($$select importar_eap(%L, '[{"chave":"x","tipo":"tarefa","nome":"Demais","percentual":140}]')$$, current_setting('t.p2')),
+  'avanço acima de 100% derruba a importação inteira');
+select tests.afirmar(
+  (select count(*) from eap_item where projeto_id = current_setting('t.p2')::uuid) = 4,
+  'importação recusada não deixa item pela metade');
+
 -- ---------------------------------------------------------------- auditoria
 reset role;
 select tests.afirmar(
-  (select count(*) from audit_log where tabela = 'avanco_tarefa' and acao = 'INSERT') = 8,
+  (select count(*) from audit_log where tabela = 'avanco_tarefa' and acao = 'INSERT') = 10,
   'cada apontamento fica no audit_log (o reenvio não)');
 select tests.afirmar(
   exists (select 1 from audit_log where tabela = 'eap_item' and registro_id = tests.tarefa('Bloco 1º pav.')::text

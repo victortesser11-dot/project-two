@@ -17,6 +17,21 @@ Endereço do piloto: **https://moda-triade.com.br** (domínio ligado na Vercel e
 - [ ] Quando quiser publicar: rodar a migração `20261106090000_arquivos_obra.sql` no SQL Editor **antes** do merge (cria a
       tabela, as funções e o bucket privado `arquivos`).
 
+## Obra real: cronograma do Nápoles (14/11, ainda não publicado)
+
+O importador passou a entender a planilha do cliente (uma linha por atividade, coluna "Lote" com torre e pavimento,
+coluna "Realizado" com o que já foi feito): 1.464 tarefas em 42 etapas, 88 já com avanço. Árvore e Gantt abrem
+recolhidos quando o cronograma é grande.
+
+- [ ] Quando quiser publicar: rodar também `20261114090000_importar_avanco.sql` no SQL Editor **antes** do merge
+      (troca a função `importar_eap`: o avanço da planilha entra como apontamento na importação).
+- [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos, depois de publicada (vários de uma vez, até 50 MB
+      cada). Só você ou o cliente conseguem: os arquivos estão no seu computador.
+- [ ] **Custos das tarefas**: a planilha não traz valores. Sem custo, orçamento, curva financeira e medição ficam
+      vazios, e o avanço das etapas é ponderado pela duração. Se o cliente tiver o orçamento por serviço, mande.
+- [ ] **Plano do Supabase**: no grátis o projeto pausa depois de 7 dias sem uso, guarda 1 GB de arquivos e não tem
+      cópia de segurança. Para obra real, o plano Pro (US$ 25/mês) resolve os três.
+
 ## Medição (03/11)
 
 - [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o

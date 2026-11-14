@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransit
 import { diasEntre, formatarData, formatarMoeda, type ItemEap } from '@obras/shared';
 import { alterarTipoItem, excluirItem, reposicionarItem, type AcaoPosicao, type ResultadoAcao } from './acoes';
 import { FormularioItem, type ModoFormulario } from './FormularioItem';
+import { recolhidasDeInicio } from './recolher';
 import { classeBotao } from '@/components/ui';
 import { Menu, MenuConteudo, MenuGatilho, MenuOpcao, MenuSeparador } from '@/components/MenuSuspenso';
 import {
@@ -48,10 +49,8 @@ export function ArvoreEap({
   itens: ItemEap[];
   podeEditar: boolean;
 }) {
-  // Árvores grandes abrem só com o primeiro nível visível.
-  const [recolhidos, setRecolhidos] = useState<Set<string>>(
-    () => new Set(itens.length > 80 ? itens.filter((i) => i.tipo === 'etapa' && i.nivel === 1).map((i) => i.id) : []),
-  );
+  // Árvores grandes abrem só com os níveis de cima; cada etapa aberta mostra o que tem dentro, um nível por vez.
+  const [recolhidos, setRecolhidos] = useState<Set<string>>(() => recolhidasDeInicio(itens, 80));
   const [formulario, setFormulario] = useState<{ ancora: string | 'fim'; config: ModoFormulario } | null>(null);
   const [mensagem, setMensagem] = useState<{ tipo: 'erro' | 'ok'; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);

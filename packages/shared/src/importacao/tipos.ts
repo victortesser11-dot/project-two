@@ -13,6 +13,8 @@ export interface LinhaOrigem {
   total: number | null;
   inicio: string | null;
   fim: string | null;
+  /** Avanço já realizado, de 0 a 100 (planilha de obra em andamento). */
+  percentual?: number | null;
 }
 
 export type TipoItem = 'etapa' | 'tarefa';
@@ -29,6 +31,9 @@ export interface ItemImportado {
   inicio_previsto: string | null;
   fim_previsto: string | null;
   codigo_externo: string | null;
+  /** Avanço já realizado (0 a 100) e o dia em que entra no histórico. Só em tarefa com avanço. */
+  percentual?: number;
+  avanco_data?: string;
   /** Só para a prévia (não vai ao banco). */
   nivel: number;
   linha: number;
@@ -47,6 +52,9 @@ export interface ResumoImportacao {
   custoTotal: number | null;
   inicio: string | null;
   fim: string | null;
+  /** Tarefas que chegam com avanço e, dessas, as já concluídas. */
+  comAvanco: number;
+  concluidas: number;
 }
 
 export interface ResultadoImportacao {
@@ -54,7 +62,7 @@ export interface ResultadoImportacao {
   problemas: Problema[];
   resumo: ResumoImportacao;
   /** Como a hierarquia foi montada, para explicar na prévia. */
-  criterio: 'codigo' | 'nivel' | 'plano';
+  criterio: 'codigo' | 'nivel' | 'plano' | 'lote';
 }
 
 export const LIMITE_ITENS_IMPORTACAO = 5000;

@@ -88,6 +88,13 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - O importador (`packages/shared/src/importacao`) roda no navegador: CSV, XLSX (`read-excel-file`) e MS Project XML
   viram uma prévia; só ao confirmar o navegador chama `importar_eap` (tudo ou nada, até 5.000 itens).
   Custos do MS Project XML vêm em centavos (÷100). `.mpp` não é lido: peça "Salvar como XML".
+- Planilha sem hierarquia (uma linha por atividade) com coluna de **lote** ("Torre A Térreo"): cada lote vira etapa e
+  os lotes que começam com as mesmas duas palavras ficam dentro de uma etapa maior ("Torre A"). Coluna "Serviço" entra
+  no nome ("Pacote: serviço"). Vale só quando não há coluna de nível nem código em árvore.
+- Obra em andamento: a coluna "Realizado"/"% concluído" (e `PercentComplete` do MS Project) vira `percentual` do item;
+  `importar_eap` grava cada um por `registrar_avanco` (data = término se concluída no passado, senão hoje).
+- Cronograma grande não abre inteiro: `recolhidasDeInicio` (`cronograma/recolher.ts`) decide quais etapas começam
+  fechadas na árvore (acima de 80 itens) e no Gantt (acima de 120).
 - Modelos de cronograma (`packages/shared/src/modelos`): a estrutura padrão de um tipo de obra (hoje "Residência
   unifamiliar", do documento da engenharia) vira itens da mesma prévia, com datas proporcionais ao prazo e a sequência
   entre tarefas; ao gravar, o app chama `importar_eap` e depois `salvar_dependencia` (ligadas pelo `codigo_externo`

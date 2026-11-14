@@ -52,6 +52,7 @@ export function lerMsProjectXml(texto: string): ResultadoMsProject {
     const inicio = campo(bloco, 'Start');
     const fim = campo(bloco, 'Finish');
     const id = campo(bloco, 'ID');
+    const concluido = Number(campo(bloco, 'PercentComplete') ?? '');
 
     linhas.push({
       linha: id ? Number(id) : posicao,
@@ -64,6 +65,7 @@ export function lerMsProjectXml(texto: string): ResultadoMsProject {
       total: custo !== null && Number.isFinite(custo) && custo > 0 ? custo : null,
       inicio: inicio && /^\d{4}-\d{2}-\d{2}/.test(inicio) ? inicio.slice(0, 10) : null,
       fim: fim && /^\d{4}-\d{2}-\d{2}/.test(fim) ? fim.slice(0, 10) : null,
+      percentual: Number.isFinite(concluido) && concluido > 0 && concluido <= 100 ? concluido : null,
     });
   }
 

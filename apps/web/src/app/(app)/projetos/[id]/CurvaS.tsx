@@ -107,7 +107,7 @@ export function CurvaS({ pontos, hoje, referencia }: { pontos: PontoCurva[]; hoj
       </ul>
 
       <div ref={caixa} className="relative w-full">
-        <svg width={largura} height={ALTURA} role="img" aria-label={`Curva S física. ${resumo}`} className="block">
+        <svg width={largura} height={ALTURA} role="img" aria-label={`Curva S física. ${resumo}`} className="block max-w-full">
           {/* grade horizontal */}
           {[0, 25, 50, 75, 100].map((v) => (
             <g key={v}>

@@ -7,6 +7,7 @@ import {
   type ResultadoImportacao,
   type ResumoImportacao,
 } from './tipos';
+import { hojeIso } from '../formato';
 
 const CODIGO_HIERARQUICO = /^\d+(\.\d+)*\.?$/;
 
@@ -32,14 +33,14 @@ interface Temp {
   origem: LinhaOrigem;
 }
 
-const RESUMO_VAZIO: ResumoImportacao = { etapas: 0, tarefas: 0, niveis: 0, custoTotal: null, inicio: null, fim: null };
+const RESUMO_VAZIO: ResumoImportacao = { etapas: 0, tarefas: 0, niveis: 0, custoTotal: null, inicio: null, fim: null, comAvanco: 0, concluidas: 0 };
 
 /**
  * Monta a EAP a partir das linhas lidas. A hierarquia vem, nesta ordem, da
  * coluna de nível, do código do item (1.2.3) ou, sem nenhum dos dois, fica
  * tudo no mesmo nível. Itens com algo dentro viram etapas; o resto, tarefas.
  */
-export function montarEap(linhas: LinhaOrigem[], problemasAnteriores: Problema[] = []): ResultadoImportacao {
+export function montarEap(linhas: LinhaOrigem[], problemasAnteriores: Problema[] = [], hoje: string = hojeIso()): ResultadoImportacao {
   const problemas: Problema[] = [...problemasAnteriores];
   const aviso = (linha: number | null, mensagem: string) => problemas.push({ linha, gravidade: 'aviso', mensagem });
   const erro = (linha: number | null, mensagem: string) => problemas.push({ linha, gravidade: 'erro', mensagem });
@@ -171,7 +172,12 @@ export function montarEap(linhas: LinhaOrigem[], problemasAnteriores: Problema[]
     if ((custo ?? 0) < 0) erro(o.linha, `Custo negativo em "${nome}".`);
     if (o.inicio && o.fim && o.fim < o.inicio) erro(o.linha, `"${nome}" termina antes de começar.`);
 
+    // Avanço que já veio pronto: tarefa concluída entra no dia em que terminava (se já passou); o resto, hoje.
+    const pct = o.percentual !== null && o.percentual !== undefined && o.percentual > 0 ? arredondar(Math.min(100, o.percentual)) : null;
+    const avanco = pct === null ? {} : { percentual: pct, avanco_data: pct >= 100 && o.fim && o.fim <= hoje ? o.fim : hoje };
+
     return {
+      ...avanco,
       chave: t.chave,
       pai: t.paiChave,
       tipo: 'tarefa',
@@ -226,6 +232,8 @@ export function montarEap(linhas: LinhaOrigem[], problemasAnteriores: Problema[]
       custoTotal: custos.length > 0 ? arredondar(custos.reduce((s, c) => s + c, 0)) : null,
       inicio: inicios[0] ?? null,
       fim: fins[fins.length - 1] ?? null,
+      comAvanco: tarefas.filter((t) => t.percentual !== undefined).length,
+      concluidas: tarefas.filter((t) => t.percentual === 100).length,
     },
   };
 }
