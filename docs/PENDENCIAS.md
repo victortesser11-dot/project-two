@@ -12,20 +12,15 @@ Endereço do piloto: **https://moda-triade.com.br** (domínio ligado na Vercel e
 - [ ] **Proteção contra senhas vazadas** (recomendado): Authentication → Policies →
       "Leaked password protection" (plano Pro). Recusa senhas que aparecem no HaveIBeenPwned.
 
-## Arquivos da obra (06/11, ainda não publicado)
+## Obra real: Nápoles (publicado em 14/11)
 
-- [ ] Quando quiser publicar: rodar a migração `20261106090000_arquivos_obra.sql` no SQL Editor **antes** do merge (cria a
-      tabela, as funções e o bucket privado `arquivos`).
+No ar: aba Arquivos (com versões e envio da pasta inteira), marca nova e importação do cronograma do cliente (planilha
+por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090000_arquivos_obra.sql` e
+`20261114090000_importar_avanco.sql` já estão no banco de produção.
 
-## Obra real: cronograma do Nápoles (14/11, ainda não publicado)
-
-O importador passou a entender a planilha do cliente (uma linha por atividade, coluna "Lote" com torre e pavimento,
-coluna "Realizado" com o que já foi feito): 1.464 tarefas em 42 etapas, 88 já com avanço. Árvore e Gantt abrem
-recolhidos quando o cronograma é grande.
-
-- [ ] Quando quiser publicar: rodar também `20261114090000_importar_avanco.sql` no SQL Editor **antes** do merge
-      (troca a função `importar_eap`: o avanço da planilha entra como apontamento na importação).
-- [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos, depois de publicada: botão "Enviar uma pasta
+- [ ] **Criar a obra Nápoles e importar o cronograma**: Cronograma → Importar → `cronograma_napoles_....xlsx`. A prévia
+      deve mostrar 42 etapas, 1.464 tarefas e 88 com avanço. Depois, "Definir linha de base" no Gantt.
+- [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos: botão "Enviar uma pasta
       inteira" (ou arrastar a pasta). Conferi a pasta do Drive (30 arquivos, 95 MB): entram 28, 72 MB (24 pranchas ARQ, a
       carimbada e os 2 DWG no arquitetônico; ESG 01 no hidrossanitário); o `.bak` e o `plot.log` ficam de fora.
       Só quem tem login na obra envia (você ou o cliente).
