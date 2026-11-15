@@ -58,7 +58,7 @@ export default async function PaginaMedicoes({ params, searchParams }: { params:
     listarItensContrato(id),
     listarMedicoes(id),
     listarItensMedidos(id),
-    listarEmpreiteiras(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
   ]);
   const hoje = hojeIso();
   const tarefas = eap.filter((i) => i.tipo === 'tarefa');

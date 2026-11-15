@@ -14,7 +14,7 @@ export default async function PaginaCatalogo({ params, searchParams }: { params:
   const dados = await buscarProjeto(id);
   if (!dados) notFound();
   const { projeto, papel } = dados;
-  const [itens, podeGerir] = await Promise.all([listarItensEstoque(projeto.empresa_id), podeMovimentarEstoque(projeto, papel)]);
+  const [itens, podeGerir] = await Promise.all([listarItensEstoque(projeto.empresa_id, projeto), podeMovimentarEstoque(projeto, papel)]);
   const doTipo = itens.filter((i) => i.tipo === tipo).sort((a, b) => Number(b.ativo) - Number(a.ativo) || a.nome.localeCompare(b.nome, 'pt-BR'));
   const categorias = [...new Set(itens.map((i) => i.categoria).filter((c): c is string => !!c))].sort();
   const base = `/projetos/${id}/almoxarifado/catalogo`;

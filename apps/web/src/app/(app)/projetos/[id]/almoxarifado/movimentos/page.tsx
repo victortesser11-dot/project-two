@@ -16,7 +16,7 @@ export default async function PaginaMovimentos({ params, searchParams }: { param
   const dados = await buscarProjeto(id);
   if (!dados) notFound();
   const { projeto } = dados;
-  const [movimentos, itens, eap, equipe] = await Promise.all([listarMovimentos(id), listarItensEstoque(projeto.empresa_id), buscarEap(id), listarEquipeProjeto(id)]);
+  const [movimentos, itens, eap, equipe] = await Promise.all([listarMovimentos(id), listarItensEstoque(projeto.empresa_id, projeto), buscarEap(id), listarEquipeProjeto(id)]);
   const filtrados = (tipo ? movimentos.filter((m) => m.tipo === tipo) : movimentos).slice(0, LIMITE);
   const porItem = new Map(itens.map((i) => [i.id, i]));
   const nomeTarefa = new Map(eap.map((t) => [t.id, `${t.codigo} ${t.nome}`]));

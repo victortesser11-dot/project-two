@@ -21,7 +21,7 @@ import { MembrosProjeto } from './MembrosProjeto';
 import { MODULOS } from './modulos';
 import { CurvaS } from './CurvaS';
 import { montarPainel } from './painel';
-import { Banknote, CalendarClock, Check, ClipboardList, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Banknote, CalendarClock, Check, ClipboardList, Pencil, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
 
 // Passo a passo de configuração (PRD, "Fluxo de criação de um projeto").
 const PASSOS = [
@@ -86,7 +86,13 @@ export function PainelObra({
   const gastoReal = maoDeObra || materialAplicado !== null ? (maoDeObra?.custo ?? 0) + (materialAplicado ?? 0) : null;
   const proximo = !temTarefas
     ? { texto: 'Monte a EAP para o painel ganhar vida.', acao: 'Importar planilha ou MS Project', href: `${base}/cronograma/importar` }
-    : !linhaBase
+    : !projeto.data_inicio || !projeto.data_fim_prevista
+      ? {
+          texto: 'A obra está sem início e fim previsto. Complete os dados (dá para usar as datas do cronograma com um toque).',
+          acao: 'Completar os dados da obra',
+          href: `${base}/editar`,
+        }
+      : !linhaBase
       ? {
           texto: 'Defina a linha de base quando o cronograma for aprovado: é contra ela que o atraso é medido.',
           acao: 'Abrir o Gantt',
@@ -293,6 +299,14 @@ export function PainelObra({
               />
               <Linha rotulo="Seu papel" valor={papelTexto} />
             </dl>
+            {podeEditar && (
+              <div className="border-t border-linha px-5 py-3">
+                <Link href={`${base}/editar`} className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-cianotipia underline-offset-4 hover:underline">
+                  <Pencil aria-hidden className="size-4" />
+                  Editar dados da obra
+                </Link>
+              </div>
+            )}
           </aside>
 
           <MembrosProjeto projetoId={projeto.id} membros={membros} podeEditar={podeEditar} />

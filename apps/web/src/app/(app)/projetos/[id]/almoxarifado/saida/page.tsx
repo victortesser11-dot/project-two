@@ -18,7 +18,7 @@ export default async function PaginaSaida({ params, searchParams }: { params: Pr
   const hoje = hojeIso();
 
   const [itens, saldos, eap, equipe, movimentos, podeMovimentar] = await Promise.all([
-    listarItensEstoque(projeto.empresa_id),
+    listarItensEstoque(projeto.empresa_id, projeto),
     listarSaldos(id),
     buscarEap(id),
     listarEquipeProjeto(id),

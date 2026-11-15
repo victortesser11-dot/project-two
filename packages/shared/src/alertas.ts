@@ -47,6 +47,13 @@ export interface TarefaAlerta {
   inicio_previsto: string | null;
   fim_previsto: string | null;
   percentual_fisico: number | null;
+  /** Etapa logo acima (ex.: "Torre A 4º Pavimento"): distingue tarefas de mesmo nome em pavimentos diferentes. */
+  etapa?: string | null;
+}
+
+/** "1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)". */
+function tituloDaTarefa(t: Pick<TarefaAlerta, 'codigo' | 'nome' | 'etapa'>): string {
+  return `${t.codigo} ${t.nome}${t.etapa ? ` (${t.etapa})` : ''}`;
 }
 
 export interface DiarioAlerta {
@@ -125,7 +132,7 @@ export function alertasCronograma({
       chave: `tarefa:${t.id}`,
       secao: 'cronograma',
       gravidade: justificada ? 'baixa' : atraso >= 7 || tipo === 'fim' ? 'alta' : 'media',
-      titulo: `${t.codigo} ${t.nome}`,
+      titulo: tituloDaTarefa(t),
       detalhe: justificada
         ? `${detalhe} Justificado: ${ROTULO_CAUSA_ATRASO[justificada.causa].toLowerCase()} — ${justificada.descricao}`
         : detalhe,
@@ -171,7 +178,7 @@ export function alertasChuva({ tarefas, previsao, hoje }: { tarefas: TarefaAlert
       secao: 'clima',
       gravidade: d.chuva_mm >= 15 ? 'alta' : 'media',
       titulo: `Chuva prevista ${quando}: ${d.chuva_mm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mm${chance}`,
-      detalhe: `Programado para o dia: ${afetadas.map((t) => `${t.codigo} ${t.nome}`).slice(0, 4).join('; ')}${afetadas.length > 4 ? ` e mais ${afetadas.length - 4}` : ''}. Avalie remanejar a equipe ou proteger o serviço.`,
+      detalhe: `Programado para o dia: ${afetadas.map((t) => tituloDaTarefa(t)).slice(0, 4).join('; ')}${afetadas.length > 4 ? ` e mais ${afetadas.length - 4}` : ''}. Avalie remanejar a equipe ou proteger o serviço.`,
       caminho: 'cronograma/gantt',
     });
   }

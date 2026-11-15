@@ -20,7 +20,7 @@ export default async function PaginaChamada({ params }: { params: Promise<{ id: 
   const [equipe, itens, empreiteiras, chamada, podeApontar, feriado] = await Promise.all([
     listarEquipeProjeto(id),
     buscarEap(id),
-    listarEmpreiteiras(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
     buscarChamada(id, data),
     podeApontarCampo(projeto, papel),
     feriadoNoDia(data),

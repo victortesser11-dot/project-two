@@ -34,7 +34,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
     buscarLinhaBase(id),
     buscarApontamentos(id),
     podeVerCustos(projeto, papel),
-    listarItensEstoque(projeto.empresa_id),
+    listarItensEstoque(projeto.empresa_id, projeto),
     listarSaldos(id),
     listarMovimentos(id),
     // O painel não cai se o módulo de câmeras falhar.

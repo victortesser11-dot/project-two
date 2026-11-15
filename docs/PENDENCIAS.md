@@ -18,8 +18,11 @@ No ar: aba Arquivos (com versões e envio da pasta inteira), marca nova e import
 por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090000_arquivos_obra.sql` e
 `20261114090000_importar_avanco.sql` já estão no banco de produção.
 
-- [ ] **Criar a obra Nápoles e importar o cronograma**: Cronograma → Importar → `cronograma_napoles_....xlsx`. A prévia
-      deve mostrar 42 etapas, 1.464 tarefas e 88 com avanço. Depois, "Definir linha de base" no Gantt.
+- [x] Obra Nápoles criada e cronograma importado (1.506 itens, 88 avanços), conferido no banco em 15/11.
+- [ ] **Completar os dados da obra** (depois de publicar a correção de 15/11): Painel → "Completar os dados da obra".
+      Endereço das pranchas: Av. Santos Ferreira, 4200 - Bairro Estância Velha - Canoas/RS. Informe o CEP (não está nas
+      pranchas) para o clima e o alerta de chuva; use "Usar as datas do cronograma" e mude a situação para "Em andamento".
+- [ ] **Definir a linha de base** no Gantt (é contra ela que o atraso é medido).
 - [ ] **Enviar os arquivos do "Projeto Aprovado"** pela aba Arquivos: botão "Enviar uma pasta
       inteira" (ou arrastar a pasta). Conferi a pasta do Drive (30 arquivos, 95 MB): entram 28, 72 MB (24 pranchas ARQ, a
       carimbada e os 2 DWG no arquitetônico; ESG 01 no hidrossanitário); o `.bak` e o `plot.log` ficam de fora.

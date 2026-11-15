@@ -43,7 +43,7 @@ export const alertasDaObra = cache(
       vazio(buscarEap(id)),
       vazio(listarJustificativas(id)),
       vazio(listarDiarios(id)),
-      vazio(listarItensEstoque(projeto.empresa_id)),
+      vazio(listarItensEstoque(projeto.empresa_id, projeto)),
       vazio(listarSaldos(id)),
       vazio(listarMovimentos(id)),
       vazio(listarCameras(id)),
@@ -56,9 +56,18 @@ export const alertasDaObra = cache(
       ? await Promise.all([vazio(listarContratosMedicao(id)), vazio(listarMedicoes(id))])
       : [[], []];
 
+    const nomeEtapa = new Map(eap.filter((i) => i.tipo === 'etapa').map((e) => [e.id, e.nome]));
     const tarefas = eap
       .filter((i) => i.tipo === 'tarefa')
-      .map((t) => ({ id: t.id, codigo: t.codigo, nome: t.nome, inicio_previsto: t.inicio_previsto, fim_previsto: t.fim_previsto, percentual_fisico: t.percentual_fisico }));
+      .map((t) => ({
+        id: t.id,
+        codigo: t.codigo,
+        nome: t.nome,
+        inicio_previsto: t.inicio_previsto,
+        fim_previsto: t.fim_previsto,
+        percentual_fisico: t.percentual_fisico,
+        etapa: t.pai_id ? (nomeEtapa.get(t.pai_id) ?? null) : null,
+      }));
     const naObra = new Set(saldos.map((s) => s.item_id));
     const itens = itensComSaldo(catalogo, saldos).filter((i) => naObra.has(i.id));
     const nomeItem = new Map(catalogo.map((i) => [i.id, i.nome]));

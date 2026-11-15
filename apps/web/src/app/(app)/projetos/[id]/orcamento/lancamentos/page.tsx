@@ -34,7 +34,7 @@ export default async function PaginaLancamentos({ params }: { params: Promise<{ 
     buscarEap(id),
     listarDespesas(id),
     listarCompromissos(id),
-    listarEmpreiteiras(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
   ]);
   const tarefas = itens.filter((i) => i.tipo === 'tarefa').map((t) => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
   const nomeTarefa = Object.fromEntries(tarefas.map((t) => [t.id, `${t.codigo} ${t.nome}`]));
