@@ -35,7 +35,7 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 ## IA (16/11)
 
 - [x] Chave `IA_CHAVE` (Google AI Studio, plano grátis) cadastrada na Vercel em Production.
-- [ ] Publicar: rodar a migração `20261116090000_analise_ia.sql` **antes** do merge (tabela das leituras e `registrar_analise_ia`).
+- [x] Publicado em 16/11 (migração `20261116090000_analise_ia.sql` aplicada antes do merge).
 - [ ] Testar na obra Napoles: Arquivos → "Ler o projeto com IA" com as pranchas em PDF; Diário do dia → "Ler as fotos com IA".
 - [ ] Avisar o cliente: no plano grátis o Google pode usar o conteúdo enviado. Para contrato, plano pago (centavos por obra/mês).
 
