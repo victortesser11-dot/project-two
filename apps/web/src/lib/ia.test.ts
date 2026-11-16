@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
+// O preparo de verdade (PDF.js + canvas) é testado à parte; aqui só importa que as partes cheguem ao provedor.
+const preparar = vi.fn(async (anexos: { nome: string }[]) => [
+  { tipo: 'texto' as const, texto: `Texto de "${anexos[0]?.nome.split('/').pop()}"` },
+  { tipo: 'imagem' as const, mime: 'image/jpeg', dados: new Uint8Array([9]), nome: 'p1' },
+]);
+vi.mock('@/lib/anexosIa', () => ({ prepararAnexosIa: (a: { nome: string }[]) => preparar(a) }));
 
 const resposta = (status: number, corpo: unknown) =>
   new Response(typeof corpo === 'string' ? corpo : JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } });
@@ -23,6 +29,8 @@ describe('camada de IA', () => {
     delete process.env.API_OPENROUTER;
     delete process.env.OPENROUTER_MODELO;
     delete process.env.IA_MODELO;
+    delete process.env.IA_PRINCIPAL;
+    preparar.mockClear();
   });
   afterEach(() => {
     globalThis.fetch = fetchOriginal;
@@ -66,14 +74,39 @@ describe('camada de IA', () => {
   });
 
   it('todos os modelos sobrecarregados e sem OpenRouter: mensagem de sobrecarga, sem insistir sem fim', async () => {
-    responder(sobrecarga(), listaGoogle('gemini-a-flash', 'gemini-b-flash', 'gemini-c-flash', 'gemini-d-flash'), sobrecarga(), sobrecarga(), sobrecarga());
+    responder(sobrecarga(), listaGoogle('gemini-3.1-flash', 'gemini-3.2-flash', 'gemini-3.3-flash', 'gemini-3.4-flash'), sobrecarga(), sobrecarga(), sobrecarga());
     const { perguntarIa } = await import('./ia');
     await expect(perguntarIa('x')).rejects.toThrow('sobrecarregado');
     expect(chamadas.filter((c) => c.url.includes(':generateContent'))).toHaveLength(4);
   });
 
-  it('Gemini caiu: o OpenRouter (roteador grátis) responde, com PDF como arquivo', async () => {
+  it('com as duas chaves, o OpenRouter é o principal e o PDF vai aberto (texto + imagens), sem leitor de arquivo', async () => {
     process.env.API_OPENROUTER = 'chave-or';
+    responder(resposta(200, { choices: [{ message: { content: '{}' } }], model: 'x:free' }));
+    const { perguntarIa } = await import('./ia');
+    const r = await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array(11e6), nome: 'proj/ARQ 01 - Carimbado.pdf' }]);
+    expect(r.modelo).toBe('openrouter:x:free');
+    expect(chamadas).toHaveLength(1);
+    const corpo = chamadas[0]!.corpo as { plugins?: unknown; messages: { content: { type: string; text?: string; image_url?: { url: string } }[] }[] };
+    expect(corpo.plugins).toBeUndefined();
+    expect(corpo.messages[0]!.content).toEqual([
+      { type: 'text', text: 'Texto de "ARQ 01 - Carimbado.pdf"' },
+      { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,CQ==' } },
+      { type: 'text', text: 'Leia' },
+    ]);
+  });
+
+  it('Gemini: PDF grande demais para o pedido também vai aberto pelo servidor', async () => {
+    responder(okGemini('{}'));
+    const { perguntarIa } = await import('./ia');
+    await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array(9 * 1024 * 1024), nome: 'ARQ.pdf' }]);
+    const corpo = chamadas[0]!.corpo as { contents: { parts: unknown[] }[] };
+    expect(corpo.contents[0]!.parts).toEqual([{ text: 'Texto de "ARQ.pdf"' }, { inline_data: { mime_type: 'image/jpeg', data: 'CQ==' } }, { text: 'Leia' }]);
+  });
+
+  it('IA_PRINCIPAL=gemini: Gemini caiu, o OpenRouter (roteador grátis) responde com o PDF aberto', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    process.env.IA_PRINCIPAL = 'gemini';
     responder(sobrecarga(), listaGoogle(), resposta(200, { choices: [{ message: { content: '{"a":1}' } }], model: 'qwen/algum:free' }));
     const { perguntarIa } = await import('./ia');
     const r = await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array([1]), nome: 'proj/ARQ 01.pdf' }]);
@@ -81,22 +114,25 @@ describe('camada de IA', () => {
     const or = chamadas[2]!;
     expect(or.url).toBe('https://openrouter.ai/api/v1/chat/completions');
     expect(or.cabecalhos.Authorization).toBe('Bearer chave-or');
-    const corpo = or.corpo as { model: string; messages: { content: { type: string; file?: { filename: string; file_data: string } }[] }[] };
+    const corpo = or.corpo as { model: string; messages: { content: { type: string; text?: string }[] }[] };
     expect(corpo.model).toBe('openrouter/free');
-    expect(corpo.messages[0]!.content[0]).toEqual({ type: 'file', file: { filename: 'ARQ 01.pdf', file_data: 'data:application/pdf;base64,AQ==' } });
-    // PDF pelo leitor grátis (o OCR padrão é pago) e modelo que pensa pouco.
-    expect((or.corpo as { plugins: unknown }).plugins).toEqual([{ id: 'file-parser', pdf: { engine: 'pdf-text' } }]);
+    expect(corpo.messages[0]!.content[0]).toEqual({ type: 'text', text: 'Texto de "ARQ 01.pdf"' });
+    // Modelo que pensa pouco (responde mais rápido).
     expect((or.corpo as { reasoning: unknown }).reasoning).toEqual({ effort: 'low', exclude: true });
+    // O PDF pequeno foi direto ao Gemini; o preparo só rodou para o OpenRouter.
+    expect(preparar).toHaveBeenCalledTimes(1);
   });
 
-  it('modelo sem cota no plano grátis ("limit: 0") e o sobrecarregado ficam de fora na próxima pergunta', async () => {
+  it('modelo sem cota no plano grátis ("limit: 0") e o sobrecarregado ficam de fora na próxima pergunta; "omni" nem entra', async () => {
     process.env.API_OPENROUTER = 'chave-or';
+    process.env.IA_PRINCIPAL = 'gemini';
     const semCota = () =>
-      resposta(429, { error: { code: 429, message: 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 0, model: gemini-omni-flash', status: 'RESOURCE_EXHAUSTED' } });
+      resposta(429, { error: { code: 429, message: 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 0, model: gemini-3.1-flash', status: 'RESOURCE_EXHAUSTED' } });
     const okOr = () => resposta(200, { choices: [{ message: { content: 'ok' } }], model: 'x:free' });
-    responder(sobrecarga(), listaGoogle('gemini-omni-flash'), semCota(), okOr(), okOr());
+    responder(sobrecarga(), listaGoogle('gemini-omni-1.2-flash', 'gemini-3.1-flash'), semCota(), okOr(), okOr());
     const { conversarIa } = await import('./ia');
     await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] });
+    expect(chamadas.some((c) => c.url.includes('omni'))).toBe(false);
     const antes = chamadas.length;
     const r = await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'de novo' }] });
     expect(r.modelo).toBe('openrouter:x:free');
@@ -106,6 +142,7 @@ describe('camada de IA', () => {
 
   it('os dois provedores falharam: a mensagem diz o motivo de cada um', async () => {
     process.env.API_OPENROUTER = 'chave-or';
+    process.env.IA_PRINCIPAL = 'gemini';
     responder(sobrecarga(), listaGoogle(), resposta(200, { error: { code: 413, message: 'context length exceeded' } }));
     const { perguntarIa } = await import('./ia');
     await expect(perguntarIa('x')).rejects.toThrow(/sobrecarregado.*reserva também falhou.*grandes demais/);
