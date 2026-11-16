@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { alertasCampo, alertasChuva, alertasCronograma, alertasEstoque, alertasMedicao, ordenarAlertas, type TarefaAlerta } from './alertas';
+import {
+  alertasCampo,
+  alertasChuva,
+  alertasCronograma,
+  alertasDefesaCivil,
+  alertasEstoque,
+  alertasMedicao,
+  alertasTempo,
+  descricaoTempo,
+  lerPrevisaoTempo,
+  ordenarAlertas,
+  type PrevisaoTempoDia,
+  type TarefaAlerta,
+} from './alertas';
 
 const hoje = '2027-03-10'; // quarta-feira
 const t = (id: string, nome: string, inicio: string, fim: string, pct: number): TarefaAlerta => ({
@@ -136,5 +149,70 @@ describe('outros alertas', () => {
       { chave: 'a2', secao: 'cronograma', gravidade: 'alta', titulo: 'y', detalhe: '', diasAtraso: 9 },
     ]);
     expect(o.map((x) => x.chave)).toEqual(['a2', 'a1', 'm', 'b']);
+  });
+});
+
+describe('previsão do tempo e Defesa Civil', () => {
+  const dia = (data: string, extra: Partial<PrevisaoTempoDia> = {}): PrevisaoTempoDia => ({
+    data, codigo: 1, tmax: 25, tmin: 15, chuva_mm: 0, probabilidade: 0, vento_kmh: 10, rajada_kmh: 20, ...extra,
+  });
+
+  it('lê a resposta do Open-Meteo e aguenta resposta de erro', () => {
+    const r = lerPrevisaoTempo({
+      daily: {
+        time: ['2027-03-10', '2027-03-11'],
+        weather_code: [95, 3],
+        temperature_2m_max: [31.2, 24],
+        temperature_2m_min: [20.1, 18],
+        precipitation_sum: [12.4, null],
+        precipitation_probability_max: [90, 10],
+        wind_speed_10m_max: [30, 12],
+        wind_gusts_10m_max: [72.5, 25],
+      },
+    });
+    expect(r[0]).toEqual({ data: '2027-03-10', codigo: 95, tmax: 31.2, tmin: 20.1, chuva_mm: 12.4, probabilidade: 90, vento_kmh: 30, rajada_kmh: 72.5 });
+    expect(r[1]!.chuva_mm).toBe(0);
+    expect(lerPrevisaoTempo({ reason: 'Daily API request limit exceeded', error: true })).toEqual([]);
+    expect(descricaoTempo(96)).toEqual({ texto: 'Trovoadas com granizo', icone: 'tempestade' });
+    expect(descricaoTempo(null).texto).toBe('Sem informação');
+  });
+
+  it('avisa vendaval, trovoada, calor e frio só nos próximos 3 dias', () => {
+    const a = alertasTempo({
+      hoje,
+      previsao: [
+        dia('2027-03-09', { rajada_kmh: 90 }), // ontem: ignora
+        dia('2027-03-10', { rajada_kmh: 72, codigo: 96 }),
+        dia('2027-03-11', { rajada_kmh: 48, tmax: 36.4 }),
+        dia('2027-03-12', { tmin: 2 }),
+        dia('2027-03-13', { codigo: 95 }), // depois de 3 dias: ignora
+      ],
+    });
+    expect(a.map((x) => [x.chave, x.gravidade, x.titulo])).toEqual([
+      ['vento:2027-03-10', 'alta', 'Vendaval hoje: rajadas de até 72 km/h'],
+      ['trovoada:2027-03-10', 'alta', 'Trovoadas com granizo hoje'],
+      ['vento:2027-03-11', 'media', 'Vento forte amanhã: rajadas de até 48 km/h'],
+      ['calor:2027-03-11', 'media', 'Calor forte amanhã: até 36 °C'],
+      ['frio:2027-03-12', 'baixa', 'Frio 12/03/2027: mínima de 2 °C'],
+    ]);
+  });
+
+  it('Defesa Civil: só vira alerta da obra o que cobre a obra; risco alto é urgente', () => {
+    const base = { remetente: 'Defesa Civil Estadual do Rio Grande do Sul', urgencia: 'Expected', descricao: null, link: 'https://www.defesacivil.rs.gov.br', inicio: null };
+    const a = alertasDefesaCivil([
+      { ...base, id: 'RS-1', evento: 'CHUVAS INTENSAS', severidade: 'Severe', titulo: 'Defesa Civil: ALERTA RISCO ALTO: chuva forte.', instrucao: 'Evite áreas alagáveis.', area: 'Porto Alegre/RS', fim: '2027-03-11T18:00:00-03:00', na_obra: true },
+      { ...base, id: 'RS-2', evento: 'VENDAVAL', severidade: 'Moderate', titulo: 'Vento', instrucao: null, area: 'Santa Maria/RS', fim: null, na_obra: false },
+      { ...base, id: 'RS-3', evento: 'GRANIZO', severidade: 'Moderate', titulo: 'Granizo', instrucao: null, area: 'RS', fim: null, na_obra: null },
+    ]);
+    expect(a).toEqual([
+      {
+        chave: 'defesa-civil:RS-1',
+        secao: 'defesa_civil',
+        gravidade: 'alta',
+        titulo: 'Chuvas intensas (risco alto) · Porto Alegre/RS',
+        detalhe: 'ALERTA RISCO ALTO: chuva forte. Vale até 11/03 às 18h00. Evite áreas alagáveis.',
+        link: 'https://www.defesacivil.rs.gov.br',
+      },
+    ]);
   });
 });

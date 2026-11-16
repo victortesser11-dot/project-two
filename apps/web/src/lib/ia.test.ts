@@ -5,6 +5,12 @@ vi.mock('server-only', () => ({}));
 const resposta = (status: number, corpo: unknown) =>
   new Response(typeof corpo === 'string' ? corpo : JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } });
 
+const okGemini = (texto: string, modelo?: string) =>
+  resposta(200, { candidates: [{ content: { parts: [{ text: texto }] } }], ...(modelo ? { modelVersion: modelo } : {}) });
+const sobrecarga = () => resposta(503, { error: { code: 503, message: 'This model is currently experiencing high demand.', status: 'UNAVAILABLE' } });
+const listaGoogle = (...nomes: string[]) =>
+  resposta(200, { models: nomes.map((n) => ({ name: `models/${n}`, supportedGenerationMethods: ['generateContent'] })) });
+
 describe('camada de IA', () => {
   const fetchOriginal = globalThis.fetch;
   let chamadas: { url: string; corpo: unknown; cabecalhos: Record<string, string> }[];
@@ -12,10 +18,11 @@ describe('camada de IA', () => {
   beforeEach(() => {
     vi.resetModules();
     chamadas = [];
-    process.env.IA_CHAVE = 'chave-de-teste';
-    delete process.env.IA_PROVEDOR;
+    process.env.IA_CHAVE = 'chave-gemini';
+    delete process.env.OPENROUTER_CHAVE;
+    delete process.env.API_OPENROUTER;
+    delete process.env.OPENROUTER_MODELO;
     delete process.env.IA_MODELO;
-    delete process.env.IA_URL;
   });
   afterEach(() => {
     globalThis.fetch = fetchOriginal;
@@ -29,66 +36,94 @@ describe('camada de IA', () => {
   }
 
   it('Gemini: manda o PDF junto, pede JSON e devolve o texto', async () => {
-    responder(resposta(200, { candidates: [{ content: { parts: [{ text: '{"resumo":"ok"}' }] } }], modelVersion: 'gemini-x-flash' }));
+    responder(okGemini('{"resumo":"ok"}', 'gemini-x-flash'));
     const { perguntarIa } = await import('./ia');
     const r = await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array([1, 2, 3]), nome: 'ARQ 01.pdf' }]);
     expect(r).toEqual({ texto: '{"resumo":"ok"}', modelo: 'gemini-x-flash' });
     expect(chamadas[0]!.url).toContain('/models/gemini-flash-latest:generateContent');
-    expect(chamadas[0]!.cabecalhos['x-goog-api-key']).toBe('chave-de-teste');
+    expect(chamadas[0]!.cabecalhos['x-goog-api-key']).toBe('chave-gemini');
     const corpo = chamadas[0]!.corpo as { contents: { parts: unknown[] }[]; generationConfig: { responseMimeType: string } };
     expect(corpo.contents[0]!.parts[0]).toEqual({ inline_data: { mime_type: 'application/pdf', data: 'AQID' } });
     expect(corpo.generationConfig.responseMimeType).toBe('application/json');
   });
 
-  it('modelo aposentado (404): acha o Flash mais novo na lista do Google e tenta de novo', async () => {
+  it('modelo sobrecarregado (503): tenta o Flash mais novo da lista do Google, sem lite e sem prévia primeiro', async () => {
     responder(
-      resposta(404, { error: { message: 'not found' } }),
-      resposta(200, {
-        models: [
-          { name: 'models/gemini-3.6-flash', supportedGenerationMethods: ['generateContent'] },
-          { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
-          { name: 'models/gemini-3.9-flash-lite', supportedGenerationMethods: ['generateContent'] },
-          { name: 'models/gemini-3.8-pro', supportedGenerationMethods: ['generateContent'] },
-        ],
-      }),
-      resposta(200, { candidates: [{ content: { parts: [{ text: '{}' }] } }] }),
+      sobrecarga(),
+      listaGoogle('gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.9-flash-lite', 'gemini-3.9-flash-preview', 'gemini-3.8-pro'),
+      sobrecarga(),
+      okGemini('{}'),
     );
     const { perguntarIa } = await import('./ia');
     const r = await perguntarIa('Leia');
-    expect(r.modelo).toBe('gemini-3.8-flash');
-    expect(chamadas[2]!.url).toContain('/models/gemini-3.8-flash:generateContent');
+    expect(chamadas.map((c) => c.url.replace(/^.*\/models/, ''))).toEqual([
+      '/gemini-flash-latest:generateContent',
+      '?pageSize=200',
+      '/gemini-3.8-flash:generateContent',
+      '/gemini-3.6-flash:generateContent',
+    ]);
+    expect(r.modelo).toBe('gemini-3.6-flash');
   });
 
-  it('erros do provedor viram mensagem de obra', async () => {
+  it('todos os modelos sobrecarregados e sem OpenRouter: mensagem de sobrecarga, sem insistir sem fim', async () => {
+    responder(sobrecarga(), listaGoogle('gemini-a-flash', 'gemini-b-flash', 'gemini-c-flash', 'gemini-d-flash'), sobrecarga(), sobrecarga(), sobrecarga());
     const { perguntarIa } = await import('./ia');
-    responder(resposta(429, { error: { status: 'RESOURCE_EXHAUSTED' } }));
-    await expect(perguntarIa('x')).rejects.toThrow('limite gratuito');
+    await expect(perguntarIa('x')).rejects.toThrow('sobrecarregado');
+    expect(chamadas.filter((c) => c.url.includes(':generateContent'))).toHaveLength(4);
+  });
+
+  it('Gemini caiu: o OpenRouter (roteador grátis) responde, com PDF como arquivo', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    responder(sobrecarga(), listaGoogle(), resposta(200, { choices: [{ message: { content: '{"a":1}' } }], model: 'qwen/algum:free' }));
+    const { perguntarIa } = await import('./ia');
+    const r = await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array([1]), nome: 'proj/ARQ 01.pdf' }]);
+    expect(r).toEqual({ texto: '{"a":1}', modelo: 'openrouter:qwen/algum:free' });
+    const or = chamadas[2]!;
+    expect(or.url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(or.cabecalhos.Authorization).toBe('Bearer chave-or');
+    const corpo = or.corpo as { model: string; messages: { content: { type: string; file?: { filename: string; file_data: string } }[] }[] };
+    expect(corpo.model).toBe('openrouter/free');
+    expect(corpo.messages[0]!.content[0]).toEqual({ type: 'file', file: { filename: 'ARQ 01.pdf', file_data: 'data:application/pdf;base64,AQ==' } });
+  });
+
+  it('chave recusada não tenta outro modelo nem outro provedor', async () => {
+    process.env.OPENROUTER_CHAVE = 'chave-or';
     responder(resposta(400, { error: { message: 'API key not valid', status: 'INVALID_ARGUMENT' } }));
+    const { perguntarIa } = await import('./ia');
     await expect(perguntarIa('x')).rejects.toThrow('IA_CHAVE');
-    responder(resposta(200, { promptFeedback: { blockReason: 'SAFETY' } }));
-    await expect(perguntarIa('x')).rejects.toThrow('recusou');
-  });
-
-  it('sem chave, a IA fica desligada', async () => {
-    delete process.env.IA_CHAVE;
-    const { iaConfigurada, perguntarIa } = await import('./ia');
-    expect(iaConfigurada()).toBe(false);
-    await expect(perguntarIa('x')).rejects.toThrow('não está ligada');
-  });
-
-  it('API compatível com OpenAI (OpenRouter): imagem vai como data URL; PDF é recusado antes de gastar a cota', async () => {
-    process.env.IA_PROVEDOR = 'openai';
-    process.env.IA_MODELO = 'algum/modelo:free';
-    process.env.IA_URL = 'https://openrouter.ai/api/v1/';
-    responder(resposta(200, { choices: [{ message: { content: '{"a":1}' } }], model: 'algum/modelo:free' }));
-    const { perguntarIa, iaLePdf } = await import('./ia');
-    expect(iaLePdf()).toBe(false);
-    const r = await perguntarIa('Leia', [{ mime: 'image/jpeg', dados: new Uint8Array([255]), nome: 'f.jpg' }]);
-    expect(r.texto).toBe('{"a":1}');
-    expect(chamadas[0]!.url).toBe('https://openrouter.ai/api/v1/chat/completions');
-    expect(JSON.stringify(chamadas[0]!.corpo)).toContain('data:image/jpeg;base64,/w==');
-    await expect(perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array([1]), nome: 'a.pdf' }])).rejects.toThrow('não lê PDF');
     expect(chamadas).toHaveLength(1);
+  });
+
+  it('conversa: instrução do sistema e histórico com papéis', async () => {
+    responder(okGemini('A laje do 4º atrasou 3 dias.'));
+    const { conversarIa } = await import('./ia');
+    const r = await conversarIa({
+      sistema: 'Você é o assistente da obra.',
+      mensagens: [
+        { papel: 'usuario', texto: 'Oi' },
+        { papel: 'assistente', texto: 'Olá!' },
+        { papel: 'usuario', texto: 'O que atrasou?' },
+      ],
+    });
+    expect(r.texto).toBe('A laje do 4º atrasou 3 dias.');
+    const corpo = chamadas[0]!.corpo as { systemInstruction: unknown; contents: { role: string }[]; generationConfig: Record<string, unknown> };
+    expect(corpo.systemInstruction).toEqual({ parts: [{ text: 'Você é o assistente da obra.' }] });
+    expect(corpo.contents.map((c) => c.role)).toEqual(['user', 'model', 'user']);
+    expect(corpo.generationConfig.responseMimeType).toBeUndefined();
+  });
+
+  it('só com OpenRouter também funciona; sem nenhuma chave, a IA fica desligada', async () => {
+    delete process.env.IA_CHAVE;
+    process.env.OPENROUTER_CHAVE = 'chave-or';
+    responder(resposta(200, { choices: [{ message: { content: 'ok' } }] }));
+    let ia = await import('./ia');
+    expect(ia.iaConfigurada()).toBe(true);
+    expect((await ia.conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] })).texto).toBe('ok');
+    delete process.env.OPENROUTER_CHAVE;
+    vi.resetModules();
+    ia = await import('./ia');
+    expect(ia.iaConfigurada()).toBe(false);
+    await expect(ia.perguntarIa('x')).rejects.toThrow('não está ligada');
   });
 
   it('limite diário: padrão 20, ajustável pela variável', async () => {

@@ -53,7 +53,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
+   `justificar_atraso`, a da Defesa Civil: `alertas_defesa_civil_da_obra`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -207,6 +207,18 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Só a justificativa é gravada: `justificativa_atraso` (imutável, auditada) por `justificar_atraso` (engenheiro e mestre);
   justificada depois que o atraso começou, o alerta cai para "Aviso". Histórico com dias por causa (negociação de prazo).
 - Alerta por e-mail (resumo diário) ainda não: precisa de agendamento; WhatsApp precisa de conta comercial na Meta.
+- Previsão do tempo: `previsaoTempo` (`lib/clima.ts`, Open-Meteo sem chave, cache de 1 h; recusa ou falha vira lista vazia)
+  lida por `lerPrevisaoTempo`: 7 dias com código WMO (`descricaoTempo`), máx/mín, chuva e chance, vento e rajadas. Cartão
+  `components/PrevisaoTempo.tsx` no painel (4 dias) e na central de alertas (7). `alertasTempo` avisa, nos próximos 3 dias,
+  vendaval (rajada ≥ 60 km/h urgente, ≥ 45 atenção), trovoada (granizo urgente), calor ≥ 35 °C e frio ≤ 3 °C (`LIMITES_TEMPO`).
+  A API grátis do Open-Meteo é para uso não comercial e tem limite diário por endereço de internet.
+- Defesa Civil: o feed nacional da IDAP (CAP 1.2, `https://idapfile.mdr.gov.br/idap/api/rss/cap`, ~17 MB, guarda ~12 h) é
+  baixado pelo próprio banco a cada 15 min (pg_cron + pg_net: `app.coletar_alertas_defesa_civil`, situação em
+  `app.coleta_defesa_civil`) e lido por `app.importar_alertas_cap` (xmltable), que guarda em `alerta_defesa_civil` só o que
+  toca o RS (área "…/RS", IBGE 43…, remetente gaúcho ou polígono no retângulo do estado); Update/Cancel tiram o alerta citado.
+  A tabela é dado público, sem `empresa_id`, e o app não a lê direto: `alertas_defesa_civil_da_obra` confere a permissão e
+  marca `na_obra` pelo ponto da obra no polígono (`app.ponto_no_poligono`; null sem localização). Só os `na_obra` viram alerta
+  da obra (`alertasDefesaCivil`: risco extremo/alto urgente); os outros (RS e fronteira) aparecem recolhidos na central.
 
 ## E-mails
 
@@ -244,11 +256,12 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## IA (leitura de arquivos e de fotos)
 
-- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): `IA_CHAVE` (sem ela as telas de IA somem), `IA_PROVEDOR`
-  (`gemini` padrão, API nativa que lê PDF e imagem; ou `openai` para APIs compatíveis como OpenRouter/Groq, só imagem, com
-  `IA_URL` e `IA_MODELO` obrigatório), `IA_MODELO` (padrão `gemini-flash-latest`; modelo aposentado (404) cai no Flash mais
-  novo da lista do Google), `IA_LIMITE_DIA` (leituras por obra por dia, padrão 20, para a cota grátis). Erros do provedor viram
-  `ErroIa` com mensagem de obra (cota, chave, tamanho).
+- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), provedores tentados em ordem: Gemini (`IA_CHAVE`, API nativa que
+  lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`API_OPENROUTER` na Vercel, ou `OPENROUTER_CHAVE`; opcional; `OPENROUTER_MODELO`
+  padrão `openrouter/free`, o roteador grátis; imagem como data URL, PDF como `file`). Sobrecarga (503), cota (429) ou modelo
+  aposentado (404) no Gemini: tenta até 4 modelos Flash da lista do Google (mais novo primeiro, lite e prévia por último) e
+  depois o OpenRouter; chave recusada para na hora. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
+  obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
   (campo faltando ou tipo trocado não derruba a leitura). Tarefas vão como T1, T2 (o modelo erra UUID).
 - Toda leitura válida é gravada em `analise_ia` por `registrar_analise_ia` (imutável, auditada): histórico para reabrir sem gastar
@@ -260,6 +273,11 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Diário do dia, "Ler as fotos com IA" (engenheiro e mestre): até 6 fotos; as tarefas são as marcadas nas fotos e as programadas
   para a data (`tarefasDoDia`); devolve avanço sugerido (nunca abaixo do já apontado), pessoas, máquinas e riscos de segurança.
 - No plano grátis do Gemini o Google pode usar o conteúdo para melhorar os produtos dele: não mande CPF nem dado sensível.
+- Assistente da obra (`projetos/[id]/assistente`, quem vê a obra): conversa no navegador (sessionStorage, nada no banco). A cada
+  pergunta o servidor monta um retrato da obra em texto (`textoContextoObra` no shared: prazo e avanço, etapas, tarefas
+  atrasadas/em andamento/próximas 3 semanas, alertas, previsão, diário, chamada, almoxarifado, arquivos, resumo da leitura dos
+  projetos; custos só para `podeVerCustos`) e manda com a instrução fixa (`instrucaoAssistente`: só os dados da obra, sem inventar,
+  não altera nada). Até 20 mensagens e 2.000 letras por pergunta.
 
 ## Obra de exemplo
 
@@ -283,6 +301,10 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - `alinharObraAoCronograma` roda depois de cada importação: preenche só o que está vazio (início e fim pelas tarefas)
   e passa de "Planejamento" para "Em andamento" quando já há avanço apontado.
 - Título de alerta de tarefa leva a etapa logo acima ("1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)").
+- Três pontinhos da obra (`components/MenuObra.tsx`), na lista de obras e no cabeçalho: "Editar dados da obra" (engenheiro da
+  obra e admin) e "Excluir a obra" (só admin, RLS `projeto_delete`, com confirmação de perigo). `excluirProjeto` apaga antes os
+  arquivos do bucket `arquivos`; obra de exemplo sai por `excluir_obra_exemplo`. Fotos do diário e das câmeras ficam no Storage.
+  Obra sem endereço mostra "Informar endereço e CEP da obra" no cabeçalho.
 
 ## Interface
 

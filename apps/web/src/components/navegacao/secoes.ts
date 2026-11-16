@@ -6,6 +6,7 @@ import {
   FolderOpen,
   LayoutDashboard,
   Package,
+  Sparkles,
   TriangleAlert,
   Users,
   Wallet,
@@ -26,6 +27,7 @@ const ICONES: Record<string, LucideIcon> = {
   orcamento: Wallet,
   diario: BookOpen,
   arquivos: FolderOpen,
+  assistente: Sparkles,
 };
 
 /** Partes da obra, na ordem do menu (lateral no computador, barra de baixo e "Mais" no celular). */

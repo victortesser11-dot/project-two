@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { buscarProjeto } from '@/lib/dados';
+import { buscarProjeto, empresaAtual, podeEditarProjeto } from '@/lib/dados';
 import { CabecalhoObra } from './CabecalhoObra';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -22,11 +22,13 @@ export default async function LayoutProjeto({
   const dados = await buscarProjeto(id);
   // RLS devolve vazio tanto para "não existe" quanto para "sem acesso".
   if (!dados) notFound();
-  const { projeto } = dados;
+  const { projeto, papel } = dados;
+  const [podeEditar, empresa] = await Promise.all([podeEditarProjeto(projeto, papel), empresaAtual()]);
+  const podeExcluir = empresa?.papel === 'admin' && empresa.id === projeto.empresa_id;
 
   return (
     <div>
-      <CabecalhoObra projeto={projeto} />
+      <CabecalhoObra projeto={projeto} podeEditar={podeEditar} podeExcluir={podeExcluir} />
       <div className="pt-6 print:pt-0">{children}</div>
     </div>
   );

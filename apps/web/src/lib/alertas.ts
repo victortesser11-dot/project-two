@@ -4,8 +4,10 @@ import {
   alertasCampo,
   alertasChuva,
   alertasCronograma,
+  alertasDefesaCivil,
   alertasEstoque,
   alertasMedicao,
+  alertasTempo,
   hojeIso,
   itensComSaldo,
   ordenarAlertas,
@@ -15,6 +17,7 @@ import {
   type Projeto,
 } from '@obras/shared';
 import {
+  alertasDefesaCivilDaObra,
   buscarEap,
   listarAgentes,
   listarCameras,
@@ -28,7 +31,7 @@ import {
   listarSaldos,
   podeFinanceiro,
 } from '@/lib/dados';
-import { previsaoChuva } from '@/lib/clima';
+import { previsaoTempo } from '@/lib/clima';
 
 /**
  * Alertas da obra, calculados agora a partir dos dados (cronograma, diário, almoxarifado, medições,
@@ -39,7 +42,7 @@ export const alertasDaObra = cache(
     const hoje = hojeIso();
     const id = projeto.id;
     const vazio = <T,>(p: Promise<T[]>) => p.catch(() => [] as T[]);
-    const [eap, justificativas, diarios, catalogo, saldos, movimentos, cameras, agentes, emprestimos, financeiro, previsao] = await Promise.all([
+    const [eap, justificativas, diarios, catalogo, saldos, movimentos, cameras, agentes, emprestimos, financeiro, previsao, defesaCivil] = await Promise.all([
       vazio(buscarEap(id)),
       vazio(listarJustificativas(id)),
       vazio(listarDiarios(id)),
@@ -50,7 +53,8 @@ export const alertasDaObra = cache(
       vazio(listarAgentes(id)),
       vazio(listarEmprestimos({ projetoId: id, abertos: true })),
       podeFinanceiro(projeto, papel),
-      projeto.latitude != null && projeto.longitude != null ? previsaoChuva(projeto.latitude, projeto.longitude) : Promise.resolve([]),
+      projeto.latitude != null && projeto.longitude != null ? previsaoTempo(projeto.latitude, projeto.longitude) : Promise.resolve([]),
+      vazio(alertasDefesaCivilDaObra(id)),
     ]);
     const [contratos, medicoes] = financeiro
       ? await Promise.all([vazio(listarContratosMedicao(id)), vazio(listarMedicoes(id))])
@@ -82,7 +86,9 @@ export const alertasDaObra = cache(
         itensAbaixoDoMinimo: itens.filter((i) => i.abaixoDoMinimo).length,
         hoje,
       }),
+      ...alertasDefesaCivil(defesaCivil),
       ...alertasChuva({ tarefas, previsao, hoje }),
+      ...alertasTempo({ previsao, hoje }),
       ...alertasEstoque({
         itens: itens.map((i) => ({ id: i.id, codigo: i.codigo, nome: i.nome, unidade: i.unidade, quantidade: i.quantidade, estoque_minimo: i.estoque_minimo, tipo: i.tipo })),
         saidas: movimentos.filter((m) => m.tipo === 'saida').map((m) => ({ item_id: m.item_id, data: m.data, quantidade: m.quantidade })),
@@ -103,6 +109,6 @@ export const alertasDaObra = cache(
         hoje,
       }),
     ];
-    return { alertas: ordenarAlertas(alertas), justificativas, previsao, tarefas };
+    return { alertas: ordenarAlertas(alertas), justificativas, previsao, tarefas, defesaCivil };
   },
 );

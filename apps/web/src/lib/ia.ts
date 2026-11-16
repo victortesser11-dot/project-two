@@ -1,24 +1,38 @@
 import 'server-only';
 
-// Camada de IA plugável. O app pede "leia isto e responda em JSON" e não sabe qual modelo responde: o provedor é
-// escolhido pelas variáveis da Vercel. A chave mora só aqui, no servidor; nunca vai para o navegador.
+// Camada de IA plugável. O app pede "leia isto e responda" e não sabe qual modelo responde: os provedores vêm das
+// variáveis da Vercel e são tentados em ordem. As chaves moram só aqui, no servidor; nunca vão para o navegador.
 //
-//   IA_CHAVE     chave do provedor (sem ela, as funções de IA ficam escondidas e o app segue normal)
-//   IA_PROVEDOR  "gemini" (padrão, lê PDF e imagem) ou "openai" (qualquer API compatível: OpenRouter, Groq...; só imagem)
-//   IA_MODELO    padrão "gemini-flash-latest" (o Google aponta para o Flash mais novo)
-//   IA_URL       só para "openai": ex. https://openrouter.ai/api/v1
-//   IA_LIMITE_DIA leituras por obra por dia (padrão 20), para não estourar a cota grátis
+//   IA_CHAVE           chave do Gemini (Google AI Studio). Lê PDF e imagem.
+//   IA_MODELO          modelo preferido do Gemini (padrão "gemini-flash-latest"). Sobrecarregado (503), sem cota (429)
+//                      ou aposentado (404)? Tenta os outros Flash da lista do Google.
+//   API_OPENROUTER     chave do OpenRouter (opcional; também aceita OPENROUTER_CHAVE): reserva quando o Gemini falha,
+//                      e provedor único se não houver IA_CHAVE. Lê texto, imagem e PDF.
+//   OPENROUTER_MODELO  padrão "openrouter/free" (o roteador grátis escolhe um modelo livre).
+//   IA_LIMITE_DIA      leituras por obra por dia (padrão 20), para não estourar a cota grátis.
+// Com nenhuma das chaves, as telas de IA ficam escondidas e o app segue normal.
 
 export type Anexo = { mime: string; dados: Uint8Array; nome: string };
 export type RespostaIa = { texto: string; modelo: string };
+export type MensagemIa = { papel: 'usuario' | 'assistente'; texto: string };
 
 export class ErroIa extends Error {}
 
+/** Erro de um provedor que vale tentar em outro modelo ou provedor (sobrecarga, cota, modelo sumido). */
+class ErroPassageiro extends ErroIa {}
+
 const BASE_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
-const TEMPO_MAXIMO = 150_000;
+const BASE_OPENROUTER = 'https://openrouter.ai/api/v1';
+const TEMPO_MAXIMO = 120_000;
+const MAX_MODELOS_GEMINI = 4;
+
+/** Chave do OpenRouter: API_OPENROUTER (nome cadastrado na Vercel) ou OPENROUTER_CHAVE. */
+function chaveOpenRouter(): string | undefined {
+  return process.env.API_OPENROUTER || process.env.OPENROUTER_CHAVE || undefined;
+}
 
 export function iaConfigurada(): boolean {
-  return Boolean(process.env.IA_CHAVE);
+  return Boolean(process.env.IA_CHAVE || chaveOpenRouter());
 }
 
 export function limiteDiarioIa(): number {
@@ -26,31 +40,30 @@ export function limiteDiarioIa(): number {
   return Number.isInteger(n) && n > 0 ? n : 20;
 }
 
-function provedor(): 'gemini' | 'openai' {
-  return process.env.IA_PROVEDOR === 'openai' ? 'openai' : 'gemini';
-}
-
-/** O provedor configurado lê PDF? (O Gemini lê; as APIs compatíveis com OpenAI, em geral, só imagem.) */
+/** Os provedores configurados leem PDF? (Gemini lê; o OpenRouter converte o PDF antes.) */
 export function iaLePdf(): boolean {
-  return provedor() === 'gemini';
+  return iaConfigurada();
 }
 
 function base64(dados: Uint8Array): string {
   return Buffer.from(dados).toString('base64');
 }
 
+const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
 /** Mensagem para a tela a partir do status e do corpo do erro do provedor. */
 function erroDoProvedor(status: number, corpo: string): ErroIa {
-  if (status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(corpo)) {
-    return new ErroIa('O limite gratuito da IA acabou por agora. Tente de novo mais tarde (a cota grátis renova todo dia).');
+  if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid|PERMISSION_DENIED|No auth credentials|User not found/i.test(corpo)) {
+    return new ErroIa('A chave da IA foi recusada. Confira IA_CHAVE (Gemini) ou API_OPENROUTER na Vercel.');
   }
-  if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid|PERMISSION_DENIED/i.test(corpo)) {
-    return new ErroIa('A chave da IA foi recusada. Confira a variável IA_CHAVE na Vercel.');
-  }
-  if (status === 413 || /too large|exceeds the maximum|payload size/i.test(corpo)) {
+  if (status === 413 || /too large|exceeds the maximum|payload size|context length/i.test(corpo)) {
     return new ErroIa('Os arquivos ficaram grandes demais para uma leitura. Escolha menos arquivos de cada vez.');
   }
-  if (status >= 500) return new ErroIa('O serviço de IA está fora do ar ou sobrecarregado. Tente de novo em alguns minutos.');
+  if (status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(corpo)) {
+    return new ErroPassageiro('O limite gratuito da IA acabou por agora. Tente de novo mais tarde (a cota grátis renova todo dia).');
+  }
+  if (status === 404) return new ErroPassageiro('O modelo de IA configurado não existe mais.');
+  if (status >= 500) return new ErroPassageiro('O serviço de IA está sobrecarregado agora. Tente de novo em alguns minutos.');
   return new ErroIa(`A IA não aceitou o pedido (${status}). ${corpo.slice(0, 200)}`);
 }
 
@@ -65,103 +78,158 @@ async function postar(url: string, cabecalhos: Record<string, string>, corpo: un
     });
   } catch (erro) {
     const tempo = erro instanceof Error && /timeout|abort/i.test(erro.name + erro.message);
-    throw new ErroIa(tempo ? 'A IA demorou demais para responder. Tente com menos arquivos.' : 'Não foi possível falar com o serviço de IA agora.');
+    throw new ErroPassageiro(tempo ? 'A IA demorou demais para responder. Tente com menos arquivos.' : 'Não foi possível falar com o serviço de IA agora.');
   }
 }
+
+type Pedido = { sistema?: string; mensagens: MensagemIa[]; anexos: Anexo[]; json: boolean };
 
 // ---------------------------------------------------------------- Gemini (API nativa: lê PDF e imagem)
 
-let modeloReserva: string | null = null;
+let flashDoGoogle: { quando: number; modelos: string[] } | null = null;
 
-/** Quando o modelo pedido não existe mais (alias aposentado), escolhe o Flash mais novo da lista do Google. */
-async function acharModeloFlash(chave: string): Promise<string | null> {
-  if (modeloReserva) return modeloReserva;
+/** Modelos Flash que a chave enxerga, do mais novo para o mais antigo; os "lite" e as prévias por último. */
+async function modelosFlash(chave: string): Promise<string[]> {
+  if (flashDoGoogle && Date.now() - flashDoGoogle.quando < 6 * 3600_000) return flashDoGoogle.modelos;
   const r = await fetch(`${BASE_GEMINI}/models?pageSize=200`, { headers: { 'x-goog-api-key': chave }, cache: 'no-store' }).catch(() => null);
-  if (!r?.ok) return null;
+  if (!r?.ok) return [];
   const { models = [] } = (await r.json().catch(() => ({}))) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
-  const candidatos = models
+  const nomes = models
     .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
     .map((m) => m.name.replace(/^models\//, ''))
-    .filter((n) => /flash/.test(n) && !/lite|image|tts|audio|live|thinking|exp/.test(n))
-    .sort((a, b) => b.localeCompare(a, 'en', { numeric: true }));
-  modeloReserva = candidatos.find((n) => !/preview/.test(n)) ?? candidatos[0] ?? null;
-  return modeloReserva;
+    .filter((n) => /flash/.test(n) && !/image|tts|audio|live|embedding|thinking|exp/.test(n));
+  const peso = (n: string) => (/lite/.test(n) ? 2 : 0) + (/preview/.test(n) ? 1 : 0);
+  const modelos = nomes.sort((a, b) => peso(a) - peso(b) || b.localeCompare(a, 'en', { numeric: true }));
+  flashDoGoogle = { quando: Date.now(), modelos };
+  return modelos;
 }
 
-async function perguntarGemini(chave: string, modelo: string, instrucao: string, anexos: Anexo[], tentativa = 0): Promise<RespostaIa> {
+async function chamarGemini(chave: string, modelo: string, p: Pedido): Promise<RespostaIa> {
+  const contents = p.mensagens.map((m, i) => ({
+    role: m.papel === 'assistente' ? 'model' : 'user',
+    // Os anexos vão junto da última mensagem de quem pergunta.
+    parts: [
+      ...(i === p.mensagens.length - 1 ? p.anexos.map((a) => ({ inline_data: { mime_type: a.mime, data: base64(a.dados) } })) : []),
+      { text: m.texto },
+    ],
+  }));
   const corpo = {
-    contents: [{ role: 'user', parts: [...anexos.map((a) => ({ inline_data: { mime_type: a.mime, data: base64(a.dados) } })), { text: instrucao }] }],
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+    ...(p.sistema ? { systemInstruction: { parts: [{ text: p.sistema }] } } : {}),
+    contents,
+    generationConfig: { temperature: 0.2, ...(p.json ? { responseMimeType: 'application/json' } : {}) },
   };
   const r = await postar(`${BASE_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { 'x-goog-api-key': chave }, corpo);
-  if (r.status === 404 && tentativa === 0) {
-    const outro = await acharModeloFlash(chave);
-    if (outro && outro !== modelo) return perguntarGemini(chave, outro, instrucao, anexos, 1);
-  }
-  if ((r.status === 503 || r.status === 500) && tentativa === 0) {
-    await new Promise((ok) => setTimeout(ok, 3000));
-    return perguntarGemini(chave, modelo, instrucao, anexos, 1);
-  }
   const textoBruto = await r.text();
   if (!r.ok) {
     console.error(`IA (Gemini ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
     throw erroDoProvedor(r.status, textoBruto);
   }
   const json = JSON.parse(textoBruto) as {
-    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
     promptFeedback?: { blockReason?: string };
     modelVersion?: string;
   };
   if (json.promptFeedback?.blockReason) throw new ErroIa('A IA se recusou a ler este conteúdo. Tente com outros arquivos.');
-  const texto = (json.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('');
-  if (!texto) throw new ErroIa('A IA não respondeu nada desta vez. Tente de novo.');
+  const texto = (json.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('');
+  if (!texto) throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
   return { texto, modelo: json.modelVersion || modelo };
 }
 
-// ---------------------------------------------------------------- API compatível com OpenAI (OpenRouter, Groq...)
-
-async function perguntarCompativel(chave: string, modelo: string, instrucao: string, anexos: Anexo[]): Promise<RespostaIa> {
-  const url = (process.env.IA_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
-  if (anexos.some((a) => !a.mime.startsWith('image/'))) {
-    throw new ErroIa('O provedor de IA configurado não lê PDF. Use o Gemini (IA_PROVEDOR=gemini) ou envie a prancha como imagem.');
+/** Tenta o modelo preferido e, se ele estiver sobrecarregado, sem cota ou aposentado, outros Flash da mesma chave. */
+async function perguntarGemini(chave: string, p: Pedido): Promise<RespostaIa> {
+  const preferido = process.env.IA_MODELO || 'gemini-flash-latest';
+  const tentados: string[] = [];
+  let ultimo: ErroIa = new ErroPassageiro('O serviço de IA está sobrecarregado agora.');
+  let fila = [preferido];
+  while (tentados.length < MAX_MODELOS_GEMINI) {
+    const modelo = fila.shift();
+    if (!modelo) {
+      if (tentados.length === 1) {
+        fila = (await modelosFlash(chave)).filter((m) => !tentados.includes(m));
+        if (fila.length > 0) continue;
+      }
+      break;
+    }
+    if (tentados.includes(modelo)) continue;
+    tentados.push(modelo);
+    try {
+      return await chamarGemini(chave, modelo, p);
+    } catch (erro) {
+      if (!(erro instanceof ErroPassageiro)) throw erro;
+      ultimo = erro;
+      await espera(800);
+    }
   }
+  throw ultimo;
+}
+
+// ---------------------------------------------------------------- OpenRouter (formato de chat da OpenAI)
+
+async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa> {
+  const url = (process.env.OPENROUTER_URL || BASE_OPENROUTER).replace(/\/$/, '');
+  const modelo = process.env.OPENROUTER_MODELO || 'openrouter/free';
+  const parteAnexo = (a: Anexo) =>
+    a.mime.startsWith('image/')
+      ? { type: 'image_url', image_url: { url: `data:${a.mime};base64,${base64(a.dados)}` } }
+      : { type: 'file', file: { filename: a.nome.split('/').pop() || 'arquivo.pdf', file_data: `data:${a.mime};base64,${base64(a.dados)}` } };
+  const messages = [
+    ...(p.sistema ? [{ role: 'system', content: p.sistema }] : []),
+    ...p.mensagens.map((m, i) =>
+      i === p.mensagens.length - 1 && p.anexos.length > 0
+        ? { role: 'user', content: [...p.anexos.map(parteAnexo), { type: 'text', text: m.texto }] }
+        : { role: m.papel === 'assistente' ? 'assistant' : 'user', content: m.texto },
+    ),
+  ];
   const r = await postar(
     `${url}/chat/completions`,
-    { Authorization: `Bearer ${chave}` },
     {
-      model: modelo,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            ...anexos.map((a) => ({ type: 'image_url', image_url: { url: `data:${a.mime};base64,${base64(a.dados)}` } })),
-            { type: 'text', text: instrucao },
-          ],
-        },
-      ],
+      Authorization: `Bearer ${chave}`,
+      'X-Title': 'Controle de Obras',
+      ...(process.env.NEXT_PUBLIC_SITE_URL ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL } : {}),
     },
+    { model: modelo, temperature: 0.2, messages, ...(p.json ? { response_format: { type: 'json_object' } } : {}) },
   );
   const textoBruto = await r.text();
   if (!r.ok) {
-    console.error(`IA (${url} ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
+    console.error(`IA (OpenRouter ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
     throw erroDoProvedor(r.status, textoBruto);
   }
-  const json = JSON.parse(textoBruto) as { choices?: { message?: { content?: string } }[]; model?: string };
+  const json = JSON.parse(textoBruto) as { choices?: { message?: { content?: string } }[]; model?: string; error?: { message?: string; code?: number } };
+  if (json.error) throw erroDoProvedor(json.error.code ?? 500, json.error.message ?? '');
   const texto = json.choices?.[0]?.message?.content ?? '';
-  if (!texto) throw new ErroIa('A IA não respondeu nada desta vez. Tente de novo.');
-  return { texto, modelo: json.model || modelo };
+  if (!texto) throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+  return { texto, modelo: `openrouter:${json.model || modelo}` };
 }
 
-/** Manda o pedido (texto + arquivos) ao provedor configurado e devolve o texto da resposta (JSON a validar). */
-export async function perguntarIa(instrucao: string, anexos: Anexo[] = []): Promise<RespostaIa> {
-  const chave = process.env.IA_CHAVE;
-  if (!chave) throw new ErroIa('A IA não está ligada. Cadastre a variável IA_CHAVE na Vercel.');
-  if (provedor() === 'openai') {
-    const modelo = process.env.IA_MODELO;
-    if (!modelo) throw new ErroIa('Com IA_PROVEDOR=openai, informe o modelo em IA_MODELO (ex.: um modelo ":free" do OpenRouter que leia imagem).');
-    return perguntarCompativel(chave, modelo, instrucao, anexos);
+// ---------------------------------------------------------------- entrada
+
+/** Conversa com a IA: Gemini primeiro (tentando outros modelos), OpenRouter se o Gemini não der conta. */
+export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]; anexos?: Anexo[]; json?: boolean }): Promise<RespostaIa> {
+  const pedido: Pedido = { sistema: p.sistema, mensagens: p.mensagens, anexos: p.anexos ?? [], json: p.json ?? false };
+  const gemini = process.env.IA_CHAVE;
+  const openrouter = chaveOpenRouter();
+  if (!gemini && !openrouter) throw new ErroIa('A IA não está ligada. Cadastre IA_CHAVE (Gemini) ou API_OPENROUTER na Vercel.');
+  let ultimo: ErroIa | null = null;
+  if (gemini) {
+    try {
+      return await perguntarGemini(gemini, pedido);
+    } catch (erro) {
+      if (!(erro instanceof ErroPassageiro) || !openrouter) throw erro;
+      ultimo = erro;
+    }
   }
-  return perguntarGemini(chave, process.env.IA_MODELO || 'gemini-flash-latest', instrucao, anexos);
+  if (openrouter) {
+    try {
+      return await perguntarOpenRouter(openrouter, pedido);
+    } catch (erro) {
+      // Os dois falharam: a mensagem do Gemini (o principal) costuma explicar melhor.
+      throw ultimo ?? erro;
+    }
+  }
+  throw ultimo ?? new ErroIa('A IA não respondeu.');
+}
+
+/** Pedido de leitura (texto + arquivos) com resposta em JSON. */
+export async function perguntarIa(instrucao: string, anexos: Anexo[] = []): Promise<RespostaIa> {
+  return conversarIa({ mensagens: [{ papel: 'usuario', texto: instrucao }], anexos, json: true });
 }
