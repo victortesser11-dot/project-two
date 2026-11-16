@@ -11,9 +11,11 @@ export type ParteIa =
   | { tipo: 'imagem'; mime: string; dados: Uint8Array; nome: string };
 
 /** Quantas imagens vão num pedido, somando todos os arquivos (cada imagem custa contexto do modelo). */
-export const MAX_IMAGENS_PEDIDO = 14;
-const LADO_VISAO_GERAL = 1600;
-const LADO_RECORTE = 1800;
+export const MAX_IMAGENS_PEDIDO = 8;
+/** Recortes por prancha: os de mais conteúdo, sempre com o canto inferior direito (carimbo). Imagem demais deixa o modelo grátis lento. */
+export const MAX_RECORTES_PRANCHA = 3;
+const LADO_VISAO_GERAL = 1400;
+const LADO_RECORTE = 1600;
 /** Lado maior do desenho da prancha antes de recortar (~120 dpi numa A1): carimbo legível sem estourar a memória. */
 const LADO_PRANCHA = 5000;
 const LADO_FOTO = 2000;
@@ -89,6 +91,7 @@ async function prepararPdf(m: { unpdf: typeof import('unpdf'); canvas: Canvas },
       const prancha = Math.max(vp.width, vp.height) > PRANCHA_PONTOS;
       // Recortes só na primeira página de prancha, e só se sobrar lugar para a visão geral e pelo menos 2 recortes.
       const comRecortes = prancha && n === 1 && vagas >= 3;
+      const maxRecortes = Math.min(MAX_RECORTES_PRANCHA, vagas - 1);
       const lado = comRecortes ? LADO_PRANCHA : LADO_VISAO_GERAL * 1.25;
       const largura = Math.round(vp.width >= vp.height ? lado : (lado * vp.width) / vp.height);
       const png = await unpdf.renderPageAsImage(pdf, n, { canvasImport: () => Promise.resolve(c), width: largura, format: 'jpeg', quality: 0.92 });
@@ -107,24 +110,29 @@ async function prepararPdf(m: { unpdf: typeof import('unpdf'); canvas: Canvas },
       partes.push({ tipo: 'imagem', mime: 'image/jpeg', dados: recortar(c, img, 0, 0, W, H, LADO_VISAO_GERAL), nome: `${nome} p${n}` });
       vagas--;
 
-      if (comRecortes) {
+      if (comRecortes && maxRecortes > 0) {
         const colunas = Math.ceil(W / LADO_RECORTE);
         const linhas = Math.ceil(H / LADO_RECORTE);
-        const total = colunas * linhas;
-        if (total <= vagas) {
+        const cw = W / colunas;
+        const ch = H / linhas;
+        const todos: { l: number; k: number; dados: Uint8Array }[] = [];
+        for (let l = 0; l < linhas; l++) {
+          for (let k = 0; k < colunas; k++) todos.push({ l, k, dados: recortar(c, img, k * cw, l * ch, cw, ch, LADO_RECORTE) });
+        }
+        // JPEG maior = mais traço e texto. O canto inferior direito vai sempre (é onde fica o carimbo).
+        const canto = todos.at(-1)!;
+        const escolhidos = [canto, ...todos.filter((t) => t !== canto).sort((a, b) => b.dados.byteLength - a.dados.byteLength)]
+          .slice(0, maxRecortes)
+          .sort((a, b) => a.l - b.l || a.k - b.k);
+        for (const t of escolhidos) {
+          const ondeFica = t === canto ? ', canto inferior direito, onde costuma ficar o carimbo' : '';
           partes.push({
             tipo: 'texto',
-            texto: `Recortes da página ${n} de "${nome}" em resolução maior, da esquerda para a direita e de cima para baixo (${linhas} linhas × ${colunas} colunas); o carimbo costuma estar no canto inferior direito.`,
+            texto: `Recorte da página ${n} de "${nome}" em resolução maior: linha ${t.l + 1} de ${linhas}, coluna ${t.k + 1} de ${colunas}${ondeFica}.`,
           });
-          const cw = W / colunas;
-          const ch = H / linhas;
-          for (let l = 0; l < linhas; l++) {
-            for (let k = 0; k < colunas; k++) {
-              partes.push({ tipo: 'imagem', mime: 'image/jpeg', dados: recortar(c, img, k * cw, l * ch, cw, ch, LADO_RECORTE), nome: `${nome} p${n} r${l + 1}c${k + 1}` });
-            }
-          }
-          vagas -= total;
+          partes.push({ tipo: 'imagem', mime: 'image/jpeg', dados: t.dados, nome: `${nome} p${n} r${t.l + 1}c${t.k + 1}` });
         }
+        vagas -= escolhidos.length;
       }
     }
     if (pdf.numPages > paginas) partes.push({ tipo: 'texto', texto: `"${nome}" tem ${pdf.numPages} páginas; vão as ${paginas} primeiras como imagem.` });

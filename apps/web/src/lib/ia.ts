@@ -23,10 +23,16 @@ export class ErroIa extends Error {}
 
 /** Erro de um provedor que vale tentar em outro modelo ou provedor (sobrecarga, cota, modelo sumido). */
 class ErroPassageiro extends ErroIa {}
+/** Acabou o tempo da leitura: não adianta tentar outro modelo (a função da Vercel seria cortada no meio). */
+class ErroTempo extends ErroIa {}
 
 const BASE_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 const BASE_OPENROUTER = 'https://openrouter.ai/api/v1';
-const TEMPO_MAXIMO = 120_000;
+/** Quanto cada chamada pode esperar, no máximo (dentro do prazo total do pedido). */
+const ESPERA_OPENROUTER = 150_000;
+const ESPERA_GEMINI = 90_000;
+/** Prazo total padrão de um pedido (a página da leitura tem 300 s na Vercel; sobra para gravar e responder). */
+const PRAZO_PADRAO = 240_000;
 const MAX_MODELOS_GEMINI = 4;
 
 /** Chave do OpenRouter: API_OPENROUTER (nome cadastrado na Vercel) ou OPENROUTER_CHAVE. */
@@ -97,13 +103,20 @@ function erroDoProvedor(status: number, corpo: string): ErroIa {
   return new ErroIa(`A IA não aceitou o pedido (${status}). ${corpo.slice(0, 200)}`);
 }
 
-async function postar(url: string, cabecalhos: Record<string, string>, corpo: unknown): Promise<Response> {
+/** Quanto esta chamada pode esperar: o limite do provedor, sem passar do prazo do pedido. */
+function tempoDaChamada(p: Pedido, limite: number): number {
+  const resta = p.fim - Date.now() - 5_000;
+  if (resta < 15_000) throw new ErroTempo('A IA demorou demais e a leitura parou. Tente de novo com menos arquivos, ou mais tarde.');
+  return Math.min(limite, resta);
+}
+
+async function postar(url: string, cabecalhos: Record<string, string>, corpo: unknown, ms: number): Promise<Response> {
   try {
     return await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...cabecalhos },
       body: JSON.stringify(corpo),
-      signal: AbortSignal.timeout(TEMPO_MAXIMO),
+      signal: AbortSignal.timeout(ms),
       cache: 'no-store',
     });
   } catch (erro) {
@@ -119,6 +132,10 @@ type Pedido = {
   json: boolean;
   /** Anexos já abertos pelo servidor (texto do PDF + imagens das páginas), preparados só se algum provedor precisar. */
   preparados: () => Promise<ParteIa[]>;
+  /** Instante-limite do pedido inteiro (todas as tentativas). */
+  fim: number;
+  /** Tamanho máximo da resposta: modelo grátis escreve devagar, e resposta longa estoura o tempo. */
+  maxTokens?: number;
 };
 
 /** O Gemini lê PDF e imagem direto; arquivo grande demais para o pedido (limite de 20 MB) vai preparado. */
@@ -149,6 +166,7 @@ async function modelosFlash(chave: string): Promise<string[]> {
 }
 
 async function chamarGemini(chave: string, modelo: string, p: Pedido): Promise<RespostaIa> {
+  tempoDaChamada(p, ESPERA_GEMINI);
   const anexos = geminiLeDireto(p.anexos)
     ? p.anexos.map((a) => ({ inline_data: { mime_type: a.mime, data: base64(a.dados) } }))
     : (await p.preparados()).map((x) => (x.tipo === 'texto' ? { text: x.texto } : { inline_data: { mime_type: x.mime, data: base64(x.dados) } }));
@@ -160,9 +178,14 @@ async function chamarGemini(chave: string, modelo: string, p: Pedido): Promise<R
   const corpo = {
     ...(p.sistema ? { systemInstruction: { parts: [{ text: p.sistema }] } } : {}),
     contents,
-    generationConfig: { temperature: 0.2, ...(p.json ? { responseMimeType: 'application/json' } : {}) },
+    generationConfig: {
+      temperature: 0.2,
+      ...(p.maxTokens ? { maxOutputTokens: p.maxTokens } : {}),
+      ...(p.json ? { responseMimeType: 'application/json' } : {}),
+    },
   };
-  const r = await postar(`${BASE_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { 'x-goog-api-key': chave }, corpo);
+  const ms = tempoDaChamada(p, ESPERA_GEMINI);
+  const r = await postar(`${BASE_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { 'x-goog-api-key': chave }, corpo, ms);
   const textoBruto = await r.text();
   if (!r.ok) {
     console.error(`IA (Gemini ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
@@ -220,6 +243,7 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
   const modelo = process.env.OPENROUTER_MODELO || 'openrouter/free';
   // PDF vai aberto pelo servidor (texto + imagens das páginas): o leitor de arquivos do OpenRouter recusa PDF grande
   // e não vê desenho nem prancha escaneada.
+  tempoDaChamada(p, ESPERA_OPENROUTER);
   const anexos = p.anexos.length > 0 ? await p.preparados() : [];
   const parteAnexo = (x: ParteIa) =>
     x.tipo === 'texto' ? { type: 'text', text: x.texto } : { type: 'image_url', image_url: { url: `data:${x.mime};base64,${base64(x.dados)}` } };
@@ -231,6 +255,7 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
         : { role: m.papel === 'assistente' ? 'assistant' : 'user', content: m.texto },
     ),
   ];
+  const ms = tempoDaChamada(p, ESPERA_OPENROUTER);
   const r = await postar(
     `${url}/chat/completions`,
     {
@@ -244,8 +269,10 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
       messages,
       // Modelo que "pensa" antes de responder demora muito: pensa pouco e não devolve o raciocínio.
       reasoning: { effort: 'low', exclude: true },
+      ...(p.maxTokens ? { max_tokens: p.maxTokens } : {}),
       ...(p.json ? { response_format: { type: 'json_object' } } : {}),
     },
+    ms,
   );
   const textoBruto = await r.text();
   if (!r.ok) {
@@ -287,7 +314,15 @@ function provedores(): Provedor[] {
 }
 
 /** Conversa com a IA: o provedor principal e, se ele não der conta (sobrecarga, cota, arquivo recusado), o outro. */
-export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]; anexos?: Anexo[]; json?: boolean }): Promise<RespostaIa> {
+export async function conversarIa(p: {
+  sistema?: string;
+  mensagens: MensagemIa[];
+  anexos?: Anexo[];
+  json?: boolean;
+  /** Prazo total, somando todas as tentativas (padrão 240 s). */
+  prazoMs?: number;
+  maxTokens?: number;
+}): Promise<RespostaIa> {
   const anexos = p.anexos ?? [];
   let preparo: Promise<ParteIa[]> | null = null;
   const pedido: Pedido = {
@@ -296,6 +331,8 @@ export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]
     anexos,
     json: p.json ?? false,
     preparados: () => (preparo ??= prepararAnexosIa(anexos)),
+    fim: Date.now() + (p.prazoMs ?? PRAZO_PADRAO),
+    maxTokens: p.maxTokens,
   };
   const lista = provedores();
   if (lista.length === 0) throw new ErroIa('A IA não está ligada. Cadastre API_OPENROUTER ou IA_CHAVE (Gemini) na Vercel.');
@@ -309,6 +346,11 @@ export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]
       if (!(erro instanceof ErroIa)) console.error(`IA (${prov.nome}) falhou de um jeito inesperado`, erro);
       console.error(`IA (${prov.nome}) não conseguiu em ${Math.round((Date.now() - inicio) / 1000)} s: ${e.message}`);
       falhas.push({ nome: prov.nome, erro: e });
+      // Acabou o tempo: para aqui, com a mensagem que explica (e o motivo do provedor que falhou antes, se houver).
+      if (e instanceof ErroTempo) {
+        if (falhas.length === 1) throw e;
+        throw new ErroIa(`${falhas[0]!.erro.message} ${e.message}`);
+      }
       // Chave recusada ou pedido inválido: avisa já (outro provedor não resolve o que é da configuração).
       if (!(e instanceof ErroPassageiro) && /chave/i.test(e.message)) throw e;
       if (i === lista.length - 1) break;
@@ -320,6 +362,10 @@ export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]
 }
 
 /** Pedido de leitura (texto + arquivos) com resposta em JSON. */
-export async function perguntarIa(instrucao: string, anexos: Anexo[] = []): Promise<RespostaIa> {
-  return conversarIa({ mensagens: [{ papel: 'usuario', texto: instrucao }], anexos, json: true });
+export async function perguntarIa(
+  instrucao: string,
+  anexos: Anexo[] = [],
+  opcoes: { prazoMs?: number; maxTokens?: number } = {},
+): Promise<RespostaIa> {
+  return conversarIa({ mensagens: [{ papel: 'usuario', texto: instrucao }], anexos, json: true, ...opcoes });
 }

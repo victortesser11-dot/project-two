@@ -25,14 +25,14 @@ describe('preparo dos anexos para a IA', () => {
     expect(partes[0]).toMatchObject({ tipo: 'texto' });
     expect((partes[0] as { texto: string }).texto).toContain('CARIMBO ARQ 01 - Residencial');
     const imagens = partes.filter((p) => p.tipo === 'imagem');
-    // 5000 × 2853 px em recortes de até 1800: 3 colunas × 2 linhas, mais a visão geral.
-    expect(imagens).toHaveLength(7);
+    // Visão geral + 3 recortes (os de mais conteúdo, sempre com o canto inferior direito do carimbo).
+    expect(imagens).toHaveLength(4);
     expect(imagens.length).toBeLessThanOrEqual(MAX_IMAGENS_PEDIDO);
     for (const i of imagens) {
       expect(i.mime).toBe('image/jpeg');
       expect([...i.dados.slice(0, 2)]).toEqual([0xff, 0xd8]);
     }
-    expect(partes.some((p) => p.tipo === 'texto' && p.texto.includes('2 linhas × 3 colunas'))).toBe(true);
+    expect(partes.some((p) => p.tipo === 'texto' && p.texto.includes('linha 2 de 2, coluna 4 de 4, canto inferior direito'))).toBe(true);
   }, 60_000);
 
   it('folha comum (A4) vai só com a visão geral; foto pequena passa como veio', async () => {

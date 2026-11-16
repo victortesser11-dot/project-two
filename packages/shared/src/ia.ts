@@ -185,7 +185,7 @@ ${lista(dados.eap.tarefas)}
 
 Responda só com um JSON neste formato:
 {
-  "resumo": "o que é a obra, em até 5 frases",
+  "resumo": "o que é a obra, em até 4 frases",
   "dados_obra": { "tipo": "", "endereco": "", "cep": "", "area_construida_m2": 0, "area_terreno_m2": 0, "pavimentos": "", "unidades": "", "proprietario": "", "responsavel_tecnico": "", "art_rrt": "", "alvara": "", "matricula": "" },
   "tarefas": [ { "etapa": "", "nome": "", "unidade": "", "quantidade": 0, "motivo": "", "arquivo": "" } ],
   "faltando": [ { "tipo": "documento | tarefa | informacao", "descricao": "", "importancia": "alta | media | baixa" } ],
@@ -193,12 +193,14 @@ Responda só com um JSON neste formato:
 }
 
 Regras:
-- "tarefas": só serviços que o projeto mostra e que NÃO aparecem no cronograma atual (nem com outro nome). Nome curto, no estilo das tarefas existentes. Em "etapa", use o nome exato de uma etapa existente quando couber; se não, uma etapa nova de poucas palavras. No máximo 40.
+- "tarefas": só serviços que o projeto mostra e que NÃO aparecem no cronograma atual (nem com outro nome). Nome curto, no estilo das tarefas existentes. Em "etapa", use o nome exato de uma etapa existente quando couber; se não, uma etapa nova de poucas palavras. No máximo 20, as mais importantes; "motivo" em poucas palavras.
 - "dados_obra": copie do carimbo, do quadro de áreas, do memorial ou da ART só o que estiver escrito; o que não aparecer fica null (não deduza CEP, área nem número de documento). "endereco" completo (rua, número, bairro, cidade/UF); "responsavel_tecnico" com nome e registro (CREA/CAU); "art_rrt", "alvara" (ou número do processo na prefeitura) e "matricula" só os números com a sigla. Nunca copie CPF, RG nem telefone.
 - "quantidade" e "unidade" só quando o desenho mostrar com clareza (área, comprimento, número de unidades); senão null.
 - "arquivo": o nome do arquivo de onde tirou a informação.
 - "faltando": use "documento" para projetos e documentos que uma obra assim costuma precisar e que não estão entre os documentos da obra (ex.: estrutural, elétrico, hidrossanitário, PPCI, ART/RRT, alvará, memorial descritivo); "tarefa" para partes da obra que o projeto mostra sem nenhuma tarefa no cronograma; "informacao" para dados que o projeto não deixa claro.
-- "sugestoes": conselhos práticos para o engenheiro (ordem de serviços, pontos de atenção, o que conferir antes de começar).
+- "faltando": no máximo 12 itens, os mais importantes primeiro.
+- "sugestoes": no máximo 6 conselhos práticos para o engenheiro (ordem de serviços, pontos de atenção, o que conferir antes de começar), uma frase cada.
+- Seja direto: a resposta inteira cabe em uma página.
 - Não invente. O que não der para ver nos arquivos fica de fora ou vira "informacao" em "faltando".
 - Escreva em português do Brasil.`;
 }

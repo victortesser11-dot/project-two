@@ -49,7 +49,7 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] Testar na obra Nápoles: Arquivos → "Ler o projeto com IA" com a prancha carimbada → conferir "Dados da obra encontrados
       nos projetos" → "Gravar". O cartão "Ficha da obra" aparece no painel.
 
-## IA pelo OpenRouter (16/11, ainda não publicado)
+## IA pelo OpenRouter (publicado em 16/11)
 
 - [ ] O OpenRouter passa a ser o principal (o Gemini grátis vive sobrecarregado e com cota curta). Sem crédito comprado, os
       modelos grátis do OpenRouter têm limite diário baixo; com uma compra única de créditos (a partir de US$ 10, que ficam lá

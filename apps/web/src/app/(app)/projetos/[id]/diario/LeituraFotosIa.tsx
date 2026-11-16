@@ -42,7 +42,10 @@ export function LeituraFotosIa({
   function ler() {
     setErro(null);
     iniciar(async () => {
-      const r = await lerFotosDoDiaComIa(projetoId, data);
+      const r = await lerFotosDoDiaComIa(projetoId, data).catch(() => ({
+        ok: false as const,
+        erro: 'A leitura não terminou (a conexão caiu ou o servidor passou do tempo). Tente de novo com menos fotos.',
+      }));
       if (!r.ok) {
         setErro(r.erro);
         return;

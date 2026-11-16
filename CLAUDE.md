@@ -41,7 +41,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 4. **`audit_log` é imutável**: sem grant de insert/update/delete para `authenticated`.
 5. **Funções `security definer` sempre com `set search_path = ''`** e nomes qualificados (`public.x`).
    As RPCs públicas (`criar_empresa`, `criar_projeto`, `adicionar_membro_empresa`, `adicionar_membro_projeto`,
-   `membros_do_projeto`, as da EAP: `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
+   `membros_do_projeto`, as da EAP: `eap_do_projeto` (leitura; confere `pode_ver_projeto` uma vez em vez do RLS por linha),
+   `criar_item_eap`, `atualizar_item_eap`, `mover_item_eap`,
    `reposicionar_item_eap`, `excluir_item_eap`, `importar_eap`, as do cronograma: `salvar_dependencia`,
    `remover_dependencia`, `definir_linha_base`, a do campo: `registrar_avanco`, e as do diário: `salvar_diario`,
    `definir_efetivo`, `registrar_foto_diario`, `excluir_foto_diario`, `assinar_diario`, e as da equipe:
@@ -264,8 +265,12 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   cota do dia 1 h; 429 2 min; 503 1 min).
 - Anexos preparados no servidor (`lib/anexosIa.ts`, unpdf + `@napi-rs/canvas`, em `serverExternalPackages`): o leitor de arquivos
   do OpenRouter recusa PDF grande e só tira texto. O PDF vira texto (camada de texto) + imagens JPEG das 3 primeiras páginas;
-  prancha (lado > 1400 pt) ganha recortes de até 1800 px desenhados a 5000 px (carimbo legível); prancha escaneada em pé é girada
-  90° no sentido horário (carimbo no canto inferior direito). Até 14 imagens por pedido; foto acima de 1,5 MB vai a 2000 px.
+  prancha (lado > 1400 pt) é desenhada a 5000 px e ganha 3 recortes de até 1600 px (os de mais conteúdo, sempre com o canto
+  inferior direito, do carimbo); prancha escaneada em pé é girada 90° no sentido horário. Até 8 imagens por pedido (imagem demais
+  deixa o modelo grátis lento); foto acima de 1,5 MB vai a 2000 px.
+- Prazo total por pedido (`prazoMs`, somando as tentativas; leitura 250 s, assistente 100 s) abaixo do `maxDuration` da página:
+  sem tempo para outra tentativa, para e explica (`ErroTempo`). Cada chamada espera no máximo 150 s (OpenRouter) ou 90 s
+  (Gemini). `maxTokens` limita a resposta (modelo grátis escreve devagar); o pedido de leitura pede listas curtas.
   O Gemini recebe o PDF direto quando cabe (até 8 MB cada, 14 MB no total); acima disso, as mesmas partes preparadas. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
   obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
@@ -318,6 +323,16 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   obra e admin) e "Excluir a obra" (só admin, RLS `projeto_delete`, com confirmação de perigo). `excluirProjeto` apaga antes os
   arquivos do bucket `arquivos`; obra de exemplo sai por `excluir_obra_exemplo`. Fotos do diário e das câmeras ficam no Storage.
   Obra sem endereço mostra "Informar endereço e CEP da obra" no cabeçalho.
+
+## Desempenho
+
+- Cada clique passa pelo middleware e pela página: o login é conferido por `auth.getClaims()` (assinatura ES256 do token
+  com a chave pública do projeto, em cache), sem ida ao servidor de login; `exigirUsuario` devolve só `id` e `email`.
+- `loading.tsx` em `(app)` e em `projetos/[id]` (`components/Carregando.tsx`): o esqueleto aparece na hora do clique e o
+  Next pré-carrega até ele. Página nova pesada pode ganhar o seu.
+- Leitura grande que roda em função `security invoker` paga o RLS por linha (a EAP da Nápoles, 1.506 itens, ia de ~100 ms
+  para ~500 ms). Nesse caso a função confere a permissão uma vez e vira `security definer` (com teste de quem não vê).
+  Para achar o lento: `extensions.pg_stat_statements` filtrado pelo papel `authenticated`.
 
 ## Interface
 
