@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { CalendarRange } from 'lucide-react';
-import { formatarData, ROTULO_STATUS, STATUS_PROJETO, type Projeto } from '@obras/shared';
+import { CAMPOS_FICHA, formatarData, ROTULO_STATUS, STATUS_PROJETO, type FichaObra, type Projeto } from '@obras/shared';
 import { criarProjeto, editarProjeto, type EstadoFormulario } from '../../acoes';
 import { AvisoErro, Botao, Campo, classeBotao, classeEntrada } from '@/components/ui';
 
-type ObraEditada = Pick<Projeto, 'id' | 'nome' | 'endereco' | 'data_inicio' | 'data_fim_prevista' | 'orcamento_total' | 'status'> & {
+type ObraEditada = Pick<Projeto, 'id' | 'nome' | 'endereco' | 'data_inicio' | 'data_fim_prevista' | 'orcamento_total' | 'status' | 'cep'> &
+  Partial<FichaObra> & {
   /** A obra já tem localização (latitude e longitude) para o clima. */
   temLocalizacao?: boolean;
 };
@@ -17,6 +18,13 @@ function emReais(valor: number | string | null): string {
   if (valor === null || valor === '') return '';
   const n = Number(valor);
   return Number.isFinite(n) ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+}
+
+/** Área do banco (12450.5) como o campo mostra ("12.450,5"). */
+function emM2(valor: number | string | null | undefined): string {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const n = Number(valor);
+  return Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '';
 }
 
 /**
@@ -33,6 +41,8 @@ export function FormularioProjeto({ projeto, cronograma }: { projeto?: ObraEdita
         data_fim_prevista: projeto.data_fim_prevista ?? '',
         orcamento_total: emReais(projeto.orcamento_total),
         status: projeto.status,
+        cep: projeto.cep ? `${projeto.cep.slice(0, 5)}-${projeto.cep.slice(5)}` : '',
+        ...Object.fromEntries(CAMPOS_FICHA.map((c) => [c.campo, c.area ? emM2(projeto[c.campo]) : ((projeto[c.campo] as string | null | undefined) ?? '')])),
       }
     : {};
   const v = estado.valores ?? inicial;
@@ -45,6 +55,7 @@ export function FormularioProjeto({ projeto, cronograma }: { projeto?: ObraEdita
   return (
     <form action={acao} className="flex flex-col gap-6" noValidate>
       {projeto && <input type="hidden" name="projeto_id" value={projeto.id} />}
+      {projeto && <input type="hidden" name="cep_atual" value={projeto.cep ?? ''} />}
       {estado.erroGeral && <AvisoErro>{estado.erroGeral}</AvisoErro>}
 
       <Campo rotulo="Nome da obra" nome="nome" erro={e.nome}>
@@ -120,6 +131,34 @@ export function FormularioProjeto({ projeto, cronograma }: { projeto?: ObraEdita
           </select>
         </Campo>
       </div>
+
+      {projeto && (
+        <fieldset className="flex flex-col gap-6 border-t border-linha pt-6">
+          <legend className="sr-only">Ficha técnica</legend>
+          <div>
+            <h3 className="font-semibold">Ficha técnica</h3>
+            <p className="mt-1 text-sm text-regua">
+              O que está no carimbo das pranchas e no licenciamento. A leitura dos projetos com IA (aba Arquivos) sugere estes dados para você conferir.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {CAMPOS_FICHA.map((c) => (
+              <Campo key={c.campo} rotulo={c.rotulo} nome={c.campo} erro={e[c.campo]}>
+                <input
+                  id={c.campo}
+                  name={c.campo}
+                  defaultValue={v[c.campo]}
+                  maxLength={c.max}
+                  inputMode={c.area ? 'decimal' : undefined}
+                  aria-invalid={Boolean(e[c.campo])}
+                  className={`${classeEntrada}${c.area ? ' numeros' : ''}`}
+                  placeholder={c.exemplo}
+                />
+              </Campo>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-linha pt-6">
         <Botao type="submit" disabled={salvando}>

@@ -57,3 +57,14 @@ describe('assistente da obra', () => {
     expect(i.endsWith('DADOS')).toBe(true);
   });
 });
+
+describe('ficha técnica no contexto do assistente', () => {
+  it('vai numa linha só, logo depois do prazo', () => {
+    const texto = textoContextoObra({
+      hoje: '2026-11-16',
+      obra: { nome: 'Nápoles', endereco: null, situacao: 'Em andamento', inicio: null, fim: null, ficha: [{ rotulo: 'Área construída (m²)', valor: '17.923,63' }, { rotulo: 'Pavimentos', valor: 'Térreo + 6' }] },
+      prazo: null, etapas: [], tarefas: [], alertas: [], previsao: [], diarios: [], equipeHoje: null, materiais: [], arquivos: [], resumoProjeto: null, custos: null,
+    });
+    expect(texto).toContain('Ficha técnica: Área construída (m²): 17.923,63; Pavimentos: Térreo + 6.');
+  });
+});

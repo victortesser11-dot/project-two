@@ -36,10 +36,15 @@ import type {
   MembroProjeto,
   PapelProjeto,
   Projeto,
+  ProjetoComFicha,
   StatusDiario,
 } from '@obras/shared';
 import { hojeIso, REGRA_SEMAFORO_PADRAO, type AlertaDefesaCivil, type AnaliseIa, type ArquivoObra } from '@obras/shared';
 import { emPaginas } from '@/lib/paginas';
+
+/** Colunas da ficha técnica da obra (carimbo das pranchas e licenciamento). */
+export const COLUNAS_FICHA =
+  'cep, tipo_obra, area_construida_m2, area_terreno_m2, pavimentos, unidades, proprietario, responsavel_tecnico, art_rrt, alvara, matricula';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 /** Usuário logado; sem sessão, manda para o login. */
@@ -85,13 +90,14 @@ export const buscarProjeto = cache(async (id: string) => {
   const [projeto, papel] = await Promise.all([
     supabase
       .from('projeto')
-      .select('id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em, latitude, longitude, exemplo')
+      .select(`id, empresa_id, nome, endereco, data_inicio, data_fim_prevista, orcamento_total, status, responsavel_id, criado_em, atualizado_em,
+        latitude, longitude, exemplo, ${COLUNAS_FICHA}`)
       .eq('id', id)
       .maybeSingle(),
     supabase.from('membro_projeto').select('papel').eq('projeto_id', id).eq('usuario_id', usuario.id).maybeSingle(),
   ]);
   if (projeto.error) throw new Error(`Não foi possível carregar o projeto: ${projeto.error.message}`);
-  return projeto.data ? { projeto: projeto.data as Projeto, papel: papel.data?.papel ?? null } : null;
+  return projeto.data ? { projeto: projeto.data as ProjetoComFicha, papel: papel.data?.papel ?? null } : null;
 });
 
 /**

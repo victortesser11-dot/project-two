@@ -11,6 +11,7 @@ import {
   LIMITE_ARQUIVOS_IA,
   LIMITE_BYTES_IA,
   ROTULO_TIPO_FALTANDO,
+  propostaFicha,
   TIPOS_FALTANDO,
   type ArquivoObra,
   type Importancia,
@@ -20,6 +21,7 @@ import {
 import { Botao, classeBotao } from '@/components/ui';
 import { avisar } from '@/lib/avisos';
 import { criarTarefasSugeridas, lerArquivosComIa, type LeituraArquivosPronta } from './acoesIa';
+import { FichaSugerida, type FichaAtual } from './FichaSugerida';
 
 export type LeituraAnterior = LeituraArquivosPronta & { criado_em: string; arquivos: string[] };
 
@@ -41,8 +43,11 @@ export function LeituraIa({
   ilegiveis,
   anteriores,
   restantesHoje,
+  fichaAtual,
 }: {
   projetoId: string;
+  /** Dados da obra hoje, para comparar com o que a IA leu nos projetos. */
+  fichaAtual: FichaAtual;
   /** Versões vigentes que a IA lê (PDF e imagem). */
   legiveis: ArquivoObra[];
   /** Quantos documentos a IA não lê (DWG, planilhas...). */
@@ -193,7 +198,9 @@ export function LeituraIa({
         </div>
       )}
 
-      {atual && <ResultadoLeitura key={atual.id} projetoId={projetoId} analiseId={atual.id} leitura={atual.leitura} sugestoes={atual.sugestoes} />}
+      {atual && (
+        <ResultadoLeitura key={atual.id} projetoId={projetoId} analiseId={atual.id} leitura={atual.leitura} sugestoes={atual.sugestoes} fichaAtual={fichaAtual} />
+      )}
     </section>
   );
 }
@@ -203,11 +210,13 @@ function ResultadoLeitura({
   analiseId,
   leitura,
   sugestoes,
+  fichaAtual,
 }: {
   projetoId: string;
   analiseId: string;
   leitura: LeituraArquivos;
   sugestoes: SugestaoConferida[];
+  fichaAtual: FichaAtual;
 }) {
   const [marcadas, setMarcadas] = useState<Set<number>>(() => new Set(sugestoes.flatMap((s, i) => (s.jaExiste ? [] : [i]))));
   const [criando, iniciar] = useTransition();
@@ -224,6 +233,8 @@ function ResultadoLeitura({
   }, [sugestoes]);
 
   const d = leitura.dados_obra;
+  // Com algo a gravar, a lista de conferência mostra os dados; sem nada novo, ficam só os rótulos do que foi lido.
+  const temProposta = useMemo(() => propostaFicha(fichaAtual, d).length > 0, [fichaAtual, d]);
   const dados = [
     d.tipo && ['Tipo', d.tipo],
     d.area_construida_m2 && ['Área construída', `${d.area_construida_m2.toLocaleString('pt-BR')} m²`],
@@ -260,7 +271,7 @@ function ResultadoLeitura({
       <div>
         <h4 className="text-sm font-semibold tracking-wide text-regua uppercase">Resumo da obra</h4>
         <p className="mt-1">{leitura.resumo || 'A IA não resumiu a obra.'}</p>
-        {dados.length > 0 && (
+        {!temProposta && dados.length > 0 && (
           <dl className="mt-3 flex flex-wrap gap-2 text-sm">
             {dados.map(([rotulo, valor]) => (
               <div key={rotulo} className="rounded-medio border border-linha bg-papel px-3 py-1.5">
@@ -271,6 +282,9 @@ function ResultadoLeitura({
           </dl>
         )}
       </div>
+
+      {/* A chave muda quando a obra muda (depois de gravar): a lista recomeça só com o que ainda falta. */}
+      <FichaSugerida key={JSON.stringify(fichaAtual)} projetoId={projetoId} atual={fichaAtual} lidos={d} />
 
       <div>
         <h4 className="text-sm font-semibold tracking-wide text-regua uppercase">Tarefas sugeridas para o cronograma</h4>

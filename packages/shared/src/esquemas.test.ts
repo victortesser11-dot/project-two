@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dependenciaSchema, errosPorCampo, itemEapSchema, lerValorEmReais, membroProjetoSchema, projetoSchema } from './esquemas';
+import { dependenciaSchema, errosPorCampo, itemEapSchema, lerValorEmReais, fichaObraSchema, membroProjetoSchema, projetoSchema } from './esquemas';
 import { formatarData, prazoDecorrido } from './formato';
 
 describe('lerValorEmReais', () => {
@@ -156,5 +156,20 @@ describe('dependenciaSchema', () => {
 
   it.each([['1.5'], ['400'], ['dois']])('recusa defasagem %s', (d) => {
     expect(dependenciaSchema.safeParse({ predecessora_id: a, sucessora_id: b, tipo: 'tt', defasagem_dias: d }).success).toBe(false);
+  });
+});
+
+describe('fichaObraSchema', () => {
+  it('aceita o jeito brasileiro e grava como o banco espera', () => {
+    const r = fichaObraSchema.parse({ cep: '92030-000', area_construida_m2: '12.450,50 m²', area_terreno_m2: 5320, tipo_obra: '  Galpão ', alvara: '' });
+    expect(r).toMatchObject({ cep: '92030000', area_construida_m2: 12450.5, area_terreno_m2: 5320, tipo_obra: 'Galpão', alvara: null, matricula: null });
+  });
+  it('recusa CEP incompleto, área zero e texto longo, com mensagem no campo', () => {
+    const r = fichaObraSchema.safeParse({ cep: '9203', area_terreno_m2: '0', art_rrt: '9'.repeat(101) });
+    expect(r.success).toBe(false);
+    const erros = errosPorCampo(r.error!);
+    expect(erros.cep).toBe('O CEP tem 8 números');
+    expect(erros.area_terreno_m2).toContain('maior que zero');
+    expect(erros.art_rrt).toContain('100');
   });
 });

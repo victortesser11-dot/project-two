@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import {
   agruparVersoes,
+  CAMPOS_FICHA,
   hojeIso,
   instrucaoAssistente,
   itensComSaldo,
@@ -73,6 +74,11 @@ async function contextoDaObra(projetoId: string): Promise<string | null> {
       situacao: ROTULO_STATUS[projeto.status],
       inicio: projeto.data_inicio,
       fim: projeto.data_fim_prevista,
+      ficha: CAMPOS_FICHA.flatMap((f) => {
+        const v = projeto[f.campo];
+        if (v === null || v === undefined || v === '') return [];
+        return [{ rotulo: f.rotulo, valor: f.area ? Number(v).toLocaleString('pt-BR') : String(v) }];
+      }),
     },
     prazo: painel
       ? {

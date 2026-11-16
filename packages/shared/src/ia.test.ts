@@ -7,6 +7,7 @@ import {
   mimeParaIa,
   pedidoLeituraArquivos,
   pedidoLeituraFotos,
+  propostaFicha,
   resumoDaEap,
   tarefasDaLeitura,
 } from './ia';
@@ -85,7 +86,8 @@ describe('IA: o que volta do modelo', () => {
         { tipo: 'outro', descricao: 'CEP da obra', importancia: 'urgente' },
       ],
     });
-    expect(r.dados_obra).toEqual({ tipo: null, endereco: null, area_construida_m2: 17923.63, area_terreno_m2: null, pavimentos: 'Térreo + 6', unidades: '252' });
+    expect(r.dados_obra).toMatchObject({ tipo: null, endereco: null, area_construida_m2: 17923.63, area_terreno_m2: null, pavimentos: 'Térreo + 6', unidades: '252' });
+    expect(r.dados_obra.cep).toBeNull();
     expect(r.tarefas).toEqual([
       { etapa: 'Infraestrutura externa', nome: 'Piscina', unidade: 'un', quantidade: 1, motivo: 'ARQ 01 mostra piscina', arquivo: 'ARQ 01-24.pdf' },
     ]);
@@ -136,5 +138,48 @@ describe('IA: o que volta do modelo', () => {
       ['u2', 'avancou', 30],
       ['u3', 'nao_visivel', null],
     ]);
+  });
+});
+
+describe('ficha da obra a partir da leitura dos projetos', () => {
+  const lidos = leituraArquivosSchema.parse({
+    dados_obra: {
+      tipo: 'Residencial multifamiliar',
+      endereco: 'Av. Santos Ferreira, 4200 - Estância Velha - Canoas/RS',
+      cep: '92030-000',
+      area_construida_m2: 12450.5,
+      area_terreno_m2: '5320',
+      pavimentos: 'Térreo + 4',
+      responsavel_tecnico: 'Fulana de Tal (CAU A12345-6)',
+      art_rrt: null,
+      alvara: '',
+    },
+  }).dados_obra;
+
+  it('propõe só o que a IA leu; marca o que preenche campo vazio e deixa desmarcada a troca de valor', () => {
+    const linhas = propostaFicha(
+      { endereco: 'Av. Santos Ferreira, 4200 - Canoas', tipo_obra: 'residencial  MULTIFAMILIAR', area_terreno_m2: 5000 },
+      lidos,
+    );
+    expect(linhas.map((l) => [l.campo, l.atual, l.sugerido, l.marcar])).toEqual([
+      ['endereco', 'Av. Santos Ferreira, 4200 - Canoas', 'Av. Santos Ferreira, 4200 - Estância Velha - Canoas/RS', false],
+      ['cep', '', '92030-000', true],
+      ['area_construida_m2', '', '12.450,5', true],
+      ['area_terreno_m2', '5.000', '5.320', false],
+      ['pavimentos', '', 'Térreo + 4', true],
+      ['responsavel_tecnico', '', 'Fulana de Tal (CAU A12345-6)', true],
+    ]);
+  });
+
+  it('o mesmo valor (ignorando maiúsculas e espaços) não aparece; CEP incompleto também não', () => {
+    const outra = leituraArquivosSchema.parse({ dados_obra: { cep: '9203', tipo: 'Galpão' } }).dados_obra;
+    expect(propostaFicha({ endereco: null, tipo_obra: 'galpao' }, outra)).toEqual([]);
+  });
+
+  it('o pedido ensina a não deduzir nem copiar documento pessoal', () => {
+    const t = pedidoLeituraArquivos({ obra: { nome: 'X', endereco: null }, arquivos: [{ nome: 'A.pdf', pasta: 'Arquitetônico' }], documentos: [], eap: { etapas: [], tarefas: [], cortadas: 0 } });
+    expect(t).toContain('"responsavel_tecnico"');
+    expect(t).toContain('não deduza CEP');
+    expect(t).toContain('Nunca copie CPF');
   });
 });
