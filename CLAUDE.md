@@ -264,8 +264,12 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   cota do dia 1 h; 429 2 min; 503 1 min).
 - Anexos preparados no servidor (`lib/anexosIa.ts`, unpdf + `@napi-rs/canvas`, em `serverExternalPackages`): o leitor de arquivos
   do OpenRouter recusa PDF grande e só tira texto. O PDF vira texto (camada de texto) + imagens JPEG das 3 primeiras páginas;
-  prancha (lado > 1400 pt) ganha recortes de até 1800 px desenhados a 5000 px (carimbo legível); prancha escaneada em pé é girada
-  90° no sentido horário (carimbo no canto inferior direito). Até 14 imagens por pedido; foto acima de 1,5 MB vai a 2000 px.
+  prancha (lado > 1400 pt) é desenhada a 5000 px e ganha 3 recortes de até 1600 px (os de mais conteúdo, sempre com o canto
+  inferior direito, do carimbo); prancha escaneada em pé é girada 90° no sentido horário. Até 8 imagens por pedido (imagem demais
+  deixa o modelo grátis lento); foto acima de 1,5 MB vai a 2000 px.
+- Prazo total por pedido (`prazoMs`, somando as tentativas; leitura 250 s, assistente 100 s) abaixo do `maxDuration` da página:
+  sem tempo para outra tentativa, para e explica (`ErroTempo`). Cada chamada espera no máximo 150 s (OpenRouter) ou 90 s
+  (Gemini). `maxTokens` limita a resposta (modelo grátis escreve devagar); o pedido de leitura pede listas curtas.
   O Gemini recebe o PDF direto quando cabe (até 8 MB cada, 14 MB no total); acima disso, as mesmas partes preparadas. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
   obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga

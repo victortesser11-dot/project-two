@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { CircleAlert, FileSearch, LoaderCircle, Sparkles } from 'lucide-react';
 import {
   compararNomesArquivo,
@@ -71,6 +71,14 @@ export function LeituraIa({
   const [atual, setAtual] = useState<LeituraAnterior | null>(anteriores[0] ?? null);
   const [erro, setErro] = useState<string | null>(null);
   const [lendo, iniciar] = useTransition();
+  // Tempo da leitura na tela: abrir a prancha e esperar o modelo grátis leva de 30 s a uns 3 minutos.
+  const [segundos, setSegundos] = useState(0);
+  useEffect(() => {
+    if (!lendo) return;
+    setSegundos(0);
+    const id = setInterval(() => setSegundos((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [lendo]);
 
   const escolhidos = ordenados.filter((a) => marcados.has(a.id));
   const bytes = escolhidos.reduce((s, a) => s + a.tamanho, 0);
@@ -88,7 +96,10 @@ export function LeituraIa({
   function ler() {
     setErro(null);
     iniciar(async () => {
-      const r = await lerArquivosComIa(projetoId, [...marcados]);
+      const r = await lerArquivosComIa(projetoId, [...marcados]).catch(() => ({
+        ok: false as const,
+        erro: 'A leitura não terminou (a conexão caiu ou o servidor passou do tempo). Tente de novo com menos arquivos.',
+      }));
       if (!r.ok) {
         setErro(r.erro);
         return;
@@ -160,7 +171,7 @@ export function LeituraIa({
               </Botao>
               <p className="numeros text-sm text-regua" aria-live="polite">
                 {lendo
-                  ? 'Pode levar até um minuto. Não feche a página.'
+                  ? `Lendo há ${segundos < 60 ? `${segundos} s` : `${Math.floor(segundos / 60)} min ${String(segundos % 60).padStart(2, '0')} s`}. Prancha grande pode levar até 3 minutos; não feche a página.`
                   : passou
                     ? `Passou do limite: ${escolhidos.length} arquivos, ${formatarTamanho(bytes)} (até ${LIMITE_ARQUIVOS_IA} e ${formatarTamanho(LIMITE_BYTES_IA)}).`
                     : `${formatarTamanho(bytes)} escolhidos · ${restantesHoje > 0 ? `restam ${restantesHoje} leituras hoje` : 'acabaram as leituras de hoje'}`}

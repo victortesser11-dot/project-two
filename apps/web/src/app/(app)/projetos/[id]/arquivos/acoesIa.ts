@@ -85,7 +85,8 @@ export async function lerArquivosComIa(projetoId: string, arquivoIds: string[]):
 
   let resposta;
   try {
-    resposta = await perguntarIa(instrucao, anexos);
+    // Prazo abaixo dos 300 s da página: a resposta (ou o erro) sempre volta para a tela.
+    resposta = await perguntarIa(instrucao, anexos, { prazoMs: 250_000, maxTokens: 3_000 });
   } catch (erro) {
     if (!(erro instanceof ErroIa)) console.error('IA: falha inesperada', erro);
     return { ok: false, erro: erro instanceof ErroIa ? erro.message : 'A leitura com IA falhou. Tente de novo.' };

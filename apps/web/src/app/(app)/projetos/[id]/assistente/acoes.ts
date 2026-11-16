@@ -133,7 +133,8 @@ export async function perguntarAoAssistente(projetoId: string, mensagens: { pape
   if (!contexto) return { ok: false, erro: 'Obra não encontrada.' };
   const montado = Date.now();
   try {
-    const r = await conversarIa({ sistema: instrucaoAssistente(contexto), mensagens: m.data });
+    // Página com 120 s: a IA tem até 100 s, somando as tentativas.
+    const r = await conversarIa({ sistema: instrucaoAssistente(contexto), mensagens: m.data, prazoMs: 100_000, maxTokens: 1_500 });
     console.info(`Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s, IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`);
     return { ok: true, texto: r.texto.trim(), modelo: r.modelo };
   } catch (erro) {

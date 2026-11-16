@@ -188,6 +188,22 @@ describe('camada de IA', () => {
     await expect(ia.perguntarIa('x')).rejects.toThrow('não está ligada');
   });
 
+  it('prazo do pedido: sem tempo para mais uma tentativa, para e explica (não chega a cortar a página)', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    responder();
+    const { perguntarIa } = await import('./ia');
+    await expect(perguntarIa('x', [], { prazoMs: 10_000 })).rejects.toThrow('demorou demais');
+    expect(chamadas).toHaveLength(0);
+  });
+
+  it('pede resposta curta quando a tela manda (modelo grátis escreve devagar)', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    responder(resposta(200, { choices: [{ message: { content: '{}' } }] }));
+    const { perguntarIa } = await import('./ia');
+    await perguntarIa('x', [], { maxTokens: 3_000 });
+    expect((chamadas[0]!.corpo as { max_tokens: number }).max_tokens).toBe(3_000);
+  });
+
   it('limite diário: padrão 20, ajustável pela variável', async () => {
     const { limiteDiarioIa } = await import('./ia');
     delete process.env.IA_LIMITE_DIA;
