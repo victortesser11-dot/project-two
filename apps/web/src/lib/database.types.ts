@@ -142,6 +142,67 @@ export type Database = {
           },
         ]
       }
+      analise_ia: {
+        Row: {
+          arquivos: string[]
+          criado_em: string
+          criado_por: string | null
+          diario_id: string | null
+          empresa_id: string
+          id: string
+          modelo: string
+          projeto_id: string
+          resultado: Json
+          tipo: string
+        }
+        Insert: {
+          arquivos?: string[]
+          criado_em?: string
+          criado_por?: string | null
+          diario_id?: string | null
+          empresa_id: string
+          id: string
+          modelo: string
+          projeto_id: string
+          resultado: Json
+          tipo: string
+        }
+        Update: {
+          arquivos?: string[]
+          criado_em?: string
+          criado_por?: string | null
+          diario_id?: string | null
+          empresa_id?: string
+          id?: string
+          modelo?: string
+          projeto_id?: string
+          resultado?: Json
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_ia_diario_id_fkey"
+            columns: ["diario_id"]
+            isOneToOne: false
+            referencedRelation: "diario_obra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_ia_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_ia_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       arquivo_obra: {
         Row: {
           atualizado_em: string
@@ -2480,6 +2541,18 @@ export type Database = {
           p_quantidade_contada: number
         }
         Returns: number
+      }
+      registrar_analise_ia: {
+        Args: {
+          p_arquivos?: string[]
+          p_diario_id?: string
+          p_id: string
+          p_modelo: string
+          p_projeto_id: string
+          p_resultado: Json
+          p_tipo: string
+        }
+        Returns: string
       }
       registrar_arquivo_obra: {
         Args: {

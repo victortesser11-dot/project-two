@@ -53,7 +53,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, e as da obra de exemplo:
+   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -241,6 +241,25 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   pasta (`arquivos/arraste.ts`) mandam tudo de uma vez. A sigla do nome escolhe a pasta (`categoriaPeloNome`: ARQ, EST,
   ELE, HID, ESG...; sem sigla vale a pasta da tela) e as sobras do AutoCAD e do computador (`arquivoAuxiliar`: .bak,
   plot.log, .dwl) ficam de fora sem contar como erro. Na lista, as pranchas ficam em ordem de nome (`compararNomesArquivo`).
+
+## IA (leitura de arquivos e de fotos)
+
+- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): `IA_CHAVE` (sem ela as telas de IA somem), `IA_PROVEDOR`
+  (`gemini` padrão, API nativa que lê PDF e imagem; ou `openai` para APIs compatíveis como OpenRouter/Groq, só imagem, com
+  `IA_URL` e `IA_MODELO` obrigatório), `IA_MODELO` (padrão `gemini-flash-latest`; modelo aposentado (404) cai no Flash mais
+  novo da lista do Google), `IA_LIMITE_DIA` (leituras por obra por dia, padrão 20, para a cota grátis). Erros do provedor viram
+  `ErroIa` com mensagem de obra (cota, chave, tamanho).
+- Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
+  (campo faltando ou tipo trocado não derruba a leitura). Tarefas vão como T1, T2 (o modelo erra UUID).
+- Toda leitura válida é gravada em `analise_ia` por `registrar_analise_ia` (imutável, auditada): histórico para reabrir sem gastar
+  cota e base do limite diário. A IA só sugere: tarefas entram por `criar_item_eap` (marcadas pelo engenheiro, `codigo_externo`
+  `ia:<leitura>:<n>`, sem datas) e avanço por `registrar_avanco` (conferido pelo engenheiro ou mestre, diário não assinado).
+- Aba Arquivos, "Ler o projeto com IA" (quem edita a obra): até 6 PDFs/imagens e 18 MB por leitura; devolve resumo, dados da
+  obra, tarefas que faltam (comparadas com a EAP por `conferirSugestoes`), o que falta (documento, parte da obra, informação) e
+  sugestões. DWG não é lido. Arquivo novo enviado aparece marcado como "ainda não lido".
+- Diário do dia, "Ler as fotos com IA" (engenheiro e mestre): até 6 fotos; as tarefas são as marcadas nas fotos e as programadas
+  para a data (`tarefasDoDia`); devolve avanço sugerido (nunca abaixo do já apontado), pessoas, máquinas e riscos de segurança.
+- No plano grátis do Gemini o Google pode usar o conteúdo para melhorar os produtos dele: não mande CPF nem dado sensível.
 
 ## Obra de exemplo
 

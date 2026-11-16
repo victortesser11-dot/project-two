@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { dataIsoValida, efetivoDaChamada, formatarDataLonga, hojeIso, somarDias } from '@obras/shared';
+import { dataIsoValida, efetivoDaChamada, formatarDataLonga, hojeIso, somarDias, tarefasDaLeitura } from '@obras/shared';
 import {
   buscarChamada,
   buscarDiario,
   buscarEap,
   buscarProjeto,
+  leiturasIaHoje,
+  listarAnalisesIa,
   listarEmpreiteiras,
   listarEquipeProjeto,
   podeApontarCampo,
@@ -19,8 +21,13 @@ import { EditorEfetivo } from '../EditorEfetivo';
 import { FotosDiario } from '../FotosDiario';
 import { BotaoAssinar, BotaoLocalizacao, FormularioCep } from '../AcoesDiario';
 import { conteudoParaExibir, urlsDasFotos } from '../conteudo';
+import { LeituraFotosIa } from '../LeituraFotosIa';
+import { leituraFotosGravadaSchema } from '../leituraIa';
+import { iaConfigurada, limiteDiarioIa } from '@/lib/ia';
 
 export const metadata: Metadata = { title: 'Diário do dia' };
+// A leitura das fotos com IA pode levar mais de um minuto.
+export const maxDuration = 300;
 
 const quantidadeBr = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
 
@@ -48,6 +55,21 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
   const sugestao =
     editavel && !diario?.clima_manha && temCoordenadas ? await buscarClimaDoDia(Number(projeto.latitude), Number(projeto.longitude), data) : null;
   const tarefas = itens.filter((i) => i.tipo === 'tarefa').map((t) => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+
+  // Leitura das fotos com IA: quem aponta o avanço, com a chave cadastrada e ao menos uma foto.
+  let ia: { anterior: Parameters<typeof LeituraFotosIa>[0]['anterior']; restantesHoje: number } | null = null;
+  if ((podeApontar || podeEditar) && diario && fotos.length > 0 && iaConfigurada() && !futuro) {
+    const [analises, usadas] = await Promise.all([listarAnalisesIa(id, 'fotos_diario'), leiturasIaHoje(id)]);
+    const ultima = analises.find((a) => a.diario_id === diario.id);
+    const gravada = ultima ? leituraFotosGravadaSchema.safeParse(ultima.resultado) : null;
+    ia = {
+      anterior:
+        ultima && gravada?.success
+          ? { id: ultima.id, modelo: ultima.modelo, leitura: gravada.data.leitura, linhas: tarefasDaLeitura(gravada.data.leitura, gravada.data.pedidas) }
+          : null,
+      restantesHoje: Math.max(0, limiteDiarioIa() - usadas),
+    };
+  }
 
   // Equipe do diário a partir da chamada do dia (RF-302 → RF-203).
   let daChamada: { funcao: string; empresa_terceira: string | null; quantidade: number }[] = [];
@@ -160,6 +182,7 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
           </section>
 
           <FotosDiario projetoId={id} data={data} diarioId={diario?.id ?? null} fotos={fotos} tarefas={tarefas} podeEnviar />
+          {ia && <LeituraFotosIa projetoId={id} data={data} qtdFotos={fotos.length} podeGravar={!assinado} {...ia} />}
 
           <section aria-labelledby="titulo-assinatura" className="flex flex-col gap-3 cartao p-4 sm:p-5">
             <h3 id="titulo-assinatura" className="text-base font-semibold">

@@ -38,7 +38,7 @@ import type {
   Projeto,
   StatusDiario,
 } from '@obras/shared';
-import { REGRA_SEMAFORO_PADRAO, type ArquivoObra } from '@obras/shared';
+import { hojeIso, REGRA_SEMAFORO_PADRAO, type AnaliseIa, type ArquivoObra } from '@obras/shared';
 import { emPaginas } from '@/lib/paginas';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
@@ -893,3 +893,28 @@ export const listarArquivos = cache(async (projetoId: string): Promise<ArquivoOb
   if (error) throw new Error(`Não foi possível carregar os arquivos da obra: ${error.message}`);
   return data;
 });
+
+// ---------------------------------------------------------------- leituras da IA
+
+/** Leituras da IA da obra, da mais nova para a mais antiga (histórico e controle da cota diária). */
+export const listarAnalisesIa = cache(async (projetoId: string, tipo?: AnaliseIa['tipo']): Promise<AnaliseIa[]> => {
+  const { supabase } = await exigirUsuario();
+  let q = supabase.from('analise_ia').select('id, tipo, arquivos, diario_id, modelo, resultado, criado_em').eq('projeto_id', projetoId);
+  if (tipo) q = q.eq('tipo', tipo);
+  const { data, error } = await q.order('criado_em', { ascending: false }).order('id').limit(50);
+  if (error) throw new Error(`Não foi possível carregar as leituras da IA: ${error.message}`);
+  return (data ?? []).map((a) => ({ ...a, tipo: a.tipo as AnaliseIa['tipo'] }));
+});
+
+/** Quantas leituras a obra fez hoje (dia de Brasília), para o limite diário. */
+export async function leiturasIaHoje(projetoId: string): Promise<number> {
+  const { supabase } = await exigirUsuario();
+  const inicio = new Date(`${hojeIso()}T00:00:00-03:00`).toISOString();
+  const { count, error } = await supabase
+    .from('analise_ia')
+    .select('id', { count: 'exact', head: true })
+    .eq('projeto_id', projetoId)
+    .gte('criado_em', inicio);
+  if (error) throw new Error(`Não foi possível conferir o uso da IA: ${error.message}`);
+  return count ?? 0;
+}
