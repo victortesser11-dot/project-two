@@ -32,6 +32,16 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] **Plano do Supabase**: no grátis o projeto pausa depois de 7 dias sem uso, guarda 1 GB de arquivos e não tem
       cópia de segurança. Para obra real, o plano Pro (US$ 25/mês) resolve os três.
 
+## Defesa Civil e previsão do tempo (16/11, ainda não publicado)
+
+- [ ] Publicar: aplicar `20261117090000_alertas_defesa_civil.sql` **antes** do merge. No Supabase ela liga o pg_cron e o pg_net
+      e agenda a coleta do feed da Defesa Civil a cada 15 minutos (o banco baixa ~17 MB por vez).
+- [ ] Obra precisa de localização (CEP em "Dados da obra") para receber a previsão e os alertas da área dela.
+- [ ] **Open-Meteo para uso comercial**: a API grátis é para uso não comercial e tem limite diário por endereço de internet. Com
+      clientes pagando, assinar o plano da Open-Meteo (chave na variável de ambiente) ou trocar de fonte.
+- [ ] Próximo passo possível: níveis dos rios do RS (API da Rede Hidrometeorológica da Defesa Civil, GraphQL aberto) para obra
+      perto de rio.
+
 ## IA (16/11)
 
 - [x] Chave `IA_CHAVE` (Google AI Studio, plano grátis) cadastrada na Vercel em Production.

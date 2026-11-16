@@ -5,7 +5,7 @@ import { ROTULO_CAUSA_ATRASO, type CausaAtraso, type Clima, type JustificativaAt
 import { dataDoInstante, diasEntre, formatarData, formatarMoeda, somarDias } from './formato';
 
 export type GravidadeAlerta = 'alta' | 'media' | 'baixa';
-export type SecaoAlerta = 'cronograma' | 'clima' | 'almoxarifado' | 'financeiro' | 'cameras' | 'diario';
+export type SecaoAlerta = 'defesa_civil' | 'cronograma' | 'clima' | 'almoxarifado' | 'financeiro' | 'cameras' | 'diario';
 
 export interface Alerta {
   /** Estável entre cargas (para a lista e para não repetir). */
@@ -20,9 +20,12 @@ export interface Alerta {
   diasAtraso?: number;
   justificativa?: JustificativaAtraso;
   sugestao?: { causa: CausaAtraso; motivo: string };
+  /** Endereço externo com as orientações (ex.: página da Defesa Civil). */
+  link?: string;
 }
 
 export const ROTULO_SECAO_ALERTA: Record<SecaoAlerta, string> = {
+  defesa_civil: 'Defesa Civil',
   cronograma: 'Cronograma',
   clima: 'Clima',
   almoxarifado: 'Almoxarifado',
@@ -153,6 +156,192 @@ export interface PrevisaoDia {
   chuva_mm: number;
   probabilidade: number | null;
 }
+
+/** Previsão completa do dia (Open-Meteo). Campo que a API não mandou fica null. */
+export interface PrevisaoTempoDia extends PrevisaoDia {
+  /** Código WMO do tempo (0 céu limpo ... 95–99 trovoada). */
+  codigo: number | null;
+  tmax: number | null;
+  tmin: number | null;
+  vento_kmh: number | null;
+  rajada_kmh: number | null;
+}
+
+export type IconeTempo = 'sol' | 'sol-nuvem' | 'nuvem' | 'nevoa' | 'garoa' | 'chuva' | 'neve' | 'tempestade';
+
+/** Código WMO → texto curto em português e o desenho. */
+export function descricaoTempo(codigo: number | null): { texto: string; icone: IconeTempo } {
+  switch (codigo) {
+    case 0: return { texto: 'Céu limpo', icone: 'sol' };
+    case 1: return { texto: 'Predomínio de sol', icone: 'sol' };
+    case 2: return { texto: 'Parcialmente nublado', icone: 'sol-nuvem' };
+    case 3: return { texto: 'Nublado', icone: 'nuvem' };
+    case 45: case 48: return { texto: 'Nevoeiro', icone: 'nevoa' };
+    case 51: case 53: case 55: return { texto: 'Garoa', icone: 'garoa' };
+    case 56: case 57: return { texto: 'Garoa congelante', icone: 'garoa' };
+    case 61: return { texto: 'Chuva fraca', icone: 'chuva' };
+    case 63: return { texto: 'Chuva moderada', icone: 'chuva' };
+    case 65: return { texto: 'Chuva forte', icone: 'chuva' };
+    case 66: case 67: return { texto: 'Chuva congelante', icone: 'chuva' };
+    case 71: case 73: case 75: case 77: case 85: case 86: return { texto: 'Neve', icone: 'neve' };
+    case 80: return { texto: 'Pancadas de chuva', icone: 'chuva' };
+    case 81: return { texto: 'Pancadas moderadas', icone: 'chuva' };
+    case 82: return { texto: 'Pancadas fortes', icone: 'chuva' };
+    case 95: return { texto: 'Trovoadas', icone: 'tempestade' };
+    case 96: case 99: return { texto: 'Trovoadas com granizo', icone: 'tempestade' };
+    default: return { texto: 'Sem informação', icone: 'nuvem' };
+  }
+}
+
+/** Pedido de 7 dias ao Open-Meteo (sem chave), em km/h e no fuso de Brasília. */
+export function urlPrevisaoTempo(latitude: number, longitude: number): string {
+  const q = new URLSearchParams({
+    latitude: latitude.toFixed(4),
+    longitude: longitude.toFixed(4),
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max',
+    timezone: 'America/Sao_Paulo',
+    forecast_days: '7',
+    wind_speed_unit: 'kmh',
+  });
+  return `https://api.open-meteo.com/v1/forecast?${q.toString()}`;
+}
+
+/** Lê a resposta do Open-Meteo; resposta estranha ou de erro vira lista vazia. */
+export function lerPrevisaoTempo(json: unknown): PrevisaoTempoDia[] {
+  const d = (json as { daily?: Record<string, unknown[]> } | null)?.daily;
+  const dias = d?.time;
+  if (!Array.isArray(dias)) return [];
+  const num = (campo: string, i: number) => {
+    const v = (d?.[campo] as unknown[] | undefined)?.[i];
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  };
+  return dias.flatMap((data, i) =>
+    typeof data === 'string'
+      ? [{
+          data,
+          codigo: num('weather_code', i),
+          tmax: num('temperature_2m_max', i),
+          tmin: num('temperature_2m_min', i),
+          chuva_mm: num('precipitation_sum', i) ?? 0,
+          probabilidade: num('precipitation_probability_max', i),
+          vento_kmh: num('wind_speed_10m_max', i),
+          rajada_kmh: num('wind_gusts_10m_max', i),
+        }]
+      : [],
+  );
+}
+
+/** Limites dos avisos de tempo para o canteiro. */
+export const LIMITES_TEMPO = { rajadaForte: 45, vendaval: 60, calor: 35, frio: 3 } as const;
+
+/**
+ * Tempo que pede cuidado no canteiro nos próximos 3 dias: vendaval (içamento e trabalho em altura), trovoada,
+ * calor forte e frio (concretagem). A chuva em tarefa sensível tem regra própria (alertasChuva).
+ */
+export function alertasTempo({ previsao, hoje }: { previsao: PrevisaoTempoDia[]; hoje: string }): Alerta[] {
+  const saida: Alerta[] = [];
+  for (const d of previsao) {
+    if (d.data < hoje || d.data > somarDias(hoje, 2)) continue;
+    const quando = d.data === hoje ? 'hoje' : d.data === somarDias(hoje, 1) ? 'amanhã' : formatarData(d.data);
+    const rajada = d.rajada_kmh ?? 0;
+    if (rajada >= LIMITES_TEMPO.rajadaForte) {
+      const forte = rajada >= LIMITES_TEMPO.vendaval;
+      saida.push({
+        chave: `vento:${d.data}`,
+        secao: 'clima',
+        gravidade: forte ? 'alta' : 'media',
+        titulo: `${forte ? 'Vendaval' : 'Vento forte'} ${quando}: rajadas de até ${Math.round(rajada)} km/h`,
+        detalhe: forte
+          ? 'Suspenda içamento com grua ou guincho e o trabalho em altura enquanto durar o vento; amarre tapumes, telhas e materiais soltos.'
+          : 'Avalie o içamento de cargas e o trabalho em altura; prenda lonas, tapumes e materiais leves.',
+      });
+    }
+    if (d.codigo !== null && d.codigo >= 95) {
+      saida.push({
+        chave: `trovoada:${d.data}`,
+        secao: 'clima',
+        gravidade: d.codigo >= 96 ? 'alta' : 'media',
+        titulo: `${descricaoTempo(d.codigo).texto} ${quando}`,
+        detalhe: 'Durante a trovoada, ninguém em cobertura, andaime, estrutura metálica ou máquina em campo aberto. Desligue equipamentos expostos.',
+      });
+    }
+    if (d.tmax !== null && d.tmax >= LIMITES_TEMPO.calor) {
+      saida.push({
+        chave: `calor:${d.data}`,
+        secao: 'clima',
+        gravidade: 'media',
+        titulo: `Calor forte ${quando}: até ${Math.round(d.tmax)} °C`,
+        detalhe: 'Água e sombra para a equipe, pausas no pico do sol. Concreto e argamassa perdem água rápido: molhe a cura e evite concretar no meio do dia.',
+      });
+    }
+    if (d.tmin !== null && d.tmin <= LIMITES_TEMPO.frio) {
+      saida.push({
+        chave: `frio:${d.data}`,
+        secao: 'clima',
+        gravidade: 'baixa',
+        titulo: `Frio ${quando}: mínima de ${Math.round(d.tmin)} °C`,
+        detalhe: 'Concreto lançado com frio ganha resistência mais devagar: proteja a peça e confira a desforma.',
+      });
+    }
+  }
+  return saida;
+}
+
+// ---------------------------------------------------------------- Defesa Civil
+
+/** Alerta da Defesa Civil em vigor, como o banco devolve para a obra (alertas_defesa_civil_da_obra). */
+export interface AlertaDefesaCivil {
+  id: string;
+  remetente: string | null;
+  evento: string;
+  severidade: string | null;
+  urgencia: string | null;
+  titulo: string | null;
+  descricao: string | null;
+  instrucao: string | null;
+  link: string | null;
+  area: string | null;
+  inicio: string | null;
+  fim: string | null;
+  /** O ponto da obra está dentro da área do alerta (null: obra sem localização). */
+  na_obra: boolean | null;
+}
+
+const ROTULO_SEVERIDADE: Record<string, string> = { Extreme: 'risco extremo', Severe: 'risco alto', Moderate: 'risco moderado', Minor: 'risco baixo' };
+
+/** "CHUVAS INTENSAS" → "Chuvas intensas". */
+function frase(texto: string): string {
+  const t = texto.trim().toLocaleLowerCase('pt-BR');
+  return t.charAt(0).toLocaleUpperCase('pt-BR') + t.slice(1);
+}
+
+function quandoAcaba(fim: string | null): string {
+  if (!fim) return '';
+  const d = new Date(fim);
+  if (Number.isNaN(d.getTime())) return '';
+  const partes = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(d);
+  const p = (t: string) => partes.find((x) => x.type === t)?.value ?? '';
+  return ` Vale até ${p('day')}/${p('month')} às ${p('hour')}h${p('minute')}.`;
+}
+
+/** Só os alertas cuja área inclui a obra viram alerta da obra. Risco extremo e alto: urgente. */
+export function alertasDefesaCivil(lista: AlertaDefesaCivil[]): Alerta[] {
+  return lista
+    .filter((a) => a.na_obra === true)
+    .map((a) => {
+      const sev = a.severidade ?? '';
+      const risco = ROTULO_SEVERIDADE[sev];
+      return {
+        chave: `defesa-civil:${a.id}`,
+        secao: 'defesa_civil' as const,
+        gravidade: sev === 'Extreme' || sev === 'Severe' ? 'alta' : sev === 'Moderate' ? 'media' : 'baixa',
+        titulo: `${frase(a.evento)}${risco ? ` (${risco})` : ''}${a.area ? ` · ${a.area}` : ''}`,
+        detalhe: [a.titulo?.replace(/^Defesa Civil:\s*/i, ''), quandoAcaba(a.fim).trim(), a.instrucao].filter(Boolean).join(' '),
+        link: a.link ?? undefined,
+      } satisfies Alerta;
+    });
+}
+
 
 /** Serviços que a chuva para ou estraga. */
 export const TAREFA_SENSIVEL_A_CHUVA =

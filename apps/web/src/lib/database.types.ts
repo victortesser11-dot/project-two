@@ -2542,6 +2542,24 @@ export type Database = {
         }
         Returns: number
       }
+      alertas_defesa_civil_da_obra: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          area: string | null
+          descricao: string | null
+          evento: string
+          fim: string | null
+          id: string
+          inicio: string | null
+          instrucao: string | null
+          link: string | null
+          na_obra: boolean | null
+          remetente: string | null
+          severidade: string | null
+          titulo: string | null
+          urgencia: string | null
+        }[]
+      }
       registrar_analise_ia: {
         Args: {
           p_arquivos?: string[]

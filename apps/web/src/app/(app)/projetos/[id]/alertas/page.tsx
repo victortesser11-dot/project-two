@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { formatarData, ROTULO_CAUSA_ATRASO, ROTULO_SECAO_ALERTA, type CausaAtraso, type SecaoAlerta } from '@obras/shared';
+import { formatarData, hojeIso, ROTULO_CAUSA_ATRASO, ROTULO_SECAO_ALERTA, type CausaAtraso, type SecaoAlerta } from '@obras/shared';
+import { PrevisaoTempo } from '@/components/PrevisaoTempo';
 import { buscarProjeto, podeApontarCampo } from '@/lib/dados';
 import { alertasDaObra } from '@/lib/alertas';
 import { Justificar } from './Justificar';
@@ -9,26 +10,28 @@ import { SeloGravidade } from './SeloGravidade';
 
 export const metadata: Metadata = { title: 'Alertas' };
 
-const ORDEM_SECOES: SecaoAlerta[] = ['cronograma', 'clima', 'financeiro', 'almoxarifado', 'diario', 'cameras'];
+const ORDEM_SECOES: SecaoAlerta[] = ['defesa_civil', 'cronograma', 'clima', 'financeiro', 'almoxarifado', 'diario', 'cameras'];
 
 export default async function PaginaAlertas({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const dados = await buscarProjeto(id);
   if (!dados) notFound();
   const { projeto, papel } = dados;
-  const [{ alertas, justificativas, previsao, tarefas }, podeJustificar] = await Promise.all([alertasDaObra(projeto, papel), podeApontarCampo(projeto, papel)]);
+  const [{ alertas, justificativas, previsao, tarefas, defesaCivil }, podeJustificar] = await Promise.all([alertasDaObra(projeto, papel), podeApontarCampo(projeto, papel)]);
   const nomeTarefa = new Map(tarefas.map((t) => [t.id, `${t.codigo} ${t.nome}`]));
   const conta = (g: string) => alertas.filter((a) => a.gravidade === g).length;
   const diasPorCausa = new Map<CausaAtraso, number>();
   for (const j of justificativas) if (j.dias_impacto) diasPorCausa.set(j.causa, (diasPorCausa.get(j.causa) ?? 0) + j.dias_impacto);
   const temLocal = projeto.latitude != null && projeto.longitude != null;
+  // Alertas da Defesa Civil no RS que não cobrem a obra (ou que não dá para conferir sem a localização).
+  const outrosNoEstado = defesaCivil.filter((a) => a.na_obra !== true);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-xl font-semibold sm:text-2xl">Alertas da obra</h2>
         <p className="mt-1 max-w-3xl text-regua">
-          Calculados agora pelo cronograma, diário, almoxarifado, medições, câmeras e previsão do tempo. Tarefa atrasada pede justificativa: ela fica
+          Calculados agora pelo cronograma, diário, almoxarifado, medições, câmeras, previsão do tempo e alertas da Defesa Civil. Tarefa atrasada pede justificativa: ela fica
           registrada e serve para negociar prazo com o cliente.
         </p>
       </div>
@@ -46,28 +49,15 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
       </ul>
 
       {temLocal ? (
-        previsao.length > 0 && (
-          <section aria-labelledby="titulo-previsao" className="cartao p-4 sm:p-5">
-            <h3 id="titulo-previsao" className="mb-3 text-base font-semibold">
-              Chuva nos próximos dias
-            </h3>
-            <ul className="numeros grid grid-cols-4 gap-2 text-center text-sm sm:grid-cols-7">
-              {previsao.map((d) => {
-                const forte = d.chuva_mm >= 5;
-                return (
-                  <li key={d.data} className={`rounded-pequeno px-2 py-2 ${forte ? 'bg-cianotipia-claro font-semibold text-cianotipia' : 'bg-concreto'}`}>
-                    <span className="block text-xs text-regua">{formatarData(d.data).slice(0, 5)}</span>
-                    <span className="block">{d.chuva_mm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mm</span>
-                    {d.probabilidade !== null && <span className="block text-xs text-regua">{Math.round(d.probabilidade)}%</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )
+        <PrevisaoTempo dias={previsao} hoje={hojeIso()} />
       ) : (
         <p className="cartao p-4 text-sm text-regua">
-          A obra ainda não tem localização: os alertas de chuva prevista não aparecem. Grave a localização pelo diário de obra.
+          A obra ainda não tem localização: a previsão do tempo e os alertas da Defesa Civil para a área da obra não aparecem. Informe o CEP
+          em{' '}
+          <Link href={`/projetos/${id}/editar`} className="font-semibold text-cianotipia underline-offset-4 hover:underline">
+            Dados da obra
+          </Link>
+          .
         </p>
       )}
 
@@ -96,6 +86,11 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
                           Abrir
                         </Link>
                       )}
+                      {a.link && (
+                        <a href={a.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-cianotipia hover:underline underline-offset-4">
+                          Ver orientações
+                        </a>
+                      )}
                     </div>
                     {a.tarefaId && !a.justificativa && podeJustificar && (
                       <details className="rounded-medio border border-linha bg-concreto/40 px-3 py-2">
@@ -111,6 +106,24 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
             </section>
           );
         })
+      )}
+
+      {outrosNoEstado.length > 0 && (
+        <details className="cartao px-4 py-3 sm:px-5">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">
+            {temLocal ? 'Outros alertas da Defesa Civil no RS, fora da área da obra' : 'Alertas da Defesa Civil em vigor no RS'} (
+            {outrosNoEstado.length})
+          </summary>
+          <ul className="mt-2 flex flex-col gap-2 pb-1 text-sm">
+            {outrosNoEstado.map((a) => (
+              <li key={a.id}>
+                <span className="font-semibold">{a.evento.charAt(0) + a.evento.slice(1).toLocaleLowerCase('pt-BR')}</span>
+                {a.area && <span className="text-regua"> · {a.area}</span>}
+                {a.titulo && <span className="block text-regua">{a.titulo.replace(/^Defesa Civil:\s*/i, '')}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       <section aria-labelledby="titulo-justificativas" className="cartao">

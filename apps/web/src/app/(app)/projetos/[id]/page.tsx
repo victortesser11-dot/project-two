@@ -20,6 +20,7 @@ import { hojeIso, itensComSaldo, resumoMaterial, totalMaoObra } from '@obras/sha
 import { PainelObra } from './PainelObra';
 import { ResumoAlertas } from './alertas/ResumoAlertas';
 import { alertasDaObra } from '@/lib/alertas';
+import { PrevisaoTempo } from '@/components/PrevisaoTempo';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -41,9 +42,9 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
     listarCameras(id).catch(() => []),
     ultimasFotos(id).catch(() => new Map()),
   ]);
-  const [equipeHoje, { alertas }] = await Promise.all([
+  const [equipeHoje, { alertas, previsao }] = await Promise.all([
     equipeNoDia(id, hojeIso()),
-    alertasDaObra(projeto, papel).catch(() => ({ alertas: [] as Awaited<ReturnType<typeof alertasDaObra>>['alertas'] })),
+    alertasDaObra(projeto, papel).catch(() => ({ alertas: [] as Awaited<ReturnType<typeof alertasDaObra>>['alertas'], previsao: [] })),
   ]);
   const maisRecente = [...fotos.values()].filter((f) => f.url).sort((a, b) => b.capturada_em.localeCompare(a.capturada_em))[0];
   const ultimaFoto = maisRecente
@@ -67,6 +68,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
   return (
     <div className="flex flex-col gap-6">
       <ResumoAlertas projetoId={id} alertas={alertas} />
+      <PrevisaoTempo dias={previsao.slice(0, 4)} hoje={hojeIso()} titulo="Tempo na obra" />
       <PainelObra
         projeto={projeto}
         papel={papel}

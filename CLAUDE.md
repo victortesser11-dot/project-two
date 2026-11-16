@@ -53,7 +53,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
+   `justificar_atraso`, a da Defesa Civil: `alertas_defesa_civil_da_obra`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -207,6 +207,18 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Só a justificativa é gravada: `justificativa_atraso` (imutável, auditada) por `justificar_atraso` (engenheiro e mestre);
   justificada depois que o atraso começou, o alerta cai para "Aviso". Histórico com dias por causa (negociação de prazo).
 - Alerta por e-mail (resumo diário) ainda não: precisa de agendamento; WhatsApp precisa de conta comercial na Meta.
+- Previsão do tempo: `previsaoTempo` (`lib/clima.ts`, Open-Meteo sem chave, cache de 1 h; recusa ou falha vira lista vazia)
+  lida por `lerPrevisaoTempo`: 7 dias com código WMO (`descricaoTempo`), máx/mín, chuva e chance, vento e rajadas. Cartão
+  `components/PrevisaoTempo.tsx` no painel (4 dias) e na central de alertas (7). `alertasTempo` avisa, nos próximos 3 dias,
+  vendaval (rajada ≥ 60 km/h urgente, ≥ 45 atenção), trovoada (granizo urgente), calor ≥ 35 °C e frio ≤ 3 °C (`LIMITES_TEMPO`).
+  A API grátis do Open-Meteo é para uso não comercial e tem limite diário por endereço de internet.
+- Defesa Civil: o feed nacional da IDAP (CAP 1.2, `https://idapfile.mdr.gov.br/idap/api/rss/cap`, ~17 MB, guarda ~12 h) é
+  baixado pelo próprio banco a cada 15 min (pg_cron + pg_net: `app.coletar_alertas_defesa_civil`, situação em
+  `app.coleta_defesa_civil`) e lido por `app.importar_alertas_cap` (xmltable), que guarda em `alerta_defesa_civil` só o que
+  toca o RS (área "…/RS", IBGE 43…, remetente gaúcho ou polígono no retângulo do estado); Update/Cancel tiram o alerta citado.
+  A tabela é dado público, sem `empresa_id`, e o app não a lê direto: `alertas_defesa_civil_da_obra` confere a permissão e
+  marca `na_obra` pelo ponto da obra no polígono (`app.ponto_no_poligono`; null sem localização). Só os `na_obra` viram alerta
+  da obra (`alertasDefesaCivil`: risco extremo/alto urgente); os outros do RS aparecem recolhidos na central.
 
 ## E-mails
 
