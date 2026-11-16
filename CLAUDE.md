@@ -300,6 +300,13 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - `projetos/[id]/editar` (engenheiro da obra e admin): nome, endereço, CEP (vira latitude/longitude para o clima),
   datas, orçamento e situação, com UPDATE direto em `projeto` (RLS `pode_editar_projeto`, auditado). O formulário é o
   mesmo da criação (`FormularioProjeto`), com o botão "Usar as datas do cronograma".
+- Ficha técnica (colunas de `projeto`: `cep`, `tipo_obra`, áreas em m², `pavimentos`, `unidades`, `proprietario`,
+  `responsavel_tecnico`, `art_rrt`, `alvara`, `matricula`; `CAMPOS_FICHA` e `fichaObraSchema` no shared espelham os `check`).
+  Gravada só por `gravarFichaObra` (`lib/fichaObra.ts`): UPDATE direto (RLS, auditado), só os campos enviados; CEP novo vira
+  latitude/longitude. Aparece no formulário, no cartão "Ficha da obra" do painel e no contexto do assistente.
+- A leitura dos projetos com IA propõe a ficha (`propostaFicha`: hoje × lido, só o que difere; campo vazio vem marcado,
+  trocar valor existente vem desmarcado). O engenheiro confere, corrige e grava o que marcou (`gravarFichaDaLeitura`):
+  nada vai para a obra sem essa confirmação.
 - `alinharObraAoCronograma` roda depois de cada importação: preenche só o que está vazio (início e fim pelas tarefas)
   e passa de "Planejamento" para "Em andamento" quando já há avanço apontado.
 - Título de alerta de tarefa leva a etapa logo acima ("1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)").

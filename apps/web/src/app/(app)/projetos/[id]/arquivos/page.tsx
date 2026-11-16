@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { agruparVersoes, conferirSugestoes, leituraArquivosSchema, mimeParaIa } from '@obras/shared';
+import { agruparVersoes, CAMPOS_FICHA, conferirSugestoes, leituraArquivosSchema, mimeParaIa } from '@obras/shared';
 import { buscarEap, buscarProjeto, leiturasIaHoje, listarAnalisesIa, listarArquivos, podeApontarCampo, podeEditarProjeto } from '@/lib/dados';
 import { iaConfigurada, iaLePdf, limiteDiarioIa } from '@/lib/ia';
 import { Arquivos } from './Arquivos';
@@ -51,7 +51,18 @@ export default async function PaginaArquivos({ params }: { params: Promise<{ id:
         </p>
       </div>
       {/* Arquivo novo enviado: a chave muda e a lista volta com os ainda não lidos já marcados. */}
-      {ia && arquivos.length > 0 && <LeituraIa key={ia.legiveis.map((a) => a.id).join()} projetoId={projeto.id} {...ia} />}
+      {ia && arquivos.length > 0 && (
+        <LeituraIa
+          key={ia.legiveis.map((a) => a.id).join()}
+          projetoId={projeto.id}
+          {...ia}
+          fichaAtual={{
+            endereco: projeto.endereco,
+            cep: projeto.cep ?? null,
+            ...Object.fromEntries(CAMPOS_FICHA.map((c) => [c.campo, projeto[c.campo] ?? null])),
+          }}
+        />
+      )}
       <Arquivos projetoId={projeto.id} arquivos={arquivos} podeEditar={podeEditar} podeEnviar={podeEnviar} />
     </div>
   );

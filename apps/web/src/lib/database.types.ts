@@ -2065,6 +2065,17 @@ export type Database = {
       }
       projeto: {
         Row: {
+          alvara: string | null
+          area_construida_m2: number | null
+          area_terreno_m2: number | null
+          art_rrt: string | null
+          cep: string | null
+          matricula: string | null
+          pavimentos: string | null
+          proprietario: string | null
+          responsavel_tecnico: string | null
+          tipo_obra: string | null
+          unidades: string | null
           atualizado_em: string
           criado_em: string
           criado_por: string | null
@@ -2082,6 +2093,17 @@ export type Database = {
           status: Database["public"]["Enums"]["status_projeto"]
         }
         Insert: {
+          alvara?: string | null
+          area_construida_m2?: number | null
+          area_terreno_m2?: number | null
+          art_rrt?: string | null
+          cep?: string | null
+          matricula?: string | null
+          pavimentos?: string | null
+          proprietario?: string | null
+          responsavel_tecnico?: string | null
+          tipo_obra?: string | null
+          unidades?: string | null
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null
@@ -2099,6 +2121,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_projeto"]
         }
         Update: {
+          alvara?: string | null
+          area_construida_m2?: number | null
+          area_terreno_m2?: number | null
+          art_rrt?: string | null
+          cep?: string | null
+          matricula?: string | null
+          pavimentos?: string | null
+          proprietario?: string | null
+          responsavel_tecnico?: string | null
+          tipo_obra?: string | null
+          unidades?: string | null
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null

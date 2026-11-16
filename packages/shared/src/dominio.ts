@@ -119,7 +119,41 @@ export interface Projeto {
   longitude?: number | null;
   /** Obra de exemplo (dados fictícios, criada e apagada pelo admin). */
   exemplo?: boolean;
+  /** CEP (8 dígitos); a localização vem dele. */
+  cep?: string | null;
 }
+
+/** Ficha técnica da obra: o que vem no carimbo das pranchas e no licenciamento (colunas de `projeto`). */
+export interface FichaObra {
+  tipo_obra: string | null;
+  area_construida_m2: number | null;
+  area_terreno_m2: number | null;
+  pavimentos: string | null;
+  unidades: string | null;
+  proprietario: string | null;
+  responsavel_tecnico: string | null;
+  art_rrt: string | null;
+  alvara: string | null;
+  matricula: string | null;
+}
+export type CampoFicha = keyof FichaObra;
+
+/** Campos da ficha na ordem da tela, com o limite de tamanho igual ao `check` do banco. Área é número (m²). */
+export const CAMPOS_FICHA: readonly { campo: CampoFicha; rotulo: string; max: number; area?: true; exemplo: string }[] = [
+  { campo: 'tipo_obra', rotulo: 'Tipo de obra', max: 160, exemplo: 'Residencial multifamiliar' },
+  { campo: 'area_construida_m2', rotulo: 'Área construída (m²)', max: 20, area: true, exemplo: '12.450,50' },
+  { campo: 'area_terreno_m2', rotulo: 'Área do terreno (m²)', max: 20, area: true, exemplo: '5.320,00' },
+  { campo: 'pavimentos', rotulo: 'Pavimentos', max: 160, exemplo: 'Térreo + 4 pavimentos' },
+  { campo: 'unidades', rotulo: 'Unidades', max: 300, exemplo: '3 torres, 96 apartamentos' },
+  { campo: 'proprietario', rotulo: 'Proprietário', max: 200, exemplo: 'Incorporadora Exemplo Ltda' },
+  { campo: 'responsavel_tecnico', rotulo: 'Responsável técnico', max: 200, exemplo: 'Nome (CREA/CAU 12345)' },
+  { campo: 'art_rrt', rotulo: 'ART / RRT', max: 100, exemplo: 'ART 1234567' },
+  { campo: 'alvara', rotulo: 'Alvará ou processo', max: 100, exemplo: 'Processo 2026/123' },
+  { campo: 'matricula', rotulo: 'Matrícula do imóvel', max: 100, exemplo: '45.678' },
+];
+
+/** Projeto com a ficha técnica (as páginas que leem a ficha pedem estas colunas). */
+export type ProjetoComFicha = Projeto & Partial<FichaObra>;
 
 // ---------------------------------------------------------------- diário de obra (RF-203)
 

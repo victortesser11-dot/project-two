@@ -3,7 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import {
+  CAMPOS_FICHA,
   conferirSugestoes,
+  errosPorCampo,
+  fichaObraSchema,
   extrairJson,
   leituraArquivosSchema,
   LIMITE_ARQUIVOS_IA,
@@ -12,6 +15,7 @@ import {
   pedidoLeituraArquivos,
   resumoDaEap,
   ROTULO_CATEGORIA_ARQUIVO,
+  type CampoPropostaFicha,
   type LeituraArquivos,
   type SugestaoConferida,
 } from '@obras/shared';
@@ -19,6 +23,7 @@ import type { Json } from '@/lib/database.types';
 import { buscarEap, buscarProjeto, leiturasIaHoje, listarArquivos, podeEditarProjeto } from '@/lib/dados';
 import { ErroIa, iaLePdf, limiteDiarioIa, perguntarIa, type Anexo } from '@/lib/ia';
 import { mensagemDoBanco } from '@/lib/erros';
+import { gravarFichaObra } from '@/lib/fichaObra';
 import { criarClienteServidor } from '@/lib/supabase/server';
 
 export type LeituraArquivosPronta = {
@@ -159,4 +164,44 @@ export async function criarTarefasSugeridas(
   }
   revalidatePath(`/projetos/${projetoId}`, 'layout');
   return { ok: true, valor: { criadas, etapasNovas: etapaNova.size } };
+}
+
+const CAMPOS_PROPOSTA = new Set<string>(['endereco', 'cep', ...CAMPOS_FICHA.map((c) => c.campo)]);
+
+/**
+ * Grava na ficha da obra os dados que o engenheiro conferiu e marcou na leitura dos projetos (cada valor pode ter sido
+ * corrigido na tela). Só os campos enviados mudam; quem barra é o RLS de `projeto` (engenheiro da obra e admin) e a
+ * mudança fica no audit_log.
+ */
+export async function gravarFichaDaLeitura(
+  projetoId: string,
+  valores: Partial<Record<CampoPropostaFicha, string>>,
+): Promise<ResultadoIa<{ gravados: number; semLocalizacao: boolean }> & { erros?: Record<string, string> }> {
+  if (!uuid.safeParse(projetoId).success) return { ok: false, erro: 'Obra inválida.' };
+  const chaves = Object.keys(valores ?? {}).filter((k) => CAMPOS_PROPOSTA.has(k)) as CampoPropostaFicha[];
+  if (chaves.length === 0) return { ok: false, erro: 'Marque ao menos um dado para gravar.' };
+  const vazios = chaves.filter((k) => !String(valores[k] ?? '').trim());
+  if (vazios.length > 0) {
+    return { ok: false, erro: 'Preencha ou desmarque os dados vazios.', erros: Object.fromEntries(vazios.map((k) => [k, 'Preencha ou desmarque'])) };
+  }
+
+  const { endereco, ...ficha } = Object.fromEntries(chaves.map((k) => [k, String(valores[k]).trim()])) as Record<string, string>;
+  if (endereco !== undefined && endereco.length > 300) {
+    return { ok: false, erro: 'O endereço passa de 300 letras.', erros: { endereco: 'Use no máximo 300 caracteres' } };
+  }
+  const mascara = Object.fromEntries(Object.keys(ficha).map((k) => [k, true])) as { [K in keyof typeof fichaObraSchema.shape]?: true };
+  const validada = fichaObraSchema.pick(mascara).safeParse(ficha);
+  if (!validada.success) {
+    const erros = errosPorCampo(validada.error);
+    return { ok: false, erro: Object.values(erros)[0] ?? 'Confira os dados marcados.', erros };
+  }
+
+  const dados = await buscarProjeto(projetoId);
+  if (!dados) return { ok: false, erro: 'Obra não encontrada.' };
+  const supabase = await criarClienteServidor();
+  const r = await gravarFichaObra(supabase, projetoId, { ...validada.data, ...(endereco !== undefined ? { endereco } : {}) });
+  if (!r.ok) return r;
+  revalidatePath('/');
+  revalidatePath(`/projetos/${projetoId}`, 'layout');
+  return { ok: true, valor: { gravados: chaves.length, semLocalizacao: r.semLocalizacao } };
 }

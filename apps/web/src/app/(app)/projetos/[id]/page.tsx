@@ -21,6 +21,8 @@ import { PainelObra } from './PainelObra';
 import { ResumoAlertas } from './alertas/ResumoAlertas';
 import { alertasDaObra } from '@/lib/alertas';
 import { PrevisaoTempo } from '@/components/PrevisaoTempo';
+import { FichaObra } from '@/components/FichaObra';
+import { iaConfigurada } from '@/lib/ia';
 
 export default async function PainelProjeto({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -83,6 +85,7 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
         ultimaFoto={ultimaFoto}
         equipeHoje={equipeHoje}
       />
+      <FichaObra projeto={projeto} podeEditar={podeEditar} comIa={iaConfigurada()} />
     </div>
   );
 }

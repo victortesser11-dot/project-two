@@ -15,7 +15,15 @@ export interface TarefaContexto {
 
 export interface ContextoObra {
   hoje: string;
-  obra: { nome: string; endereco: string | null; situacao: string; inicio: string | null; fim: string | null };
+  obra: {
+    nome: string;
+    endereco: string | null;
+    situacao: string;
+    inicio: string | null;
+    fim: string | null;
+    /** Ficha técnica preenchida (rótulo e valor), na ordem da tela. */
+    ficha?: { rotulo: string; valor: string }[];
+  };
   /** Avanço físico real e planejado para hoje (%), atraso pelo prazo agregado e término projetado. */
   prazo: { real: number; planejado: number; atrasoDias: number | null; fimProjetado: string | null; referencia: string } | null;
   etapas: { nome: string; real: number; planejado: number }[];
@@ -59,6 +67,7 @@ export function textoContextoObra(c: ContextoObra): string {
   linhas.push(`# Obra ${o.nome}`, `Hoje: ${formatarData(c.hoje)}. Situação: ${o.situacao}.`);
   if (o.endereco) linhas.push(`Endereço: ${o.endereco}.`);
   linhas.push(`Prazo da obra: ${data(o.inicio)} a ${data(o.fim)}.`);
+  if (o.ficha?.length) linhas.push(`Ficha técnica: ${o.ficha.map((f) => `${f.rotulo}: ${f.valor}`).join('; ')}.`);
   if (c.prazo) {
     const atraso =
       c.prazo.atrasoDias === null ? 'sem medida de atraso' : c.prazo.atrasoDias > 0 ? `${c.prazo.atrasoDias} dias de atraso` : c.prazo.atrasoDias < 0 ? `${-c.prazo.atrasoDias} dias adiantada` : 'no prazo';

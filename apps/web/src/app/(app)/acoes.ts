@@ -2,10 +2,10 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { empresaSchema, errosPorCampo, projetoSchema } from '@obras/shared';
+import { empresaSchema, errosPorCampo, fichaObraSchema, projetoSchema } from '@obras/shared';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { empresaAtual } from '@/lib/dados';
-import { consultarCep } from '@/lib/brasilapi';
+import { gravarFichaObra } from '@/lib/fichaObra';
 
 export type EstadoFormulario = {
   erros?: Record<string, string>;
@@ -81,44 +81,35 @@ export async function editarProjeto(_: EstadoFormulario, form: FormData): Promis
   const valores = valoresDoForm(form);
   const projetoId = String(form.get('projeto_id') ?? '');
   const dados = projetoSchema.safeParse(valores);
-  if (!dados.success) return { erros: errosPorCampo(dados.error), valores };
+  const ficha = fichaObraSchema.safeParse(valores);
+  if (!dados.success || !ficha.success) {
+    return { erros: { ...(dados.success ? {} : errosPorCampo(dados.error)), ...(ficha.success ? {} : errosPorCampo(ficha.error)) }, valores };
+  }
 
   const p = dados.data;
   const supabase = await criarClienteServidor();
-  const { data: linhas, error } = await supabase
-    .from('projeto')
-    .update({
-      nome: p.nome,
-      endereco: p.endereco,
-      data_inicio: p.data_inicio,
-      data_fim_prevista: p.data_fim_prevista,
-      orcamento_total: p.orcamento_total,
-      status: p.status,
-    })
-    .eq('id', projetoId)
-    .select('id');
-  if (error) return { erroGeral: `Não foi possível salvar a obra: ${error.message}`, valores };
-  if (!linhas || linhas.length === 0) return { erroGeral: 'Só o engenheiro da obra ou o admin da empresa corrige estes dados.', valores };
-
-  // CEP (opcional): localização para o clima do diário e o alerta de chuva. Os outros dados já foram salvos.
-  const cep = String(form.get('cep') ?? '').replace(/\D/g, '');
-  if (cep) {
-    const local = cep.length === 8 ? await consultarCep(cep) : null;
-    if (!local || local.latitude === null || local.longitude === null) {
-      revalidatePath(`/projetos/${projetoId}`, 'layout');
-      return {
-        erros: { cep: 'Os dados foram salvos, mas não achei a localização deste CEP. Confira o número ou defina pelo diário de obra, com o aparelho na obra.' },
-        valores,
-      };
-    }
-    await supabase
-      .from('projeto')
-      .update({ latitude: Math.round(local.latitude * 1e6) / 1e6, longitude: Math.round(local.longitude * 1e6) / 1e6 })
-      .eq('id', projetoId);
-  }
-
+  // Dados, ficha técnica e CEP numa gravação só (RLS de projeto; auditado). CEP novo vira localização para o clima.
+  const cepMudou = ficha.data.cep !== null && ficha.data.cep !== String(form.get('cep_atual') ?? '');
+  const { cep, ...resto } = ficha.data;
+  const r = await gravarFichaObra(supabase, projetoId, {
+    nome: p.nome,
+    endereco: p.endereco,
+    data_inicio: p.data_inicio,
+    data_fim_prevista: p.data_fim_prevista,
+    orcamento_total: p.orcamento_total,
+    status: p.status,
+    ...resto,
+    ...(cepMudou || cep === null ? { cep } : {}),
+  });
+  if (!r.ok) return { erroGeral: r.erro, valores };
   revalidatePath('/');
   revalidatePath(`/projetos/${projetoId}`, 'layout');
+  if (r.semLocalizacao) {
+    return {
+      erros: { cep: 'Os dados foram salvos, mas não achei a localização deste CEP. Confira o número ou defina pelo diário de obra, com o aparelho na obra.' },
+      valores,
+    };
+  }
   redirect(`/projetos/${projetoId}`);
 }
 

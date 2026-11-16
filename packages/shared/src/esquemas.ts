@@ -94,6 +94,53 @@ export const projetoSchema = z
 export type ProjetoEntrada = z.input<typeof projetoSchema>;
 export type ProjetoValidado = z.output<typeof projetoSchema>;
 
+/** CEP com ou sem traço; vazio vira null. Guardado só com os 8 dígitos (igual ao check do banco). */
+export const cepOpcional = z
+  .union([z.string(), z.number()])
+  .nullable()
+  .optional()
+  .transform((v, ctx) => {
+    const d = v === null || v === undefined ? '' : String(v).replace(/\D/g, '');
+    if (d === '') return null;
+    if (d.length !== 8) {
+      ctx.addIssue({ code: 'custom', message: 'O CEP tem 8 números' });
+      return z.NEVER;
+    }
+    return d;
+  });
+
+/** Área em m² digitada no padrão brasileiro ("12.450,50"); vazio vira null; precisa ser maior que zero. */
+const areaOpcional = z
+  .union([z.string(), z.number()])
+  .nullable()
+  .optional()
+  .transform((v, ctx) => {
+    if (v === null || v === undefined) return null;
+    const n = lerNumero(typeof v === 'string' ? v.replace(/m²|m2/gi, '') : v, ',');
+    if (n === null) return null;
+    if (Number.isNaN(n) || n <= 0 || n >= 1e10) {
+      ctx.addIssue({ code: 'custom', message: 'Informe a área em m², maior que zero' });
+      return z.NEVER;
+    }
+    return Math.round(n * 100) / 100;
+  });
+
+/** Ficha técnica da obra (todos opcionais). Os limites são os mesmos dos `check` em `projeto`. */
+export const fichaObraSchema = z.object({
+  cep: cepOpcional,
+  tipo_obra: textoOpcional(160),
+  area_construida_m2: areaOpcional,
+  area_terreno_m2: areaOpcional,
+  pavimentos: textoOpcional(160),
+  unidades: textoOpcional(300),
+  proprietario: textoOpcional(200),
+  responsavel_tecnico: textoOpcional(200),
+  art_rrt: textoOpcional(100),
+  alvara: textoOpcional(100),
+  matricula: textoOpcional(100),
+});
+export type FichaObraValidada = z.output<typeof fichaObraSchema>;
+
 // Campo numérico de formulário (digitado no padrão brasileiro): vazio vira null.
 const numeroNaoNegativo = (casas: number) =>
   z

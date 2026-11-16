@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { extensaoDoArquivo } from './arquivosObra';
+import { CAMPOS_FICHA, type CampoFicha, type FichaObra } from './dominio';
 import { formatarData } from './formato';
 
 // Leituras da IA: o que mandar ao modelo (texto do pedido) e como ler o que volta (JSON validado aqui, com folga:
@@ -123,10 +124,16 @@ export const leituraArquivosSchema = z.object({
       z.object({
         tipo: textoOuNulo(160),
         endereco: textoOuNulo(300),
+        cep: textoOuNulo(12),
         area_construida_m2: numeroOuNulo,
         area_terreno_m2: numeroOuNulo,
         pavimentos: textoOuNulo(160),
         unidades: textoOuNulo(300),
+        proprietario: textoOuNulo(200),
+        responsavel_tecnico: textoOuNulo(200),
+        art_rrt: textoOuNulo(100),
+        alvara: textoOuNulo(100),
+        matricula: textoOuNulo(100),
       }),
     ),
   tarefas: listaDe(tarefaSugeridaSchema, 60),
@@ -179,7 +186,7 @@ ${lista(dados.eap.tarefas)}
 Responda só com um JSON neste formato:
 {
   "resumo": "o que é a obra, em até 5 frases",
-  "dados_obra": { "tipo": "", "endereco": "", "area_construida_m2": 0, "area_terreno_m2": 0, "pavimentos": "", "unidades": "" },
+  "dados_obra": { "tipo": "", "endereco": "", "cep": "", "area_construida_m2": 0, "area_terreno_m2": 0, "pavimentos": "", "unidades": "", "proprietario": "", "responsavel_tecnico": "", "art_rrt": "", "alvara": "", "matricula": "" },
   "tarefas": [ { "etapa": "", "nome": "", "unidade": "", "quantidade": 0, "motivo": "", "arquivo": "" } ],
   "faltando": [ { "tipo": "documento | tarefa | informacao", "descricao": "", "importancia": "alta | media | baixa" } ],
   "sugestoes": [ "" ]
@@ -187,12 +194,69 @@ Responda só com um JSON neste formato:
 
 Regras:
 - "tarefas": só serviços que o projeto mostra e que NÃO aparecem no cronograma atual (nem com outro nome). Nome curto, no estilo das tarefas existentes. Em "etapa", use o nome exato de uma etapa existente quando couber; se não, uma etapa nova de poucas palavras. No máximo 40.
+- "dados_obra": copie do carimbo, do quadro de áreas, do memorial ou da ART só o que estiver escrito; o que não aparecer fica null (não deduza CEP, área nem número de documento). "endereco" completo (rua, número, bairro, cidade/UF); "responsavel_tecnico" com nome e registro (CREA/CAU); "art_rrt", "alvara" (ou número do processo na prefeitura) e "matricula" só os números com a sigla. Nunca copie CPF, RG nem telefone.
 - "quantidade" e "unidade" só quando o desenho mostrar com clareza (área, comprimento, número de unidades); senão null.
 - "arquivo": o nome do arquivo de onde tirou a informação.
 - "faltando": use "documento" para projetos e documentos que uma obra assim costuma precisar e que não estão entre os documentos da obra (ex.: estrutural, elétrico, hidrossanitário, PPCI, ART/RRT, alvará, memorial descritivo); "tarefa" para partes da obra que o projeto mostra sem nenhuma tarefa no cronograma; "informacao" para dados que o projeto não deixa claro.
 - "sugestoes": conselhos práticos para o engenheiro (ordem de serviços, pontos de atenção, o que conferir antes de começar).
 - Não invente. O que não der para ver nos arquivos fica de fora ou vira "informacao" em "faltando".
 - Escreva em português do Brasil.`;
+}
+
+// ---------------------------------------------------------------- dados da obra lidos → ficha da obra
+
+export type DadosObraLidos = LeituraArquivos['dados_obra'];
+export type CampoPropostaFicha = 'endereco' | 'cep' | CampoFicha;
+export interface LinhaPropostaFicha {
+  campo: CampoPropostaFicha;
+  rotulo: string;
+  /** Como está hoje na obra ('' = vazio). */
+  atual: string;
+  /** O que a IA leu nos projetos, já no jeito do campo do formulário. */
+  sugerido: string;
+  /** Vem marcado só o que preenche campo vazio; trocar um valor que já existe fica para o engenheiro decidir. */
+  marcar: boolean;
+}
+
+const areaPtBr = (n: number | null | undefined) =>
+  n === null || n === undefined || !Number.isFinite(Number(n)) ? '' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const cepComTraco = (d: string) => (d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d);
+
+/**
+ * O que a leitura dos projetos propõe para a ficha da obra, comparado com o que a obra já tem. Campo que a IA não leu
+ * ou que já está igual fica de fora. Nada é gravado aqui: o engenheiro marca, corrige e confirma.
+ */
+export function propostaFicha(
+  atual: { endereco: string | null; cep?: string | null } & Partial<FichaObra>,
+  lidos: DadosObraLidos,
+): LinhaPropostaFicha[] {
+  const linhas: LinhaPropostaFicha[] = [];
+  const igual = (a: string, b: string) => chaveDeNome(a) === chaveDeNome(b);
+  const juntar = (campo: CampoPropostaFicha, rotulo: string, hoje: string, lido: string, max: number) => {
+    const sugerido = lido.trim().slice(0, max);
+    if (!sugerido || igual(hoje, sugerido)) return;
+    linhas.push({ campo, rotulo, atual: hoje, sugerido, marcar: hoje.trim() === '' });
+  };
+  juntar('endereco', 'Endereço', atual.endereco ?? '', lidos.endereco ?? '', 300);
+  const cep = (lidos.cep ?? '').replace(/\D/g, '');
+  if (cep.length === 8) juntar('cep', 'CEP', cepComTraco(atual.cep ?? ''), cepComTraco(cep), 9);
+  const deIa: Record<CampoFicha, string> = {
+    tipo_obra: lidos.tipo ?? '',
+    area_construida_m2: lidos.area_construida_m2 ? areaPtBr(lidos.area_construida_m2) : '',
+    area_terreno_m2: lidos.area_terreno_m2 ? areaPtBr(lidos.area_terreno_m2) : '',
+    pavimentos: lidos.pavimentos ?? '',
+    unidades: lidos.unidades ?? '',
+    proprietario: lidos.proprietario ?? '',
+    responsavel_tecnico: lidos.responsavel_tecnico ?? '',
+    art_rrt: lidos.art_rrt ?? '',
+    alvara: lidos.alvara ?? '',
+    matricula: lidos.matricula ?? '',
+  };
+  for (const c of CAMPOS_FICHA) {
+    const hoje = c.area ? areaPtBr(atual[c.campo] as number | null | undefined) : ((atual[c.campo] as string | null | undefined) ?? '');
+    juntar(c.campo, c.rotulo, hoje, deIa[c.campo], c.max);
+  }
+  return linhas;
 }
 
 // ---------------------------------------------------------------- leitura das fotos do diário

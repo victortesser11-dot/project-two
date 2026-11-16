@@ -43,6 +43,12 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] Próximo passo possível: níveis dos rios do RS (API da Rede Hidrometeorológica da Defesa Civil, GraphQL aberto) para obra
       perto de rio.
 
+## Ficha técnica da obra pela IA (16/11, ainda não publicado)
+
+- [ ] Publicar: aplicar `20261118090000_ficha_obra.sql` **antes** do merge (só acrescenta colunas em `projeto`).
+- [ ] Testar na obra Nápoles: Arquivos → "Ler o projeto com IA" com a prancha carimbada → conferir "Dados da obra encontrados
+      nos projetos" → "Gravar". O cartão "Ficha da obra" aparece no painel.
+
 ## IA (16/11)
 
 - [x] Chave `IA_CHAVE` (Google AI Studio, plano grátis) cadastrada na Vercel em Production.
