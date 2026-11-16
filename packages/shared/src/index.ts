@@ -15,3 +15,4 @@ export * from './modelos';
 export * from './medicao';
 export * from './alertas';
 export * from './arquivosObra';
+export * from './ia';

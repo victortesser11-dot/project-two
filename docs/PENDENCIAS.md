@@ -32,6 +32,13 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] **Plano do Supabase**: no grátis o projeto pausa depois de 7 dias sem uso, guarda 1 GB de arquivos e não tem
       cópia de segurança. Para obra real, o plano Pro (US$ 25/mês) resolve os três.
 
+## IA (16/11)
+
+- [x] Chave `IA_CHAVE` (Google AI Studio, plano grátis) cadastrada na Vercel em Production.
+- [ ] Publicar: rodar a migração `20261116090000_analise_ia.sql` **antes** do merge (tabela das leituras e `registrar_analise_ia`).
+- [ ] Testar na obra Napoles: Arquivos → "Ler o projeto com IA" com as pranchas em PDF; Diário do dia → "Ler as fotos com IA".
+- [ ] Avisar o cliente: no plano grátis o Google pode usar o conteúdo enviado. Para contrato, plano pago (centavos por obra/mês).
+
 ## Medição (03/11)
 
 - [ ] **Um boletim de medição real** (o Excel que o engenheiro usa hoje), para o boletim impresso sair no formato que o

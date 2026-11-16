@@ -1,0 +1,339 @@
+import { z } from 'zod';
+import { extensaoDoArquivo } from './arquivosObra';
+import { formatarData } from './formato';
+
+// Leituras da IA: o que mandar ao modelo (texto do pedido) e como ler o que volta (JSON validado aqui, com folga:
+// o modelo às vezes troca um tipo ou esquece um campo, e isso não pode derrubar a leitura inteira).
+// A chamada em si fica no servidor do app (apps/web/src/lib/ia.ts); aqui não há rede nem chave.
+
+/** Quantos arquivos e quantos bytes vão numa leitura (a cota grátis é por pedido; arquivo grande demora). */
+export const LIMITE_ARQUIVOS_IA = 6;
+export const LIMITE_FOTOS_IA = 6;
+export const LIMITE_BYTES_IA = 18 * 1024 * 1024;
+
+const MIME_IA: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+};
+
+/** Tipo que o modelo lê (PDF e imagem). DWG, IFC, planilha e ZIP não: peça o PDF da prancha. */
+export function mimeParaIa(nome: string): string | null {
+  const ext = extensaoDoArquivo(nome);
+  return (ext && MIME_IA[ext]) || null;
+}
+
+/** Minúsculas, sem acento, sem pontuação: base para comparar nomes de tarefa e de etapa. */
+export function chaveDeNome(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[º°ª]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/** O modelo às vezes embrulha o JSON em ```json ... ``` ou escreve uma frase antes. */
+export function extrairJson(texto: string): unknown {
+  const limpo = texto.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  try {
+    return JSON.parse(limpo);
+  } catch {
+    const ini = limpo.indexOf('{');
+    const fim = limpo.lastIndexOf('}');
+    if (ini >= 0 && fim > ini) {
+      try {
+        return JSON.parse(limpo.slice(ini, fim + 1));
+      } catch {
+        /* cai no null */
+      }
+    }
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------- campos com folga
+
+const texto = (max: number) =>
+  z
+    .unknown()
+    .optional()
+    .transform((v) => (typeof v === 'string' ? v.trim().slice(0, max) : typeof v === 'number' ? String(v) : ''));
+const textoOuNulo = (max: number) => texto(max).transform((v) => v || null);
+const numeroOuNulo = z.unknown().optional().transform((v) => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.replace(/\./g, '').replace(',', '.')) : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : null;
+});
+const listaDeTextos = (maxItens: number, maxTexto: number) =>
+  z
+    .unknown()
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : []))
+    .transform((v) => v.map((x) => (typeof x === 'string' ? x.trim().slice(0, maxTexto) : '')).filter(Boolean).slice(0, maxItens));
+const listaDe = <T extends z.ZodTypeAny>(item: T, max: number) =>
+  z
+    .unknown()
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : []))
+    .transform((v) => v.map((x) => item.safeParse(x)).flatMap((r) => (r.success ? [r.data as z.output<T>] : [])).slice(0, max));
+
+// ---------------------------------------------------------------- leitura dos arquivos do projeto
+
+export const IMPORTANCIAS = ['alta', 'media', 'baixa'] as const;
+export type Importancia = (typeof IMPORTANCIAS)[number];
+export const TIPOS_FALTANDO = ['documento', 'tarefa', 'informacao'] as const;
+export type TipoFaltando = (typeof TIPOS_FALTANDO)[number];
+
+export const ROTULO_TIPO_FALTANDO: Record<TipoFaltando, string> = {
+  documento: 'Documento ou projeto',
+  tarefa: 'Parte da obra sem tarefa',
+  informacao: 'Informação',
+};
+
+const tarefaSugeridaSchema = z
+  .object({
+    etapa: texto(120),
+    nome: texto(200),
+    unidade: textoOuNulo(20),
+    quantidade: numeroOuNulo,
+    motivo: texto(300),
+    arquivo: textoOuNulo(200),
+  })
+  .refine((t) => t.nome.length >= 2, 'Tarefa sem nome');
+
+const faltandoSchema = z
+  .object({
+    tipo: z.unknown().optional().transform((v) => (TIPOS_FALTANDO as readonly unknown[]).includes(v) ? (v as TipoFaltando) : 'informacao'),
+    descricao: texto(400),
+    importancia: z.unknown().optional().transform((v) => (IMPORTANCIAS as readonly unknown[]).includes(v) ? (v as Importancia) : 'media'),
+  })
+  .refine((f) => f.descricao.length >= 3, 'Item sem descrição');
+
+export const leituraArquivosSchema = z.object({
+  resumo: texto(1500),
+  dados_obra: z
+    .unknown()
+    .optional()
+    .transform((v) => (v && typeof v === 'object' ? v : {}))
+    .pipe(
+      z.object({
+        tipo: textoOuNulo(160),
+        endereco: textoOuNulo(300),
+        area_construida_m2: numeroOuNulo,
+        area_terreno_m2: numeroOuNulo,
+        pavimentos: textoOuNulo(160),
+        unidades: textoOuNulo(300),
+      }),
+    ),
+  tarefas: listaDe(tarefaSugeridaSchema, 60),
+  faltando: listaDe(faltandoSchema, 30),
+  sugestoes: listaDeTextos(15, 400),
+});
+export type LeituraArquivos = z.output<typeof leituraArquivosSchema>;
+export type TarefaSugerida = LeituraArquivos['tarefas'][number];
+
+/** Nomes do cronograma que vão no pedido: etapas e tarefas sem repetir (as torres repetem os mesmos serviços). */
+export function resumoDaEap(itens: Pick<{ tipo: 'etapa' | 'tarefa'; nome: string; nivel: number }, 'tipo' | 'nome' | 'nivel'>[], max = 250) {
+  const etapas: string[] = [];
+  const tarefas: string[] = [];
+  const vistos = new Set<string>();
+  for (const i of itens) {
+    const k = `${i.tipo}:${chaveDeNome(i.nome)}`;
+    if (vistos.has(k)) continue;
+    vistos.add(k);
+    (i.tipo === 'etapa' ? etapas : tarefas).push(i.nome);
+  }
+  return { etapas: etapas.slice(0, max), tarefas: tarefas.slice(0, max), cortadas: Math.max(0, tarefas.length - max) };
+}
+
+export function pedidoLeituraArquivos(dados: {
+  obra: { nome: string; endereco: string | null };
+  arquivos: { nome: string; pasta: string }[];
+  /** Todos os documentos da obra (o que já existe), para dizer o que falta. */
+  documentos: { nome: string; pasta: string }[];
+  eap: { etapas: string[]; tarefas: string[]; cortadas: number };
+}): string {
+  const lista = (xs: string[]) => (xs.length ? xs.map((x) => `- ${x}`).join('\n') : '(nenhum)');
+  return `Você é engenheiro civil e planeja obras no Brasil. Leia os arquivos anexados do projeto da obra "${dados.obra.nome}"${
+    dados.obra.endereco ? ` (${dados.obra.endereco})` : ''
+  } e compare com o cronograma que a obra já tem.
+
+Arquivos anexados, na ordem:
+${dados.arquivos.map((a, i) => `${i + 1}. ${a.nome} (${a.pasta})`).join('\n')}
+
+Todos os documentos que a obra já guarda:
+${lista(dados.documentos.map((d) => `${d.nome} (${d.pasta})`))}
+
+Etapas do cronograma atual:
+${lista(dados.eap.etapas)}
+
+Tarefas do cronograma atual (cada nome uma vez, mesmo que se repita em vários pavimentos)${
+    dados.eap.cortadas ? `; mais ${dados.eap.cortadas} não listadas` : ''
+  }:
+${lista(dados.eap.tarefas)}
+
+Responda só com um JSON neste formato:
+{
+  "resumo": "o que é a obra, em até 5 frases",
+  "dados_obra": { "tipo": "", "endereco": "", "area_construida_m2": 0, "area_terreno_m2": 0, "pavimentos": "", "unidades": "" },
+  "tarefas": [ { "etapa": "", "nome": "", "unidade": "", "quantidade": 0, "motivo": "", "arquivo": "" } ],
+  "faltando": [ { "tipo": "documento | tarefa | informacao", "descricao": "", "importancia": "alta | media | baixa" } ],
+  "sugestoes": [ "" ]
+}
+
+Regras:
+- "tarefas": só serviços que o projeto mostra e que NÃO aparecem no cronograma atual (nem com outro nome). Nome curto, no estilo das tarefas existentes. Em "etapa", use o nome exato de uma etapa existente quando couber; se não, uma etapa nova de poucas palavras. No máximo 40.
+- "quantidade" e "unidade" só quando o desenho mostrar com clareza (área, comprimento, número de unidades); senão null.
+- "arquivo": o nome do arquivo de onde tirou a informação.
+- "faltando": use "documento" para projetos e documentos que uma obra assim costuma precisar e que não estão entre os documentos da obra (ex.: estrutural, elétrico, hidrossanitário, PPCI, ART/RRT, alvará, memorial descritivo); "tarefa" para partes da obra que o projeto mostra sem nenhuma tarefa no cronograma; "informacao" para dados que o projeto não deixa claro.
+- "sugestoes": conselhos práticos para o engenheiro (ordem de serviços, pontos de atenção, o que conferir antes de começar).
+- Não invente. O que não der para ver nos arquivos fica de fora ou vira "informacao" em "faltando".
+- Escreva em português do Brasil.`;
+}
+
+// ---------------------------------------------------------------- leitura das fotos do diário
+
+export const SITUACOES_FOTO = ['concluida', 'avancou', 'sem_evidencia', 'nao_visivel'] as const;
+export type SituacaoFoto = (typeof SITUACOES_FOTO)[number];
+
+export const ROTULO_SITUACAO_FOTO: Record<SituacaoFoto, string> = {
+  concluida: 'Parece concluída',
+  avancou: 'Avançou',
+  sem_evidencia: 'Sem sinal de avanço',
+  nao_visivel: 'Não aparece nas fotos',
+};
+
+const tarefaNaFotoSchema = z.object({
+  ref: texto(10),
+  situacao: z.unknown().optional().transform((v) => (SITUACOES_FOTO as readonly unknown[]).includes(v) ? (v as SituacaoFoto) : 'nao_visivel'),
+  percentual_sugerido: numeroOuNulo.transform((n) => (n === null ? null : Math.min(100, Math.round(n)))),
+  evidencia: texto(300),
+});
+
+export const leituraFotosSchema = z.object({
+  resumo: texto(1200),
+  tarefas: listaDe(tarefaNaFotoSchema, 60),
+  pessoas: numeroOuNulo.transform((n) => (n === null ? null : Math.round(n))),
+  maquinas: listaDeTextos(15, 120),
+  riscos: listaDeTextos(10, 300),
+  observacoes: listaDeTextos(10, 300),
+});
+export type LeituraFotos = z.output<typeof leituraFotosSchema>;
+
+export interface TarefaParaFoto {
+  id: string;
+  codigo: string;
+  nome: string;
+  etapa: string | null;
+  percentual: number;
+}
+
+/** Tarefas viram T1, T2... no pedido: o modelo erra id comprido; a volta usa `tarefasDaLeitura`. */
+export function pedidoLeituraFotos(dados: {
+  obra: string;
+  data: string;
+  tarefas: TarefaParaFoto[];
+  fotos: { legenda: string | null; tarefaId: string | null }[];
+}): string {
+  const ref = new Map(dados.tarefas.map((t, i) => [t.id, `T${i + 1}`]));
+  const tarefas = dados.tarefas
+    .map((t, i) => `T${i + 1} — ${t.codigo} ${t.nome}${t.etapa ? ` (${t.etapa})` : ''} — ${Math.round(t.percentual)}% feito`)
+    .join('\n');
+  const fotos = dados.fotos
+    .map((f, i) => {
+      const partes = [f.legenda ? `legenda "${f.legenda}"` : null, f.tarefaId && ref.has(f.tarefaId) ? `marcada na tarefa ${ref.get(f.tarefaId)}` : null].filter(Boolean);
+      return `Foto ${i + 1}${partes.length ? `: ${partes.join(', ')}` : ''}`;
+    })
+    .join('\n');
+  return `Você é engenheiro civil acompanhando uma obra no Brasil. As fotos anexadas são do diário de obra de ${formatarData(dados.data)}, da obra "${dados.obra}".
+
+Fotos, na ordem em que estão anexadas:
+${fotos}
+
+Tarefas previstas para esse dia, com o quanto já estava feito:
+${tarefas || '(nenhuma tarefa prevista)'}
+
+Responda só com um JSON neste formato:
+{
+  "resumo": "o que as fotos mostram do andamento, em até 4 frases",
+  "tarefas": [ { "ref": "T1", "situacao": "concluida | avancou | sem_evidencia | nao_visivel", "percentual_sugerido": 0, "evidencia": "Foto 2: ..." } ],
+  "pessoas": 0,
+  "maquinas": [ "" ],
+  "riscos": [ "" ],
+  "observacoes": [ "" ]
+}
+
+Regras:
+- Uma linha em "tarefas" para cada tarefa prevista, pela referência (T1, T2...).
+- "concluida" ou "avancou" só com sinal visível nas fotos; diga em "evidencia" qual foto e o que aparece. Sem sinal claro, use "sem_evidencia" (a área aparece, mas parada) ou "nao_visivel" (a área não aparece).
+- "percentual_sugerido": quanto da tarefa parece feito, de 0 a 100, nunca menos do que já estava; null quando não der para avaliar.
+- "pessoas": quantas pessoas trabalhando aparecem, somando as fotos sem contar a mesma duas vezes; null se não der para contar.
+- "riscos": segurança (falta de capacete, cinto, guarda-corpo), material exposto, risco de chuva sobre serviço sensível.
+- Seja conservador: é uma sugestão que o engenheiro vai conferir. Escreva em português do Brasil.`;
+}
+
+/** Junta a resposta às tarefas pedidas (descarta referência que o modelo inventou) e completa as que faltaram. */
+export function tarefasDaLeitura(leitura: LeituraFotos, tarefas: TarefaParaFoto[]) {
+  const porRef = new Map(leitura.tarefas.map((t) => [t.ref.toUpperCase(), t]));
+  return tarefas.map((t, i) => {
+    const r = porRef.get(`T${i + 1}`);
+    const sugerido = r?.percentual_sugerido ?? null;
+    return {
+      tarefa: t,
+      situacao: r?.situacao ?? ('nao_visivel' as SituacaoFoto),
+      // Avanço nunca volta: sugestão menor que o já apontado vale o já apontado.
+      percentual_sugerido: sugerido === null ? null : Math.max(sugerido, Math.round(t.percentual)),
+      evidencia: r?.evidencia ?? '',
+    };
+  });
+}
+
+// ---------------------------------------------------------------- tarefas sugeridas × cronograma
+
+export interface EtapaExistente {
+  id: string;
+  nome: string;
+  nivel: number;
+}
+
+/** Marca o que já está no cronograma (mesmo nome) e acha a etapa existente de mesmo nome. */
+export function conferirSugestoes(
+  sugeridas: TarefaSugerida[],
+  eap: { id: string; tipo: 'etapa' | 'tarefa'; nome: string; nivel: number }[],
+) {
+  const tarefasExistentes = new Set(eap.filter((i) => i.tipo === 'tarefa').map((i) => chaveDeNome(i.nome)));
+  // Etapa de nível mais alto ganha quando há nomes iguais (ex.: "Infraestrutura externa" no topo).
+  const etapas = new Map<string, EtapaExistente>();
+  for (const i of [...eap].filter((x) => x.tipo === 'etapa').sort((a, b) => a.nivel - b.nivel)) {
+    const k = chaveDeNome(i.nome);
+    if (!etapas.has(k)) etapas.set(k, { id: i.id, nome: i.nome, nivel: i.nivel });
+  }
+  const vistas = new Set<string>();
+  return sugeridas.map((t) => {
+    const k = chaveDeNome(t.nome);
+    const repetida = vistas.has(`${chaveDeNome(t.etapa)}|${k}`);
+    vistas.add(`${chaveDeNome(t.etapa)}|${k}`);
+    return {
+      ...t,
+      etapa: t.etapa || 'Sugeridas pela IA',
+      jaExiste: tarefasExistentes.has(k) || repetida,
+      etapaExistente: etapas.get(chaveDeNome(t.etapa || 'Sugeridas pela IA')) ?? null,
+    };
+  });
+}
+export type SugestaoConferida = ReturnType<typeof conferirSugestoes>[number];
+
+/** Uma leitura guardada (o resultado é validado de novo ao abrir, pelo schema do tipo). */
+export interface AnaliseIa {
+  id: string;
+  tipo: 'arquivos' | 'fotos_diario';
+  arquivos: string[];
+  diario_id: string | null;
+  modelo: string;
+  resultado: unknown;
+  criado_em: string;
+}
