@@ -19,7 +19,7 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 `20261114090000_importar_avanco.sql` já estão no banco de produção.
 
 - [x] Obra Nápoles criada e cronograma importado (1.506 itens, 88 avanços), conferido no banco em 15/11.
-- [ ] **Completar os dados da obra** (depois de publicar a correção de 15/11): Painel → "Completar os dados da obra".
+- [ ] **Completar os dados da obra**: três pontinhos ao lado da obra (lista ou cabeçalho) → "Editar dados da obra".
       Endereço das pranchas: Av. Santos Ferreira, 4200 - Bairro Estância Velha - Canoas/RS. Informe o CEP (não está nas
       pranchas) para o clima e o alerta de chuva; use "Usar as datas do cronograma" e mude a situação para "Em andamento".
 - [ ] **Definir a linha de base** no Gantt (é contra ela que o atraso é medido).
@@ -32,11 +32,12 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] **Plano do Supabase**: no grátis o projeto pausa depois de 7 dias sem uso, guarda 1 GB de arquivos e não tem
       cópia de segurança. Para obra real, o plano Pro (US$ 25/mês) resolve os três.
 
-## Defesa Civil e previsão do tempo (16/11, ainda não publicado)
+## Defesa Civil e previsão do tempo (publicado em 16/11)
 
-- [ ] Publicar: aplicar `20261117090000_alertas_defesa_civil.sql` **antes** do merge. No Supabase ela liga o pg_cron e o pg_net
-      e agenda a coleta do feed da Defesa Civil a cada 15 minutos (o banco baixa ~17 MB por vez).
-- [ ] Obra precisa de localização (CEP em "Dados da obra") para receber a previsão e os alertas da área dela.
+- [x] Migração `20261117090000_alertas_defesa_civil.sql` aplicada antes do merge: pg_cron e pg_net ligados, coleta do feed da
+      Defesa Civil a cada 15 minutos (primeira baixa conferida: 27 MB, processada).
+- [ ] Obra precisa de localização para receber a previsão e os alertas da área dela: três pontinhos da obra → "Editar dados da
+      obra" → endereço e CEP.
 - [ ] **Open-Meteo para uso comercial**: a API grátis é para uso não comercial e tem limite diário por endereço de internet. Com
       clientes pagando, assinar o plano da Open-Meteo (chave na variável de ambiente) ou trocar de fonte.
 - [ ] Próximo passo possível: níveis dos rios do RS (API da Rede Hidrometeorológica da Defesa Civil, GraphQL aberto) para obra
@@ -48,7 +49,8 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [x] Publicado em 16/11 (migração `20261116090000_analise_ia.sql` aplicada antes do merge).
 - [x] 16/11: o Gemini grátis respondeu "503, alta demanda" nas leituras. Agora o app tenta outros modelos Flash e o OpenRouter.
 - [x] Chave do OpenRouter cadastrada na Vercel como `API_OPENROUTER` (16/11).
-- [ ] Testar na obra Napoles: Arquivos → "Ler o projeto com IA" com as pranchas em PDF; Diário do dia → "Ler as fotos com IA".
+- [ ] Testar na obra Napoles: Arquivos → "Ler o projeto com IA" com as pranchas em PDF; Diário do dia → "Ler as fotos com IA";
+      Assistente (menu da obra) com uma pergunta do dia a dia.
 - [ ] Avisar o cliente: no plano grátis o Google pode usar o conteúdo enviado. Para contrato, plano pago (centavos por obra/mês).
 
 ## Medição (03/11)

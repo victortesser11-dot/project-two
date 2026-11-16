@@ -84,6 +84,31 @@ describe('camada de IA', () => {
     const corpo = or.corpo as { model: string; messages: { content: { type: string; file?: { filename: string; file_data: string } }[] }[] };
     expect(corpo.model).toBe('openrouter/free');
     expect(corpo.messages[0]!.content[0]).toEqual({ type: 'file', file: { filename: 'ARQ 01.pdf', file_data: 'data:application/pdf;base64,AQ==' } });
+    // PDF pelo leitor grátis (o OCR padrão é pago) e modelo que pensa pouco.
+    expect((or.corpo as { plugins: unknown }).plugins).toEqual([{ id: 'file-parser', pdf: { engine: 'pdf-text' } }]);
+    expect((or.corpo as { reasoning: unknown }).reasoning).toEqual({ effort: 'low', exclude: true });
+  });
+
+  it('modelo sem cota no plano grátis ("limit: 0") e o sobrecarregado ficam de fora na próxima pergunta', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    const semCota = () =>
+      resposta(429, { error: { code: 429, message: 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 0, model: gemini-omni-flash', status: 'RESOURCE_EXHAUSTED' } });
+    const okOr = () => resposta(200, { choices: [{ message: { content: 'ok' } }], model: 'x:free' });
+    responder(sobrecarga(), listaGoogle('gemini-omni-flash'), semCota(), okOr(), okOr());
+    const { conversarIa } = await import('./ia');
+    await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] });
+    const antes = chamadas.length;
+    const r = await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'de novo' }] });
+    expect(r.modelo).toBe('openrouter:x:free');
+    // Na segunda pergunta nenhum Gemini é chamado: vai direto à reserva.
+    expect(chamadas.slice(antes).map((c) => c.url)).toEqual(['https://openrouter.ai/api/v1/chat/completions']);
+  });
+
+  it('os dois provedores falharam: a mensagem diz o motivo de cada um', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    responder(sobrecarga(), listaGoogle(), resposta(200, { error: { code: 413, message: 'context length exceeded' } }));
+    const { perguntarIa } = await import('./ia');
+    await expect(perguntarIa('x')).rejects.toThrow(/sobrecarregado.*reserva também falhou.*grandes demais/);
   });
 
   it('chave recusada não tenta outro modelo nem outro provedor', async () => {

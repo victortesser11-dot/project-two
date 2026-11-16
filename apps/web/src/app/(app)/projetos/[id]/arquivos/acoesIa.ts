@@ -82,10 +82,14 @@ export async function lerArquivosComIa(projetoId: string, arquivoIds: string[]):
   try {
     resposta = await perguntarIa(instrucao, anexos);
   } catch (erro) {
+    if (!(erro instanceof ErroIa)) console.error('IA: falha inesperada', erro);
     return { ok: false, erro: erro instanceof ErroIa ? erro.message : 'A leitura com IA falhou. Tente de novo.' };
   }
   const leitura = leituraArquivosSchema.safeParse(extrairJson(resposta.texto));
-  if (!leitura.success) return { ok: false, erro: 'A IA respondeu fora do formato esperado. Tente de novo.' };
+  if (!leitura.success) {
+    console.error(`IA (${resposta.modelo}) respondeu fora do formato: ${resposta.texto.slice(0, 300)}`);
+    return { ok: false, erro: 'A IA respondeu fora do formato esperado. Tente de novo.' };
+  }
 
   const id = crypto.randomUUID();
   const { error } = await supabase.rpc('registrar_analise_ia', {

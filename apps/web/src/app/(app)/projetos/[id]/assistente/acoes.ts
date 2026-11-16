@@ -122,12 +122,16 @@ export async function perguntarAoAssistente(projetoId: string, mensagens: { pape
   const m = mensagensSchema.safeParse(mensagens);
   if (!m.success) return { ok: false, erro: `Escreva a pergunta (até ${LIMITE_TEXTO_PERGUNTA} letras). Conversas longas: comece outra.` };
 
+  const inicio = Date.now();
   const contexto = await contextoDaObra(projetoId);
   if (!contexto) return { ok: false, erro: 'Obra não encontrada.' };
+  const montado = Date.now();
   try {
     const r = await conversarIa({ sistema: instrucaoAssistente(contexto), mensagens: m.data });
+    console.info(`Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s, IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`);
     return { ok: true, texto: r.texto.trim(), modelo: r.modelo };
   } catch (erro) {
+    if (!(erro instanceof ErroIa)) console.error('IA: falha inesperada', erro);
     return { ok: false, erro: erro instanceof ErroIa ? erro.message : 'O assistente não respondeu. Tente de novo.' };
   }
 }
