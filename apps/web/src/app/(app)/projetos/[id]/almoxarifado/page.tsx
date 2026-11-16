@@ -13,7 +13,7 @@ export default async function PaginaAlmoxarifado({ params }: { params: Promise<{
   const { projeto, papel } = dados;
 
   const [itens, saldos, movimentos, emprestimos, eap, podeMovimentar] = await Promise.all([
-    listarItensEstoque(projeto.empresa_id),
+    listarItensEstoque(projeto.empresa_id, projeto),
     listarSaldos(id),
     listarMovimentos(id),
     listarEmprestimos({ projetoId: id, abertos: true }),

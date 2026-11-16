@@ -87,3 +87,38 @@ export async function removerMembro(projetoId: string, usuarioId: string): Promi
   revalidatePath(`/projetos/${projetoId}`);
   return { ok: true, mensagem: 'Acesso removido.' };
 }
+
+/**
+ * Obra importada em andamento chega sem datas e em "Planejamento". Preenche só o que está vazio: início e fim
+ * previsto pelas tarefas do cronograma e, se já há avanço apontado, a situação passa para "Em andamento".
+ */
+export async function alinharObraAoCronograma(projetoId: string): Promise<ResultadoMembro> {
+  if (!uuid.safeParse(projetoId).success) return { ok: false, erro: 'Projeto inválido.' };
+  const supabase = await criarClienteServidor();
+  const tarefas = () => supabase.from('eap_item').select('inicio_previsto, fim_previsto').eq('projeto_id', projetoId).eq('tipo', 'tarefa');
+  const [{ data: projeto }, { data: primeira }, { data: ultima }, { data: avanco }] = await Promise.all([
+    supabase.from('projeto').select('data_inicio, data_fim_prevista, status').eq('id', projetoId).maybeSingle(),
+    tarefas().not('inicio_previsto', 'is', null).order('inicio_previsto').limit(1),
+    tarefas().not('fim_previsto', 'is', null).order('fim_previsto', { ascending: false }).limit(1),
+    supabase.from('avanco_tarefa').select('id').eq('projeto_id', projetoId).gt('percentual', 0).limit(1),
+  ]);
+  if (!projeto) return { ok: false, erro: 'Obra não encontrada.' };
+
+  const inicio = projeto.data_inicio ?? primeira?.[0]?.inicio_previsto ?? null;
+  const fim = projeto.data_fim_prevista ?? ultima?.[0]?.fim_previsto ?? null;
+  const mudancas: { data_inicio?: string; data_fim_prevista?: string; status?: 'em_andamento' } = {};
+  // Só grava as duas datas se o par fizer sentido (o banco recusa fim antes do início).
+  if (inicio && fim && fim >= inicio) {
+    if (!projeto.data_inicio) mudancas.data_inicio = inicio;
+    if (!projeto.data_fim_prevista) mudancas.data_fim_prevista = fim;
+  }
+  if (projeto.status === 'planejamento' && (avanco?.length ?? 0) > 0) mudancas.status = 'em_andamento';
+  if (Object.keys(mudancas).length === 0) return { ok: true, mensagem: 'A obra já está com datas e situação em dia.' };
+
+  const { data: linhas, error } = await supabase.from('projeto').update(mudancas).eq('id', projetoId).select('id');
+  if (error) return { ok: false, erro: mensagemDoBanco(error) };
+  if (!linhas || linhas.length === 0) return { ok: false, erro: 'Só o engenheiro da obra ou o admin da empresa muda as datas.' };
+  revalidatePath('/');
+  revalidatePath(`/projetos/${projetoId}`, 'layout');
+  return { ok: true, mensagem: 'Datas da obra preenchidas pelo cronograma.' };
+}

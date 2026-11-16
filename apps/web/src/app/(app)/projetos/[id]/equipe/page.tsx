@@ -31,8 +31,8 @@ export default async function PaginaEquipe({ params }: { params: Promise<{ id: s
 
   const [equipe, empreiteiras, todas, podeGerir, podeApontar, verCustos] = await Promise.all([
     listarEquipeProjeto(id),
-    listarEmpreiteiras(projeto.empresa_id),
-    listarTrabalhadores(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
+    listarTrabalhadores(projeto.empresa_id, projeto),
     podeEditarProjeto(projeto, papel),
     podeApontarCampo(projeto, papel),
     podeVerCustos(projeto, papel),

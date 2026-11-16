@@ -12,7 +12,7 @@ export default async function PaginaInventario({ params }: { params: Promise<{ i
   const dados = await buscarProjeto(id);
   if (!dados) notFound();
   const { projeto, papel } = dados;
-  const [itens, saldos, podeMovimentar] = await Promise.all([listarItensEstoque(projeto.empresa_id), listarSaldos(id), podeMovimentarEstoque(projeto, papel)]);
+  const [itens, saldos, podeMovimentar] = await Promise.all([listarItensEstoque(projeto.empresa_id, projeto), listarSaldos(id), podeMovimentarEstoque(projeto, papel)]);
   const materiais = itensComSaldo(
     itens.filter((i) => i.tipo === 'material'),
     saldos,

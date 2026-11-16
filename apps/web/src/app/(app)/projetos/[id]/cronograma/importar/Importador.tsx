@@ -33,6 +33,7 @@ import { mensagemDoBanco } from '@/lib/erros';
 import type { Json } from '@/lib/database.types';
 import { AvisoErro, Botao, classeBotao, classeEntrada } from '@/components/ui';
 import { Upload } from 'lucide-react';
+import { alinharObraAoCronograma } from '../../acoes';
 
 type Aba = { nome: string; linhas: unknown[][] };
 type Passo = 'arquivo' | 'colunas' | 'previa';
@@ -233,6 +234,9 @@ export function Importador({
         return;
       }
     }
+    // Obra sem datas (ou ainda em "Planejamento" com avanço já feito) passa a seguir o cronograma que entrou.
+    // Se falhar, a importação continua valendo: dá para acertar depois em "Editar dados da obra".
+    await alinharObraAoCronograma(projetoId).catch(() => null);
     router.push(`/projetos/${projetoId}/cronograma?importados=${data ?? resultado.itens.length}`);
     router.refresh();
   }

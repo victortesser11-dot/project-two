@@ -16,7 +16,7 @@ export default async function PaginaEntrada({ params, searchParams }: { params: 
   if (!dados) notFound();
   const { projeto, papel } = dados;
   const [itens, vinculos, podeMovimentar] = await Promise.all([
-    listarItensEstoque(projeto.empresa_id),
+    listarItensEstoque(projeto.empresa_id, projeto),
     listarVinculosFornecedor(projeto.empresa_id),
     podeMovimentarEstoque(projeto, papel),
   ]);

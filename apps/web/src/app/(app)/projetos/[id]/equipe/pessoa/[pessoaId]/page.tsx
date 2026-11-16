@@ -17,7 +17,7 @@ export default async function PaginaPessoa({ params }: { params: Promise<{ id: s
   if (!pessoa || pessoa.empresa_id !== projeto.empresa_id) notFound();
 
   const [empreiteiras, podeGerir, verCustos] = await Promise.all([
-    listarEmpreiteiras(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
     podeEditarProjeto(projeto, papel),
     podeVerCustos(projeto, papel),
   ]);

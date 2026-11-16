@@ -300,12 +300,15 @@ export const buscarDiario = cache(async (projetoId: string, data: string) => {
 // Nunca select('*') em trabalhador: o banco não entrega a coluna cpf (LGPD).
 const COLUNAS_TRABALHADOR = 'id, nome, cpf_mascarado, funcao, empreiteira_id, telefone, ativo';
 
-export const listarEmpreiteiras = cache(async (empresaId: string): Promise<Empreiteira[]> => {
+/** A obra para a qual a lista vai: obra real não mostra os cadastros da obra de exemplo (salvo os que ela já usa). */
+type ObraDaLista = Pick<Projeto, 'id' | 'exemplo'>;
+
+const empreiteirasDaEmpresa = cache(async (empresaId: string): Promise<Empreiteira[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await emPaginas((de, ate) =>
     supabase
       .from('empreiteira')
-      .select('id, nome, cnpj, situacao_cnpj, telefone, ativa')
+      .select('id, nome, cnpj, situacao_cnpj, telefone, ativa, exemplo')
       .eq('empresa_id', empresaId)
       .order('nome')
       .order('id')
@@ -315,14 +318,30 @@ export const listarEmpreiteiras = cache(async (empresaId: string): Promise<Empre
   return data ?? [];
 });
 
-export const listarTrabalhadores = cache(async (empresaId: string): Promise<Trabalhador[]> => {
+/** Empreiteiras da empresa. Com `obra` real, as de exemplo só entram se alguém da equipe da obra for delas. */
+export async function listarEmpreiteiras(empresaId: string, obra?: ObraDaLista): Promise<Empreiteira[]> {
+  const todas = await empreiteirasDaEmpresa(empresaId);
+  if (!obra || obra.exemplo || !todas.some((e) => e.exemplo)) return todas;
+  const usadas = new Set((await listarEquipeProjeto(obra.id)).map((t) => t.empreiteira_id));
+  return todas.filter((e) => !e.exemplo || usadas.has(e.id));
+}
+
+const trabalhadoresDaEmpresa = cache(async (empresaId: string): Promise<Trabalhador[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await emPaginas((de, ate) =>
-    supabase.from('trabalhador').select(COLUNAS_TRABALHADOR).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
+    supabase.from('trabalhador').select(`${COLUNAS_TRABALHADOR}, exemplo`).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
   );
   if (error) throw new Error(`Não foi possível carregar as pessoas: ${error.message}`);
   return data ?? [];
 });
+
+/** Pessoas da empresa. Com `obra` real, as de exemplo só entram se já estiverem na equipe da obra. */
+export async function listarTrabalhadores(empresaId: string, obra?: ObraDaLista): Promise<Trabalhador[]> {
+  const todas = await trabalhadoresDaEmpresa(empresaId);
+  if (!obra || obra.exemplo || !todas.some((t) => t.exemplo)) return todas;
+  const naEquipe = new Set((await listarEquipeProjeto(obra.id)).map((t) => t.id));
+  return todas.filter((t) => !t.exemplo || naEquipe.has(t.id));
+}
 
 export const buscarTrabalhador = cache(async (id: string): Promise<(Trabalhador & { empresa_id: string }) | null> => {
   const { supabase } = await exigirUsuario();
@@ -446,15 +465,26 @@ export async function podeVerCustos(projeto: Projeto, papel: PapelProjeto | null
 
 const COLUNAS_ITEM = 'id, codigo, nome, tipo, unidade, categoria, estoque_minimo, patrimonio, ncm, ativo';
 
-/** Catálogo da empresa (materiais e ferramentas), por nome. */
-export const listarItensEstoque = cache(async (empresaId: string): Promise<ItemEstoque[]> => {
+const itensDaEmpresa = cache(async (empresaId: string): Promise<ItemEstoque[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await emPaginas((de, ate) =>
-    supabase.from('item_estoque').select(COLUNAS_ITEM).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
+    supabase.from('item_estoque').select(`${COLUNAS_ITEM}, exemplo`).eq('empresa_id', empresaId).order('nome').order('id').range(de, ate),
   );
   if (error) throw new Error(`Não foi possível carregar o catálogo: ${error.message}`);
   return (data ?? []).map((i) => ({ ...i, estoque_minimo: Number(i.estoque_minimo) }));
 });
+
+/**
+ * Catálogo da empresa (materiais e ferramentas), por nome. Com `obra` real, os itens da obra de exemplo só
+ * entram se já tiverem saldo ou empréstimo nela.
+ */
+export async function listarItensEstoque(empresaId: string, obra?: ObraDaLista): Promise<ItemEstoque[]> {
+  const todos = await itensDaEmpresa(empresaId);
+  if (!obra || obra.exemplo || !todos.some((i) => i.exemplo)) return todos;
+  const [saldos, emprestimos] = await Promise.all([listarSaldos(obra.id), emprestimosDaObra(obra.id)]);
+  const usados = new Set([...saldos.map((x) => x.item_id), ...emprestimos.map((x) => x.item_id)]);
+  return todos.filter((i) => !i.exemplo || usados.has(i.id));
+}
 
 export const buscarItemEstoque = cache(async (id: string): Promise<(ItemEstoque & { empresa_id: string }) | null> => {
   const { supabase } = await exigirUsuario();
@@ -502,6 +532,8 @@ export const listarMovimentos = cache(async (projetoId: string, limite = 100_000
 const COLUNAS_EMPRESTIMO = 'id, projeto_id, item_id, trabalhador_id, responsavel, retirada_em, devolver_ate, devolvida_em, observacao';
 
 /** Empréstimos de ferramenta que a pessoa enxerga (das obras dela). */
+const emprestimosDaObra = cache((projetoId: string) => listarEmprestimos({ projetoId }));
+
 export const listarEmprestimos = cache(async (filtro: { projetoId?: string; itemId?: string; abertos?: boolean }): Promise<EmprestimoFerramenta[]> => {
   const { supabase } = await exigirUsuario();
   const { data, error } = await emPaginas((de, ate) => {

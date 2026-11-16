@@ -52,7 +52,7 @@ export default async function PaginaDiarioDoDia({ params }: { params: Promise<{ 
   // Equipe do diário a partir da chamada do dia (RF-302 → RF-203).
   let daChamada: { funcao: string; empresa_terceira: string | null; quantidade: number }[] = [];
   if (editavel) {
-    const [chamada, equipe, empreiteiras] = await Promise.all([buscarChamada(id, data), listarEquipeProjeto(id), listarEmpreiteiras(projeto.empresa_id)]);
+    const [chamada, equipe, empreiteiras] = await Promise.all([buscarChamada(id, data), listarEquipeProjeto(id), listarEmpreiteiras(projeto.empresa_id, projeto)]);
     const presentes = new Set(chamada.doDia.filter((a) => a.presente).map((a) => a.trabalhador_id));
     const nomeEmp = new Map(empreiteiras.map((e) => [e.id, e.nome]));
     daChamada = efetivoDaChamada(

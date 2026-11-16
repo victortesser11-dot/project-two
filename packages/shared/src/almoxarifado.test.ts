@@ -179,18 +179,21 @@ describe('saldo e gasto', () => {
     const itens = [
       item(1, 'Cimento', { estoque_minimo: 20 }),
       item(2, 'Areia', { estoque_minimo: 2 }),
-      item(3, 'Brita', { estoque_minimo: 5 }), // sem saldo: zero
+      item(3, 'Brita', { estoque_minimo: 5 }), // nunca entrou nesta obra: não é falta
       item(4, 'Betoneira', { tipo: 'ferramenta' }),
+      item(5, 'Cal', { estoque_minimo: 10 }), // entrou e acabou: é falta
     ];
     const r = itensComSaldo(itens, [
       { item_id: U(1), quantidade: 15, custo_medio: 32 },
       { item_id: U(2), quantidade: 7.5, custo_medio: 120.5 },
+      { item_id: U(5), quantidade: 0, custo_medio: 18 },
     ]);
     expect(r.map((i) => [i.nome, i.quantidade, i.valor, i.abaixoDoMinimo])).toEqual([
       ['Cimento', 15, 480, true],
       ['Areia', 7.5, 903.75, false],
-      ['Brita', 0, 0, true],
+      ['Brita', 0, 0, false],
       ['Betoneira', 0, 0, false],
+      ['Cal', 0, 0, true],
     ]);
   });
 

@@ -21,7 +21,7 @@ export default async function PaginaEtiquetas({ params }: { params: Promise<{ id
   const { id } = await params;
   const dados = await buscarProjeto(id);
   if (!dados) notFound();
-  const [itens, empresa, base] = await Promise.all([listarItensEstoque(dados.projeto.empresa_id), empresaAtual(), origem()]);
+  const [itens, empresa, base] = await Promise.all([listarItensEstoque(dados.projeto.empresa_id, dados.projeto), empresaAtual(), origem()]);
   const ferramentas = itens.filter((i) => i.tipo === 'ferramenta' && i.ativo);
   const etiquetas = await Promise.all(
     ferramentas.map(async (f) => ({

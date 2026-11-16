@@ -99,7 +99,8 @@ export function itensComSaldo(itens: ItemEstoque[], saldos: SaldoEstoque[]): Ite
       quantidade,
       custo_medio,
       valor: Math.round(quantidade * custo_medio * 100) / 100,
-      abaixoDoMinimo: i.tipo === 'material' && i.ativo && i.estoque_minimo > 0 && quantidade < i.estoque_minimo,
+      // O mínimo é do catálogo da empresa, o saldo é da obra: material que nunca entrou nesta obra não é falta.
+      abaixoDoMinimo: i.tipo === 'material' && i.ativo && i.estoque_minimo > 0 && s !== undefined && quantidade < i.estoque_minimo,
     };
   });
 }

@@ -189,6 +189,8 @@ export interface Empreiteira {
   situacao_cnpj: string | null;
   telefone: string | null;
   ativa: boolean;
+  /** Cadastro da obra de exemplo (fictício): não aparece nas obras reais. */
+  exemplo?: boolean;
 }
 
 /** Pessoa como o app enxerga: sem o CPF completo (o banco não entrega). */
@@ -200,6 +202,8 @@ export interface Trabalhador {
   empreiteira_id: string | null;
   telefone: string | null;
   ativo: boolean;
+  /** Cadastro da obra de exemplo (fictício): não aparece nas obras reais. */
+  exemplo?: boolean;
 }
 
 export interface CustoVigente {
@@ -251,6 +255,8 @@ export interface ItemEstoque {
   patrimonio: string | null;
   ncm: string | null;
   ativo: boolean;
+  /** Cadastro da obra de exemplo (fictício): não aparece nas obras reais. */
+  exemplo?: boolean;
 }
 
 export interface SaldoEstoque {

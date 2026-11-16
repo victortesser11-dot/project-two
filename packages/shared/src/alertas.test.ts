@@ -26,6 +26,25 @@ describe('alertas do cronograma', () => {
     expect(a[0]!.detalhe).toBe('Devia ter terminado em 05/03/2027 (há 5 dias); está em 60%.');
   });
 
+  it('tarefa de mesmo nome em pavimentos diferentes leva a etapa no título', () => {
+    const a = alertasCronograma({
+      tarefas: [
+        { ...t('1.4.4', 'Alvenaria lado 2', '2027-03-01', '2027-03-05', 60), etapa: 'Torre A 4º Pavimento' },
+        { ...t('2.3.4', 'Alvenaria lado 2', '2027-03-01', '2027-03-05', 60), etapa: 'Torre B 3º Pavimento' },
+        t('9', 'Limpeza final', '2027-03-01', '2027-03-05', 60),
+      ],
+      justificativas: [],
+      diarios: [],
+      itensAbaixoDoMinimo: 0,
+      hoje,
+    });
+    expect(a.map((x) => x.titulo)).toEqual([
+      '1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)',
+      '2.3.4 Alvenaria lado 2 (Torre B 3º Pavimento)',
+      '9 Limpeza final',
+    ]);
+  });
+
   it('sugere chuva pelo diário e material pelo almoxarifado', () => {
     const diarios = [
       { id: 'd1', data: '2027-03-03', status: 'assinado' as const, clima_manha: 'chuva_forte' as const, clima_tarde: 'chuva' as const },

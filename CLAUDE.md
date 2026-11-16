@@ -250,6 +250,20 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   `exemplo` que nenhuma obra real usa. Nenhuma conta de login é criada (pessoas são `trabalhador`).
 - A coluna `exemplo` (projeto, empreiteira, trabalhador, item_estoque) só é gravada dentro de `criar_obra_exemplo`
   (`app.tg_exemplo_protegido`). Mudou uma RPC usada pelo exemplo? Rode `97_obra_exemplo_test.sql`: ele quebra junto.
+- Cadastro de exemplo não aparece em obra real: `listarItensEstoque`, `listarTrabalhadores` e `listarEmpreiteiras`
+  recebem a obra (`projeto`) e tiram os marcados `exemplo`, salvo os que a obra já usa (saldo, empréstimo, equipe).
+  Página nova da obra que liste catálogo ou pessoas passa `projeto` como segundo argumento.
+- "Abaixo do mínimo" (`itensComSaldo`) só vale para material que já tem saldo registrado na obra: o mínimo é do
+  catálogo da empresa, e item que nunca entrou naquela obra não é falta.
+
+## Dados da obra
+
+- `projetos/[id]/editar` (engenheiro da obra e admin): nome, endereço, CEP (vira latitude/longitude para o clima),
+  datas, orçamento e situação, com UPDATE direto em `projeto` (RLS `pode_editar_projeto`, auditado). O formulário é o
+  mesmo da criação (`FormularioProjeto`), com o botão "Usar as datas do cronograma".
+- `alinharObraAoCronograma` roda depois de cada importação: preenche só o que está vazio (início e fim pelas tarefas)
+  e passa de "Planejamento" para "Em andamento" quando já há avanço apontado.
+- Título de alerta de tarefa leva a etapa logo acima ("1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)").
 
 ## Interface
 

@@ -13,8 +13,8 @@ export default async function PaginaEmpreiteiras({ params }: { params: Promise<{
   if (!dados) notFound();
   const { projeto, papel } = dados;
   const [empreiteiras, pessoas, podeGerir] = await Promise.all([
-    listarEmpreiteiras(projeto.empresa_id),
-    listarTrabalhadores(projeto.empresa_id),
+    listarEmpreiteiras(projeto.empresa_id, projeto),
+    listarTrabalhadores(projeto.empresa_id, projeto),
     podeEditarProjeto(projeto, papel),
   ]);
   const qtd = (empId: string) => pessoas.filter((p) => p.empreiteira_id === empId && p.ativo).length;

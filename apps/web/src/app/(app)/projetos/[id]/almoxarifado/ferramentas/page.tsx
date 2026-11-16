@@ -14,7 +14,7 @@ export default async function PaginaFerramentas({ params }: { params: Promise<{ 
   if (!dados) notFound();
   const { projeto, papel } = dados;
   const [itens, emprestimos, equipe, projetos, podeMovimentar] = await Promise.all([
-    listarItensEstoque(projeto.empresa_id),
+    listarItensEstoque(projeto.empresa_id, projeto),
     listarEmprestimos({ abertos: true }),
     listarEquipeProjeto(id),
     listarProjetos(),
