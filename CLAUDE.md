@@ -256,13 +256,17 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## IA (leitura de arquivos e de fotos)
 
-- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), provedores tentados em ordem: Gemini (`IA_CHAVE`, API nativa que
-  lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`API_OPENROUTER` na Vercel, ou `OPENROUTER_CHAVE`; opcional; `OPENROUTER_MODELO`
-  padrão `openrouter/free`, o roteador grátis; imagem como data URL, PDF como `file`). Sobrecarga (503), cota (429) ou modelo
-  aposentado (404) no Gemini: tenta até 4 modelos Flash da lista do Google (mais novo primeiro, lite e prévia por último) e
-  depois o OpenRouter; chave recusada para na hora. Modelo que falhou fica de fora por um tempo
-  (sem cota no grátis, "limit: 0", 24 h; cota do dia, 1 h; 429, 2 min; 503, 1 min), para não reenviar arquivos à toa. No OpenRouter, PDF
-  vai pelo leitor grátis (`file-parser` com `pdf-text`; o OCR padrão é pago) e `reasoning: low` (modelo que pensa muito demora). Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
+- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): o provedor principal (`IA_PRINCIPAL`, padrão `openrouter`) e, se ele
+  falhar, o outro. OpenRouter: `API_OPENROUTER` na Vercel (ou `OPENROUTER_CHAVE`), `OPENROUTER_MODELO` padrão `openrouter/free`
+  (roteador grátis), `reasoning: low` (modelo que pensa muito demora). Gemini: `IA_CHAVE`, API nativa, `IA_MODELO` padrão
+  `gemini-flash-latest`; em 503/429/404 tenta até 4 modelos da família `gemini-<versão>-flash` (as variantes "omni" têm cota zero
+  no grátis). Chave recusada para na hora. Modelo que falhou fica de fora por um tempo na instância (sem cota "limit: 0" 24 h;
+  cota do dia 1 h; 429 2 min; 503 1 min).
+- Anexos preparados no servidor (`lib/anexosIa.ts`, unpdf + `@napi-rs/canvas`, em `serverExternalPackages`): o leitor de arquivos
+  do OpenRouter recusa PDF grande e só tira texto. O PDF vira texto (camada de texto) + imagens JPEG das 3 primeiras páginas;
+  prancha (lado > 1400 pt) ganha recortes de até 1800 px desenhados a 5000 px (carimbo legível); prancha escaneada em pé é girada
+  90° no sentido horário (carimbo no canto inferior direito). Até 14 imagens por pedido; foto acima de 1,5 MB vai a 2000 px.
+  O Gemini recebe o PDF direto quando cabe (até 8 MB cada, 14 MB no total); acima disso, as mesmas partes preparadas. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
   obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
   (campo faltando ou tipo trocado não derruba a leitura). Tarefas vão como T1, T2 (o modelo erra UUID).
