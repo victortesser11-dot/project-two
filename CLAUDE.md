@@ -260,7 +260,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`API_OPENROUTER` na Vercel, ou `OPENROUTER_CHAVE`; opcional; `OPENROUTER_MODELO`
   padrão `openrouter/free`, o roteador grátis; imagem como data URL, PDF como `file`). Sobrecarga (503), cota (429) ou modelo
   aposentado (404) no Gemini: tenta até 4 modelos Flash da lista do Google (mais novo primeiro, lite e prévia por último) e
-  depois o OpenRouter; chave recusada para na hora. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
+  depois o OpenRouter; chave recusada para na hora. Modelo que falhou fica de fora por um tempo
+  (sem cota no grátis, "limit: 0", 24 h; cota do dia, 1 h; 429, 2 min; 503, 1 min), para não reenviar arquivos à toa. No OpenRouter, PDF
+  vai pelo leitor grátis (`file-parser` com `pdf-text`; o OCR padrão é pago) e `reasoning: low` (modelo que pensa muito demora). Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
   obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
   (campo faltando ou tipo trocado não derruba a leitura). Tarefas vão como T1, T2 (o modelo erra UUID).

@@ -51,6 +51,33 @@ function base64(dados: Uint8Array): string {
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
+// Modelos que falharam há pouco ficam de fora por um tempo (memória da instância do servidor): não vale reenviar os
+// arquivos para um modelo sem cota no plano grátis ("limit: 0") ou que acabou de dizer que está sobrecarregado.
+const foraAte = new Map<string, number>();
+const MINUTO = 60_000;
+
+/** Por quanto tempo deixar um modelo de fora depois desta falha. */
+function tempoDeFora(status: number, corpo: string): number {
+  if (status === 404 || /limit: 0\b/.test(corpo)) return 24 * 60 * MINUTO;
+  if (/per ?day|PerDay/i.test(corpo)) return 60 * MINUTO;
+  if (status === 429) return 2 * MINUTO;
+  if (status >= 500) return MINUTO;
+  return 0;
+}
+
+function marcarFora(modelo: string, status: number, corpo: string) {
+  const ms = tempoDeFora(status, corpo);
+  if (ms > 0) foraAte.set(modelo, Date.now() + ms);
+}
+
+function estaFora(modelo: string): boolean {
+  const ate = foraAte.get(modelo);
+  if (ate === undefined) return false;
+  if (ate > Date.now()) return true;
+  foraAte.delete(modelo);
+  return false;
+}
+
 /** Mensagem para a tela a partir do status e do corpo do erro do provedor. */
 function erroDoProvedor(status: number, corpo: string): ErroIa {
   if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid|PERMISSION_DENIED|No auth credentials|User not found/i.test(corpo)) {
@@ -122,6 +149,7 @@ async function chamarGemini(chave: string, modelo: string, p: Pedido): Promise<R
   const textoBruto = await r.text();
   if (!r.ok) {
     console.error(`IA (Gemini ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
+    marcarFora(modelo, r.status, textoBruto);
     throw erroDoProvedor(r.status, textoBruto);
   }
   const json = JSON.parse(textoBruto) as {
@@ -145,19 +173,24 @@ async function perguntarGemini(chave: string, p: Pedido): Promise<RespostaIa> {
     const modelo = fila.shift();
     if (!modelo) {
       if (tentados.length === 1) {
-        fila = (await modelosFlash(chave)).filter((m) => !tentados.includes(m));
+        fila = (await modelosFlash(chave)).filter((m) => !tentados.includes(m) && !estaFora(m));
         if (fila.length > 0) continue;
       }
       break;
     }
     if (tentados.includes(modelo)) continue;
+    if (estaFora(modelo)) {
+      // Não conta como tentativa, mas abre a lista do Google se o preferido está de fora.
+      if (tentados.length === 0) tentados.push(modelo);
+      continue;
+    }
     tentados.push(modelo);
     try {
       return await chamarGemini(chave, modelo, p);
     } catch (erro) {
       if (!(erro instanceof ErroPassageiro)) throw erro;
       ultimo = erro;
-      await espera(800);
+      await espera(300);
     }
   }
   throw ultimo;
@@ -187,17 +220,38 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
       'X-Title': 'Controle de Obras',
       ...(process.env.NEXT_PUBLIC_SITE_URL ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL } : {}),
     },
-    { model: modelo, temperature: 0.2, messages, ...(p.json ? { response_format: { type: 'json_object' } } : {}) },
+    {
+      model: modelo,
+      temperature: 0.2,
+      messages,
+      // Modelo que "pensa" antes de responder demora muito: pensa pouco e não devolve o raciocínio.
+      reasoning: { effort: 'low', exclude: true },
+      // PDF vira texto pelo leitor grátis do OpenRouter (o OCR padrão é pago e falha numa conta sem crédito).
+      ...(p.anexos.some((a) => !a.mime.startsWith('image/')) ? { plugins: [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }] } : {}),
+      ...(p.json ? { response_format: { type: 'json_object' } } : {}),
+    },
   );
   const textoBruto = await r.text();
   if (!r.ok) {
     console.error(`IA (OpenRouter ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
     throw erroDoProvedor(r.status, textoBruto);
   }
-  const json = JSON.parse(textoBruto) as { choices?: { message?: { content?: string } }[]; model?: string; error?: { message?: string; code?: number } };
-  if (json.error) throw erroDoProvedor(json.error.code ?? 500, json.error.message ?? '');
+  let json: { choices?: { message?: { content?: string } }[]; model?: string; error?: { message?: string; code?: number } };
+  try {
+    json = JSON.parse(textoBruto);
+  } catch {
+    console.error(`IA (OpenRouter ${modelo}) devolveu algo que não é JSON: ${textoBruto.slice(0, 300)}`);
+    throw new ErroPassageiro('A IA reserva respondeu com defeito. Tente de novo.');
+  }
+  if (json.error) {
+    console.error(`IA (OpenRouter ${json.model || modelo}) falhou: ${json.error.code ?? '?'} ${(json.error.message ?? '').slice(0, 300)}`);
+    throw erroDoProvedor(json.error.code ?? 500, json.error.message ?? '');
+  }
   const texto = json.choices?.[0]?.message?.content ?? '';
-  if (!texto) throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+  if (!texto) {
+    console.error(`IA (OpenRouter ${json.model || modelo}) respondeu vazio.`);
+    throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+  }
   return { texto, modelo: `openrouter:${json.model || modelo}` };
 }
 
@@ -219,11 +273,15 @@ export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]
     }
   }
   if (openrouter) {
+    const inicio = Date.now();
     try {
       return await perguntarOpenRouter(openrouter, pedido);
     } catch (erro) {
-      // Os dois falharam: a mensagem do Gemini (o principal) costuma explicar melhor.
-      throw ultimo ?? erro;
+      const motivo = erro instanceof ErroIa ? erro.message : String(erro);
+      console.error(`IA (OpenRouter) não conseguiu em ${Math.round((Date.now() - inicio) / 1000)} s: ${motivo}`);
+      if (!ultimo) throw erro instanceof ErroIa ? erro : new ErroIa('A IA não respondeu.');
+      // Os dois falharam: diz o motivo de cada um.
+      throw new ErroIa(`${ultimo.message} A IA reserva também falhou: ${motivo}`);
     }
   }
   throw ultimo ?? new ErroIa('A IA não respondeu.');
