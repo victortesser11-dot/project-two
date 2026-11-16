@@ -50,11 +50,12 @@ import { criarClienteServidor } from '@/lib/supabase/server';
 /** Usuário logado; sem sessão, manda para o login. */
 export const exigirUsuario = cache(async () => {
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-  return { supabase, usuario: user };
+  // Token conferido pela assinatura (chave pública do projeto, em cache): sem ida ao servidor de login por página.
+  // Quem barra o acesso aos dados continua sendo o RLS, com o mesmo token.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) redirect('/login');
+  return { supabase, usuario: { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : undefined } };
 });
 
 /**

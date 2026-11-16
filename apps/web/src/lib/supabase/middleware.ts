@@ -25,10 +25,11 @@ export async function atualizarSessao(request: NextRequest) {
     },
   });
 
-  // Não colocar código entre a criação do cliente e getUser(): é o que renova o token.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Não colocar código entre a criação do cliente e getClaims(): é o que renova o token.
+  // getClaims confere a assinatura do token com a chave pública do projeto (ES256, guardada em cache), sem ir ao
+  // servidor de login a cada clique como o getUser ia; o token vencido é renovado aqui do mesmo jeito.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
   const caminho = request.nextUrl.pathname;
   const publica = ROTAS_PUBLICAS.some((r) => caminho === r || caminho.startsWith(`${r}/`));
