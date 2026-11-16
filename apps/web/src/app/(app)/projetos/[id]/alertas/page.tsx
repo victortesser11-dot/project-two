@@ -111,7 +111,7 @@ export default async function PaginaAlertas({ params }: { params: Promise<{ id: 
       {outrosNoEstado.length > 0 && (
         <details className="cartao px-4 py-3 sm:px-5">
           <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">
-            {temLocal ? 'Outros alertas da Defesa Civil no RS, fora da área da obra' : 'Alertas da Defesa Civil em vigor no RS'} (
+            {temLocal ? 'Outros alertas da Defesa Civil na região, fora da área da obra' : 'Alertas da Defesa Civil em vigor na região'} (
             {outrosNoEstado.length})
           </summary>
           <ul className="mt-2 flex flex-col gap-2 pb-1 text-sm">

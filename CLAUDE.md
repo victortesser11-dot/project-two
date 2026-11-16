@@ -218,7 +218,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   toca o RS (área "…/RS", IBGE 43…, remetente gaúcho ou polígono no retângulo do estado); Update/Cancel tiram o alerta citado.
   A tabela é dado público, sem `empresa_id`, e o app não a lê direto: `alertas_defesa_civil_da_obra` confere a permissão e
   marca `na_obra` pelo ponto da obra no polígono (`app.ponto_no_poligono`; null sem localização). Só os `na_obra` viram alerta
-  da obra (`alertasDefesaCivil`: risco extremo/alto urgente); os outros do RS aparecem recolhidos na central.
+  da obra (`alertasDefesaCivil`: risco extremo/alto urgente); os outros (RS e fronteira) aparecem recolhidos na central.
 
 ## E-mails
 
