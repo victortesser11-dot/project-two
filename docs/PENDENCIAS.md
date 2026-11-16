@@ -47,7 +47,7 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [x] Chave `IA_CHAVE` (Google AI Studio, plano grátis) cadastrada na Vercel em Production.
 - [x] Publicado em 16/11 (migração `20261116090000_analise_ia.sql` aplicada antes do merge).
 - [x] 16/11: o Gemini grátis respondeu "503, alta demanda" nas leituras. Agora o app tenta outros modelos Flash e o OpenRouter.
-- [ ] **Chave do OpenRouter** (opcional, recomendada como reserva): criar em openrouter.ai, cadastrar `OPENROUTER_CHAVE` na Vercel.
+- [x] Chave do OpenRouter cadastrada na Vercel como `API_OPENROUTER` (16/11).
 - [ ] Testar na obra Napoles: Arquivos → "Ler o projeto com IA" com as pranchas em PDF; Diário do dia → "Ler as fotos com IA".
 - [ ] Avisar o cliente: no plano grátis o Google pode usar o conteúdo enviado. Para contrato, plano pago (centavos por obra/mês).
 

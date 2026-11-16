@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { formatarMoeda, hojeIso, ROTULO_STATUS, STATUS_PROJETO, type CorSemaforo, type Projeto } from '@obras/shared';
-import { empresaAtual, listarProjetos, regraSemaforo } from '@/lib/dados';
+import { empresaAtual, listarProjetos, papeisNasObras, regraSemaforo } from '@/lib/dados';
+import { MenuObra } from '@/components/MenuObra';
 import { resumoDaObra, type ResumoPortfolio } from '@/lib/portfolio';
 import { classeBotao, SeloStatus } from '@/components/ui';
 import { Regua } from '@/components/Regua';
@@ -28,8 +29,9 @@ export default async function Portfolio() {
     );
   }
 
-  const projetos = await listarProjetos();
+  const [projetos, papeis] = await Promise.all([listarProjetos(), papeisNasObras()]);
   const hoje = hojeIso();
+  const admin = empresa.papel === 'admin';
 
   if (projetos.length === 0) {
     return (
@@ -103,7 +105,14 @@ export default async function Portfolio() {
 
       <ul className="mt-6 divide-y divide-linha overflow-hidden cartao">
         {ordenados.map((p) => (
-          <LinhaProjeto key={p.id} projeto={p} hoje={hoje} resumo={resumos.get(p.id) ?? null} />
+          <LinhaProjeto
+            key={p.id}
+            projeto={p}
+            hoje={hoje}
+            resumo={resumos.get(p.id) ?? null}
+            podeEditar={admin || papeis.get(p.id) === 'engenheiro'}
+            podeExcluir={admin}
+          />
         ))}
       </ul>
 
@@ -136,12 +145,24 @@ function SeloExemplo() {
   return <span className="rounded-full bg-concreto px-2.5 py-0.5 text-xs font-semibold text-regua">Exemplo</span>;
 }
 
-function LinhaProjeto({ projeto: p, hoje, resumo }: { projeto: Projeto; hoje: string; resumo: ResumoPortfolio | null }) {
+function LinhaProjeto({
+  projeto: p,
+  hoje,
+  resumo,
+  podeEditar,
+  podeExcluir,
+}: {
+  projeto: Projeto;
+  hoje: string;
+  resumo: ResumoPortfolio | null;
+  podeEditar: boolean;
+  podeExcluir: boolean;
+}) {
   return (
-    <li>
+    <li className="flex items-start gap-1 pr-2 transition-colors hover:bg-concreto/60 sm:items-center">
       <Link
         href={`/projetos/${p.id}`}
-        className="grid gap-x-8 gap-y-4 px-5 py-5 transition-colors hover:bg-concreto/60 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_auto] sm:items-center"
+        className="grid min-w-0 flex-1 gap-x-8 gap-y-4 py-5 pl-5 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_auto] sm:items-center"
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -163,6 +184,9 @@ function LinhaProjeto({ projeto: p, hoje, resumo }: { projeto: Projeto; hoje: st
           {p.orcamento_total ? formatarMoeda(p.orcamento_total, { compacta: true }) : <span className="font-normal text-regua">Sem orçamento</span>}
         </p>
       </Link>
+      <div className="pt-4 sm:pt-0">
+        <MenuObra projetoId={p.id} nome={p.nome} podeEditar={podeEditar} podeExcluir={podeExcluir} exemplo={p.exemplo} />
+      </div>
     </li>
   );
 }

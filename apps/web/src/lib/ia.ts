@@ -6,8 +6,8 @@ import 'server-only';
 //   IA_CHAVE           chave do Gemini (Google AI Studio). Lê PDF e imagem.
 //   IA_MODELO          modelo preferido do Gemini (padrão "gemini-flash-latest"). Sobrecarregado (503), sem cota (429)
 //                      ou aposentado (404)? Tenta os outros Flash da lista do Google.
-//   OPENROUTER_CHAVE   chave do OpenRouter (opcional): reserva quando o Gemini falha, e provedor único se não houver
-//                      IA_CHAVE. Lê texto, imagem e PDF.
+//   API_OPENROUTER     chave do OpenRouter (opcional; também aceita OPENROUTER_CHAVE): reserva quando o Gemini falha,
+//                      e provedor único se não houver IA_CHAVE. Lê texto, imagem e PDF.
 //   OPENROUTER_MODELO  padrão "openrouter/free" (o roteador grátis escolhe um modelo livre).
 //   IA_LIMITE_DIA      leituras por obra por dia (padrão 20), para não estourar a cota grátis.
 // Com nenhuma das chaves, as telas de IA ficam escondidas e o app segue normal.
@@ -26,8 +26,13 @@ const BASE_OPENROUTER = 'https://openrouter.ai/api/v1';
 const TEMPO_MAXIMO = 120_000;
 const MAX_MODELOS_GEMINI = 4;
 
+/** Chave do OpenRouter: API_OPENROUTER (nome cadastrado na Vercel) ou OPENROUTER_CHAVE. */
+function chaveOpenRouter(): string | undefined {
+  return process.env.API_OPENROUTER || process.env.OPENROUTER_CHAVE || undefined;
+}
+
 export function iaConfigurada(): boolean {
-  return Boolean(process.env.IA_CHAVE || process.env.OPENROUTER_CHAVE);
+  return Boolean(process.env.IA_CHAVE || chaveOpenRouter());
 }
 
 export function limiteDiarioIa(): number {
@@ -49,7 +54,7 @@ const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 /** Mensagem para a tela a partir do status e do corpo do erro do provedor. */
 function erroDoProvedor(status: number, corpo: string): ErroIa {
   if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid|PERMISSION_DENIED|No auth credentials|User not found/i.test(corpo)) {
-    return new ErroIa('A chave da IA foi recusada. Confira IA_CHAVE (Gemini) ou OPENROUTER_CHAVE na Vercel.');
+    return new ErroIa('A chave da IA foi recusada. Confira IA_CHAVE (Gemini) ou API_OPENROUTER na Vercel.');
   }
   if (status === 413 || /too large|exceeds the maximum|payload size|context length/i.test(corpo)) {
     return new ErroIa('Os arquivos ficaram grandes demais para uma leitura. Escolha menos arquivos de cada vez.');
@@ -202,8 +207,8 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
 export async function conversarIa(p: { sistema?: string; mensagens: MensagemIa[]; anexos?: Anexo[]; json?: boolean }): Promise<RespostaIa> {
   const pedido: Pedido = { sistema: p.sistema, mensagens: p.mensagens, anexos: p.anexos ?? [], json: p.json ?? false };
   const gemini = process.env.IA_CHAVE;
-  const openrouter = process.env.OPENROUTER_CHAVE;
-  if (!gemini && !openrouter) throw new ErroIa('A IA não está ligada. Cadastre IA_CHAVE (Gemini) ou OPENROUTER_CHAVE na Vercel.');
+  const openrouter = chaveOpenRouter();
+  if (!gemini && !openrouter) throw new ErroIa('A IA não está ligada. Cadastre IA_CHAVE (Gemini) ou API_OPENROUTER na Vercel.');
   let ultimo: ErroIa | null = null;
   if (gemini) {
     try {

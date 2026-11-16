@@ -928,3 +928,10 @@ export const alertasDefesaCivilDaObra = cache(async (projetoId: string): Promise
   if (error) throw new Error(`Não foi possível carregar os alertas da Defesa Civil: ${error.message}`);
   return data ?? [];
 });
+
+/** Papel da pessoa em cada obra em que ela é membro (projeto_id → papel). Só para a interface. */
+export const papeisNasObras = cache(async (): Promise<Map<string, PapelProjeto>> => {
+  const { supabase, usuario } = await exigirUsuario();
+  const { data } = await supabase.from('membro_projeto').select('projeto_id, papel').eq('usuario_id', usuario.id);
+  return new Map((data ?? []).map((m) => [m.projeto_id, m.papel]));
+});

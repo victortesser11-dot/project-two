@@ -25,7 +25,7 @@ export default async function PaginaAssistente({ params }: { params: Promise<{ i
         <Assistente projetoId={id} nomeObra={dados.projeto.nome} />
       ) : (
         <p className="cartao p-4 text-regua">
-          A IA ainda não está ligada. Cadastre a chave do Gemini (IA_CHAVE) ou do OpenRouter (OPENROUTER_CHAVE) nas variáveis da Vercel.
+          A IA ainda não está ligada. Cadastre a chave do Gemini (IA_CHAVE) ou do OpenRouter (API_OPENROUTER) nas variáveis da Vercel.
         </p>
       )}
     </div>

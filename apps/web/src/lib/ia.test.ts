@@ -20,6 +20,7 @@ describe('camada de IA', () => {
     chamadas = [];
     process.env.IA_CHAVE = 'chave-gemini';
     delete process.env.OPENROUTER_CHAVE;
+    delete process.env.API_OPENROUTER;
     delete process.env.OPENROUTER_MODELO;
     delete process.env.IA_MODELO;
   });
@@ -72,7 +73,7 @@ describe('camada de IA', () => {
   });
 
   it('Gemini caiu: o OpenRouter (roteador grátis) responde, com PDF como arquivo', async () => {
-    process.env.OPENROUTER_CHAVE = 'chave-or';
+    process.env.API_OPENROUTER = 'chave-or';
     responder(sobrecarga(), listaGoogle(), resposta(200, { choices: [{ message: { content: '{"a":1}' } }], model: 'qwen/algum:free' }));
     const { perguntarIa } = await import('./ia');
     const r = await perguntarIa('Leia', [{ mime: 'application/pdf', dados: new Uint8Array([1]), nome: 'proj/ARQ 01.pdf' }]);

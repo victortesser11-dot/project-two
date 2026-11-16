@@ -121,3 +121,31 @@ export async function editarProjeto(_: EstadoFormulario, form: FormData): Promis
   revalidatePath(`/projetos/${projetoId}`, 'layout');
   redirect(`/projetos/${projetoId}`);
 }
+
+/**
+ * Exclui a obra e tudo o que é dela (cronograma, diários, almoxarifado, medições, arquivos). Só o admin da empresa:
+ * quem barra é o RLS (projeto_delete). Obra de exemplo sai pela função própria, que limpa também os cadastros fictícios.
+ */
+export async function excluirProjeto(projetoId: string): Promise<{ erro?: string }> {
+  if (!/^[0-9a-f-]{36}$/i.test(projetoId)) return { erro: 'Obra inválida.' };
+  const empresa = await empresaAtual();
+  if (!empresa || empresa.papel !== 'admin') return { erro: 'Só o admin da empresa exclui obras.' };
+  const supabase = await criarClienteServidor();
+  const { data: projeto } = await supabase.from('projeto').select('id, exemplo').eq('id', projetoId).maybeSingle();
+  if (!projeto) return { erro: 'Obra não encontrada.' };
+  if (projeto.exemplo) return apagarObraExemplo();
+
+  // Arquivos da obra no Storage: saem antes (depois da exclusão, as políticas não acham mais a obra).
+  const { data: pastas } = await supabase.storage.from('arquivos').list(projetoId, { limit: 1000 });
+  for (const pasta of pastas ?? []) {
+    const { data: dentro } = await supabase.storage.from('arquivos').list(`${projetoId}/${pasta.name}`, { limit: 100 });
+    const caminhos = (dentro ?? []).map((f) => `${projetoId}/${pasta.name}/${f.name}`);
+    if (caminhos.length) await supabase.storage.from('arquivos').remove(caminhos);
+  }
+
+  const { data: linhas, error } = await supabase.from('projeto').delete().eq('id', projetoId).select('id');
+  if (error) return { erro: `Não foi possível excluir a obra: ${error.message}` };
+  if (!linhas || linhas.length === 0) return { erro: 'Só o admin da empresa exclui obras.' };
+  revalidatePath('/', 'layout');
+  redirect('/');
+}

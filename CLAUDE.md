@@ -257,7 +257,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 ## IA (leitura de arquivos e de fotos)
 
 - Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), provedores tentados em ordem: Gemini (`IA_CHAVE`, API nativa que
-  lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`OPENROUTER_CHAVE`, opcional; `OPENROUTER_MODELO`
+  lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`API_OPENROUTER` na Vercel, ou `OPENROUTER_CHAVE`; opcional; `OPENROUTER_MODELO`
   padrão `openrouter/free`, o roteador grátis; imagem como data URL, PDF como `file`). Sobrecarga (503), cota (429) ou modelo
   aposentado (404) no Gemini: tenta até 4 modelos Flash da lista do Google (mais novo primeiro, lite e prévia por último) e
   depois o OpenRouter; chave recusada para na hora. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
@@ -301,6 +301,10 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - `alinharObraAoCronograma` roda depois de cada importação: preenche só o que está vazio (início e fim pelas tarefas)
   e passa de "Planejamento" para "Em andamento" quando já há avanço apontado.
 - Título de alerta de tarefa leva a etapa logo acima ("1.4.4 Alvenaria lado 2 (Torre A 4º Pavimento)").
+- Três pontinhos da obra (`components/MenuObra.tsx`), na lista de obras e no cabeçalho: "Editar dados da obra" (engenheiro da
+  obra e admin) e "Excluir a obra" (só admin, RLS `projeto_delete`, com confirmação de perigo). `excluirProjeto` apaga antes os
+  arquivos do bucket `arquivos`; obra de exemplo sai por `excluir_obra_exemplo`. Fotos do diário e das câmeras ficam no Storage.
+  Obra sem endereço mostra "Informar endereço e CEP da obra" no cabeçalho.
 
 ## Interface
 
