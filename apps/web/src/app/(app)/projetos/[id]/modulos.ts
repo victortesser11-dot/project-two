@@ -49,6 +49,13 @@ export const MODULOS: Modulo[] = [
     disponivel: true,
   },
   { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, equipe, serviços, ocorrências e fotos do dia, com assinatura e PDF.', sprint: 2, disponivel: true },
+  {
+    slug: 'assistente',
+    nome: 'Assistente',
+    resumo: 'Pergunte sobre a obra: atrasos, próximas tarefas, tempo, material e documentos. Responde com os dados da obra.',
+    sprint: 8,
+    disponivel: true,
+  },
 ];
 
 export function moduloPorSlug(slug: string) {

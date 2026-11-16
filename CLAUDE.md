@@ -256,11 +256,12 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## IA (leitura de arquivos e de fotos)
 
-- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): `IA_CHAVE` (sem ela as telas de IA somem), `IA_PROVEDOR`
-  (`gemini` padrão, API nativa que lê PDF e imagem; ou `openai` para APIs compatíveis como OpenRouter/Groq, só imagem, com
-  `IA_URL` e `IA_MODELO` obrigatório), `IA_MODELO` (padrão `gemini-flash-latest`; modelo aposentado (404) cai no Flash mais
-  novo da lista do Google), `IA_LIMITE_DIA` (leituras por obra por dia, padrão 20, para a cota grátis). Erros do provedor viram
-  `ErroIa` com mensagem de obra (cota, chave, tamanho).
+- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), provedores tentados em ordem: Gemini (`IA_CHAVE`, API nativa que
+  lê PDF e imagem; `IA_MODELO` padrão `gemini-flash-latest`) e OpenRouter (`OPENROUTER_CHAVE`, opcional; `OPENROUTER_MODELO`
+  padrão `openrouter/free`, o roteador grátis; imagem como data URL, PDF como `file`). Sobrecarga (503), cota (429) ou modelo
+  aposentado (404) no Gemini: tenta até 4 modelos Flash da lista do Google (mais novo primeiro, lite e prévia por último) e
+  depois o OpenRouter; chave recusada para na hora. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
+  obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
   (campo faltando ou tipo trocado não derruba a leitura). Tarefas vão como T1, T2 (o modelo erra UUID).
 - Toda leitura válida é gravada em `analise_ia` por `registrar_analise_ia` (imutável, auditada): histórico para reabrir sem gastar
@@ -272,6 +273,11 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 - Diário do dia, "Ler as fotos com IA" (engenheiro e mestre): até 6 fotos; as tarefas são as marcadas nas fotos e as programadas
   para a data (`tarefasDoDia`); devolve avanço sugerido (nunca abaixo do já apontado), pessoas, máquinas e riscos de segurança.
 - No plano grátis do Gemini o Google pode usar o conteúdo para melhorar os produtos dele: não mande CPF nem dado sensível.
+- Assistente da obra (`projetos/[id]/assistente`, quem vê a obra): conversa no navegador (sessionStorage, nada no banco). A cada
+  pergunta o servidor monta um retrato da obra em texto (`textoContextoObra` no shared: prazo e avanço, etapas, tarefas
+  atrasadas/em andamento/próximas 3 semanas, alertas, previsão, diário, chamada, almoxarifado, arquivos, resumo da leitura dos
+  projetos; custos só para `podeVerCustos`) e manda com a instrução fixa (`instrucaoAssistente`: só os dados da obra, sem inventar,
+  não altera nada). Até 20 mensagens e 2.000 letras por pergunta.
 
 ## Obra de exemplo
 
