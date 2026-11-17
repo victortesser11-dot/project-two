@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { extensaoDoArquivo } from './arquivosObra';
 import { CAMPOS_FICHA, type CampoFicha, type FichaObra } from './dominio';
 import { formatarData } from './formato';
+import { normalizarNorma, textoChecklistNormas, TITULO_NORMA, type NormaObra } from './normas';
 
 // Leituras da IA: o que mandar ao modelo (texto do pedido) e como ler o que volta (JSON validado aqui, com folga:
 // o modelo às vezes troca um tipo ou esquece um campo, e isso não pode derrubar a leitura inteira).
@@ -396,10 +397,203 @@ export type SugestaoConferida = ReturnType<typeof conferirSugestoes>[number];
 /** Uma leitura guardada (o resultado é validado de novo ao abrir, pelo schema do tipo). */
 export interface AnaliseIa {
   id: string;
-  tipo: 'arquivos' | 'fotos_diario';
+  tipo: 'arquivos' | 'fotos_diario' | 'fiscal';
   arquivos: string[];
   diario_id: string | null;
   modelo: string;
   resultado: unknown;
   criado_em: string;
+}
+
+// ---------------------------------------------------------------- fiscal da obra (RF-105)
+// A IA olha as fotos do dia (cada câmera hoje e ontem, mais o diário), compara com as tarefas previstas e com o avanço
+// apontado, e aponta achados. O engenheiro ou o mestre confere cada um (resolver_achado_fiscal).
+
+export const TIPOS_ACHADO = ['divergencia', 'seguranca', 'avanco', 'sem_evidencia'] as const;
+export type TipoAchado = (typeof TIPOS_ACHADO)[number];
+export const ROTULO_TIPO_ACHADO: Record<TipoAchado, string> = {
+  divergencia: 'Divergência com o apontado',
+  seguranca: 'Segurança (NR)',
+  avanco: 'Avanço visto sem apontamento',
+  sem_evidencia: 'Previstas sem sinal de avanço',
+};
+export const SITUACOES_ACHADO = ['pendente', 'confirmado', 'corrigido', 'descartado'] as const;
+export type SituacaoAchado = (typeof SITUACOES_ACHADO)[number];
+export const ROTULO_SITUACAO_ACHADO: Record<SituacaoAchado, string> = {
+  pendente: 'A conferir',
+  confirmado: 'IA acertou',
+  corrigido: 'Corrigido',
+  descartado: 'IA errou',
+};
+
+/** Achado gravado (achado_fiscal). */
+export interface AchadoFiscal {
+  id: string;
+  analise_id: string;
+  data: string;
+  tipo: TipoAchado;
+  tarefa_id: string | null;
+  norma: string | null;
+  gravidade: Importancia;
+  titulo: string;
+  detalhe: string | null;
+  evidencia: string | null;
+  percentual_visto: number | null;
+  percentual_apontado: number | null;
+  situacao: SituacaoAchado;
+  percentual_final: number | null;
+  resposta: string | null;
+  resolvido_em: string | null;
+}
+
+/** O que vai para registrar_fiscal_ia. */
+export type AchadoNovo = Pick<
+  AchadoFiscal,
+  'tipo' | 'tarefa_id' | 'norma' | 'gravidade' | 'titulo' | 'detalhe' | 'evidencia' | 'percentual_visto' | 'percentual_apontado'
+>;
+
+const segurancaSchema = z
+  .object({
+    norma: z.unknown().optional().transform(normalizarNorma),
+    tema: texto(80),
+    descricao: texto(300),
+    evidencia: texto(300),
+    gravidade: z.unknown().optional().transform((v) => (IMPORTANCIAS as readonly unknown[]).includes(v) ? (v as Importancia) : 'media'),
+  })
+  .refine((x) => x.descricao.length >= 3, 'Item sem descrição');
+
+export const leituraFiscalSchema = z.object({
+  resumo: texto(1200),
+  mudancas: listaDeTextos(10, 300),
+  tarefas: listaDe(tarefaNaFotoSchema, 60),
+  pessoas: numeroOuNulo.transform((n) => (n === null ? null : Math.round(n))),
+  maquinas: listaDeTextos(15, 120),
+  seguranca: listaDe(segurancaSchema, 15),
+  observacoes: listaDeTextos(10, 300),
+});
+export type LeituraFiscal = z.output<typeof leituraFiscalSchema>;
+
+/** Imagens por leitura do fiscal: até 3 câmeras (dia e dia anterior) mais fotos do diário. */
+export const MAX_IMAGENS_PEDIDO_FISCAL = 8;
+
+/** Diferença (pontos) entre o apontado no dia e o que a IA vê, a partir da qual vira divergência. */
+export const DIVERGENCIA_PONTOS = 20;
+
+export function pedidoFiscalDia(dados: {
+  obra: string;
+  data: string;
+  tarefas: TarefaParaFoto[];
+  /** Rótulo de cada imagem anexada, na ordem (ex.: "Câmera Torre A, hoje 12:03"). */
+  imagens: string[];
+  /** Avanço apontado no próprio dia, por tarefa. */
+  apontadosNoDia: Map<string, number>;
+}): string {
+  const tarefas = dados.tarefas
+    .map((t, i) => {
+      const hoje = dados.apontadosNoDia.get(t.id);
+      return `T${i + 1} — ${t.codigo} ${t.nome}${t.etapa ? ` (${t.etapa})` : ''} — ${Math.round(t.percentual)}% feito${hoje !== undefined ? `; apontado no dia: ${Math.round(hoje)}%` : ''}`;
+    })
+    .join('\n');
+  return `Você é fiscal de obra (engenheiro civil e técnico de segurança do trabalho) acompanhando uma obra no Brasil. As imagens anexadas são de ${formatarData(dados.data)}, da obra "${dados.obra}". Quando a mesma câmera aparece "hoje" e "ontem", compare as duas para ver o que mudou.
+
+Imagens, na ordem em que estão anexadas (PDF e foto grande podem vir em mais de uma imagem):
+${dados.imagens.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+Tarefas previstas para o dia, com o quanto estava feito e o que foi apontado no dia:
+${tarefas || '(nenhuma tarefa prevista)'}
+
+Itens de segurança que dá para conferir na imagem (normas regulamentadoras):
+${textoChecklistNormas()}
+
+Responda só com um JSON neste formato:
+{
+  "resumo": "o que as imagens mostram do andamento, em até 4 frases",
+  "mudancas": [ "o que mudou de ontem para hoje, por câmera" ],
+  "tarefas": [ { "ref": "T1", "situacao": "concluida | avancou | sem_evidencia | nao_visivel", "percentual_sugerido": 0, "evidencia": "imagem 2: ..." } ],
+  "pessoas": 0,
+  "maquinas": [ "" ],
+  "seguranca": [ { "norma": "NR-35", "tema": "Trabalho em altura", "descricao": "", "evidencia": "imagem 1: ...", "gravidade": "alta | media | baixa" } ],
+  "observacoes": [ "" ]
+}
+
+Regras:
+- Uma linha em "tarefas" para cada tarefa prevista, pela referência (T1, T2...).
+- "concluida" ou "avancou" só com sinal visível; diga em "evidencia" qual imagem e o que aparece. Área visível e parada: "sem_evidencia". Área que não aparece: "nao_visivel".
+- "percentual_sugerido": quanto da tarefa parece feito, de 0 a 100, pelo que se vê (pode ser menos do que foi apontado); null quando não der para avaliar.
+- "seguranca": só não conformidades que aparecem nas imagens, uma por item, com a norma da lista acima (só "NR-" e o número, sem subitem) e a imagem onde aparece. "alta" quando há risco de queda, soterramento, choque ou atropelamento agora. Nada de suposição: se não dá para ver, não aponte.
+- "pessoas": quantas pessoas trabalhando aparecem hoje, sem contar a mesma duas vezes; null se não der para contar.
+- Seja conservador: é uma sugestão que o engenheiro vai conferir. Escreva em português do Brasil, frases curtas.`;
+}
+
+/**
+ * Achados da leitura: divergência quando o apontado do dia não aparece nas imagens (ou passa do que se vê em
+ * DIVERGENCIA_PONTOS ou mais), avanço visto sem apontamento, tarefa prevista sem sinal, e as não conformidades de
+ * segurança. "Não aparece" (fora do quadro) nunca vira achado: a IA não tem como avaliar.
+ */
+export function achadosDaLeitura(leitura: LeituraFiscal, tarefas: TarefaParaFoto[], apontadosNoDia: Map<string, number>): AchadoNovo[] {
+  const porRef = new Map(leitura.tarefas.map((t) => [t.ref.toUpperCase(), t]));
+  const achados: AchadoNovo[] = [];
+  const pct = (n: number) => `${Math.round(n)}%`;
+  tarefas.forEach((t, i) => {
+    const r = porRef.get(`T${i + 1}`);
+    if (!r || r.situacao === 'nao_visivel') return;
+    const nome = `${t.codigo} ${t.nome}`;
+    const visto = r.percentual_sugerido;
+    const evidencia = r.evidencia || null;
+    const hoje = apontadosNoDia.get(t.id);
+    if (hoje !== undefined) {
+      if (r.situacao === 'sem_evidencia') {
+        achados.push({
+          tipo: 'divergencia', tarefa_id: t.id, norma: null, gravidade: 'alta', evidencia,
+          titulo: `Avanço apontado sem sinal nas imagens: ${nome}`.slice(0, 200),
+          detalhe: `Apontado no dia: ${pct(hoje)}. A IA não viu avanço na área.`,
+          percentual_visto: visto, percentual_apontado: hoje,
+        });
+      } else if (visto !== null && hoje - visto >= DIVERGENCIA_PONTOS) {
+        achados.push({
+          tipo: 'divergencia', tarefa_id: t.id, norma: null, gravidade: hoje - visto >= 2 * DIVERGENCIA_PONTOS ? 'alta' : 'media', evidencia,
+          titulo: `Apontado acima do que aparece: ${nome}`.slice(0, 200),
+          detalhe: `Apontado no dia: ${pct(hoje)}. A IA vê cerca de ${pct(visto)}.`,
+          percentual_visto: visto, percentual_apontado: hoje,
+        });
+      }
+      return;
+    }
+    if ((r.situacao === 'avancou' || r.situacao === 'concluida') && visto !== null && visto > t.percentual + 2) {
+      achados.push({
+        tipo: 'avanco', tarefa_id: t.id, norma: null, gravidade: 'media', evidencia,
+        titulo: `Avanço visto sem apontamento: ${nome}`.slice(0, 200),
+        detalhe: `Apontado até agora: ${pct(t.percentual)}. A IA vê cerca de ${pct(visto)}.`,
+        percentual_visto: visto, percentual_apontado: t.percentual,
+      });
+    } else if (r.situacao === 'sem_evidencia') {
+      achados.push({
+        tipo: 'sem_evidencia', tarefa_id: t.id, norma: null, gravidade: 'baixa', evidencia,
+        titulo: `Prevista para o dia, sem sinal de avanço: ${nome}`.slice(0, 200),
+        detalhe: `Está em ${pct(t.percentual)}. A área aparece, mas parada.`,
+        percentual_visto: visto, percentual_apontado: t.percentual,
+      });
+    }
+  });
+  for (const s of leitura.seguranca) {
+    // Toda obra está na NR-18: norma fora da lista vira a geral da construção.
+    const norma: NormaObra = s.norma ?? 'NR-18';
+    achados.push({
+      tipo: 'seguranca', tarefa_id: null, norma, gravidade: s.gravidade,
+      titulo: `${norma} · ${s.tema || TITULO_NORMA[norma]}: ${s.descricao}`.slice(0, 200),
+      detalhe: s.descricao.length > 120 ? s.descricao : null,
+      evidencia: s.evidencia || null, percentual_visto: null, percentual_apontado: null,
+    });
+  }
+  return achados.slice(0, 80);
+}
+
+/** Quanto a IA acertou: confirmados sobre os conferidos (meta do PRD: 70% ou mais). */
+export function taxaDeAcerto(achados: { situacao: SituacaoAchado }[]) {
+  const conta = (s: SituacaoAchado) => achados.filter((a) => a.situacao === s).length;
+  const confirmados = conta('confirmado');
+  const corrigidos = conta('corrigido');
+  const descartados = conta('descartado');
+  const conferidos = confirmados + corrigidos + descartados;
+  return { conferidos, confirmados, corrigidos, descartados, pendentes: conta('pendente'), taxa: conferidos ? confirmados / conferidos : null };
 }

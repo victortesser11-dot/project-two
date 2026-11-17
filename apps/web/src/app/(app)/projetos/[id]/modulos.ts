@@ -50,6 +50,13 @@ export const MODULOS: Modulo[] = [
   },
   { slug: 'diario', nome: 'Diário de obra', resumo: 'Clima, equipe, serviços, ocorrências e fotos do dia, com assinatura e PDF.', sprint: 2, disponivel: true },
   {
+    slug: 'fiscal',
+    nome: 'Fiscal (IA)',
+    resumo: 'A IA compara câmeras e diário com o planejado e o apontado, aponta divergências e itens de segurança (NR) para conferir.',
+    sprint: 8,
+    disponivel: true,
+  },
+  {
     slug: 'assistente',
     nome: 'Assistente',
     resumo: 'Pergunte sobre a obra: atrasos, próximas tarefas, tempo, material e documentos. Responde com os dados da obra.',

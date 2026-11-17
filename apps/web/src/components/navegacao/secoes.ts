@@ -6,6 +6,7 @@ import {
   FolderOpen,
   LayoutDashboard,
   Package,
+  ScanEye,
   Sparkles,
   TriangleAlert,
   Users,
@@ -27,6 +28,7 @@ const ICONES: Record<string, LucideIcon> = {
   orcamento: Wallet,
   diario: BookOpen,
   arquivos: FolderOpen,
+  fiscal: ScanEye,
   assistente: Sparkles,
 };
 

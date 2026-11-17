@@ -54,7 +54,7 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
    `orcado_realizado`, `custo_realizado_por_dia`, `definir_regras_semaforo`, e as da medição:
    `salvar_contrato_medicao`, `definir_item_contrato`, `remover_item_contrato`, `gerar_medicao`, `ajustar_item_medicao`,
    `observar_medicao`, `aprovar_medicao`, `registrar_pagamento_medicao`, `excluir_medicao`, a dos alertas:
-   `justificar_atraso`, a da Defesa Civil: `alertas_defesa_civil_da_obra`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, a da IA: `registrar_analise_ia`, e as da obra de exemplo:
+   `justificar_atraso`, a da Defesa Civil: `alertas_defesa_civil_da_obra`, as dos arquivos: `registrar_arquivo_obra`, `editar_arquivo_obra`, `excluir_arquivo_obra`, as da IA: `registrar_analise_ia`, `registrar_fiscal_ia`, `resolver_achado_fiscal`, e as da obra de exemplo:
    `criar_obra_exemplo`, `excluir_obra_exemplo`) checam a permissão por dentro; o aviso "authenticated pode executar security definer" do Supabase é esperado para elas.
    Aviso para função fora desta lista é problema a investigar. As `agente_*` (`agente_config`,
    `agente_pasta_camera`, `agente_registrar_foto`, `agente_registrar_falha`) só têm grant para `service_role`.
@@ -289,6 +289,22 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   atrasadas/em andamento/próximas 3 semanas, alertas, previsão, diário, chamada, almoxarifado, arquivos, resumo da leitura dos
   projetos; custos só para `podeVerCustos`) e manda com a instrução fixa (`instrucaoAssistente`: só os dados da obra, sem inventar,
   não altera nada). Até 20 mensagens e 2.000 letras por pergunta.
+
+## Fiscal da obra (RF-105)
+
+- `projetos/[id]/fiscal`: "Fiscalizar o dia com IA" (engenheiro, mestre e admin; conta no limite diário de leituras) manda a
+  última foto de até 3 câmeras no dia e no dia anterior (`fotosCameraParaFiscal`), as fotos do diário, as tarefas do dia
+  (`tarefasDoDia`) e o avanço apontado no dia (`avancosDoDia`). Pedido e resposta no shared: `pedidoFiscalDia`,
+  `leituraFiscalSchema`; checklist das NR que a foto deixa conferir em `normas.ts` (NR-6, 10, 11, 12, 18, 23, 24, 35; a IA cita
+  a norma, nunca o subitem; norma fora da lista vira NR-18).
+- `achadosDaLeitura`: divergência (apontado no dia sem sinal, ou ≥ `DIVERGENCIA_PONTOS` acima do que se vê), avanço visto sem
+  apontamento, prevista sem sinal e segurança. "Não aparece" nunca vira achado. Gravados juntos com a leitura por
+  `registrar_fiscal_ia` (`analise_ia` tipo `fiscal` + `achado_fiscal`, escrita só pela função, auditada).
+- `resolver_achado_fiscal`: confirmado / corrigido (com o %) / descartado; avanço confirmado ou corrigido vira apontamento por
+  `registrar_avanco` (data do achado). Segurança: confirmado (com a providência) ou descartado. `taxaDeAcerto` = confirmados ÷
+  conferidos (meta do PRD: 70%). Divergência e segurança pendentes viram alerta (seção `fiscal`, `alertasFiscal`).
+- Falta (próxima etapa): zonas desenhadas na câmera (RF-106), leitura automática diária e a documentação das NR dos
+  trabalhadores (ASO, treinamentos com vencimento), que é o que se garante por documento e não por foto.
 
 ## Obra de exemplo
 

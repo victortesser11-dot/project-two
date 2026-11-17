@@ -5,6 +5,7 @@ import {
   alertasChuva,
   alertasCronograma,
   alertasDefesaCivil,
+  alertasFiscal,
   alertasEstoque,
   alertasMedicao,
   alertasTempo,
@@ -18,6 +19,7 @@ import {
 } from '@obras/shared';
 import {
   alertasDefesaCivilDaObra,
+  listarAchadosFiscais,
   buscarEap,
   listarAgentes,
   listarCameras,
@@ -42,7 +44,7 @@ export const alertasDaObra = cache(
     const hoje = hojeIso();
     const id = projeto.id;
     const vazio = <T,>(p: Promise<T[]>) => p.catch(() => [] as T[]);
-    const [eap, justificativas, diarios, catalogo, saldos, movimentos, cameras, agentes, emprestimos, financeiro, previsao, defesaCivil] = await Promise.all([
+    const [eap, justificativas, diarios, catalogo, saldos, movimentos, cameras, agentes, emprestimos, financeiro, previsao, defesaCivil, achados] = await Promise.all([
       vazio(buscarEap(id)),
       vazio(listarJustificativas(id)),
       vazio(listarDiarios(id)),
@@ -55,6 +57,7 @@ export const alertasDaObra = cache(
       podeFinanceiro(projeto, papel),
       projeto.latitude != null && projeto.longitude != null ? previsaoTempo(projeto.latitude, projeto.longitude) : Promise.resolve([]),
       vazio(alertasDefesaCivilDaObra(id)),
+      vazio(listarAchadosFiscais(id)),
     ]);
     const [contratos, medicoes] = financeiro
       ? await Promise.all([vazio(listarContratosMedicao(id)), vazio(listarMedicoes(id))])
@@ -87,6 +90,7 @@ export const alertasDaObra = cache(
         hoje,
       }),
       ...alertasDefesaCivil(defesaCivil),
+      ...alertasFiscal(achados),
       ...alertasChuva({ tarefas, previsao, hoje }),
       ...alertasTempo({ previsao, hoje }),
       ...alertasEstoque({
