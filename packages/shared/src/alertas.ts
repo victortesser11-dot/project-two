@@ -5,7 +5,7 @@ import { ROTULO_CAUSA_ATRASO, type CausaAtraso, type Clima, type JustificativaAt
 import { dataDoInstante, diasEntre, formatarData, formatarMoeda, somarDias } from './formato';
 
 export type GravidadeAlerta = 'alta' | 'media' | 'baixa';
-export type SecaoAlerta = 'defesa_civil' | 'cronograma' | 'clima' | 'almoxarifado' | 'financeiro' | 'cameras' | 'diario';
+export type SecaoAlerta = 'defesa_civil' | 'fiscal' | 'cronograma' | 'clima' | 'almoxarifado' | 'financeiro' | 'cameras' | 'diario';
 
 export interface Alerta {
   /** Estável entre cargas (para a lista e para não repetir). */
@@ -26,6 +26,7 @@ export interface Alerta {
 
 export const ROTULO_SECAO_ALERTA: Record<SecaoAlerta, string> = {
   defesa_civil: 'Defesa Civil',
+  fiscal: 'Fiscal da obra (IA)',
   cronograma: 'Cronograma',
   clima: 'Clima',
   almoxarifado: 'Almoxarifado',
@@ -540,3 +541,23 @@ export function alertasCampo({
   return saida;
 }
 
+
+/**
+ * Achados do fiscal ainda a conferir que viram alerta: divergência com o apontado e não conformidade de segurança.
+ * Avanço visto e tarefa sem sinal ficam só na tela do fiscal (não são problema, são conferência).
+ */
+export function alertasFiscal(
+  achados: { id: string; tipo: string; situacao: string; gravidade: GravidadeAlerta; titulo: string; detalhe: string | null; evidencia: string | null; data: string; tarefa_id: string | null }[],
+): Alerta[] {
+  return achados
+    .filter((a) => a.situacao === 'pendente' && (a.tipo === 'divergencia' || a.tipo === 'seguranca'))
+    .map((a) => ({
+      chave: `fiscal:${a.id}`,
+      secao: 'fiscal' as const,
+      gravidade: a.gravidade,
+      titulo: a.titulo,
+      detalhe: [a.detalhe, a.evidencia ? `Onde: ${a.evidencia}` : null].filter(Boolean).join(' ') || 'Confira no fiscal da obra.',
+      caminho: 'fiscal',
+      ...(a.tarefa_id ? { tarefaId: a.tarefa_id } : {}),
+    }));
+}
