@@ -49,6 +49,14 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
 - [ ] Testar na obra Nápoles: Arquivos → "Ler o projeto com IA" com a prancha carimbada → conferir "Dados da obra encontrados
       nos projetos" → "Gravar". O cartão "Ficha da obra" aparece no painel.
 
+## Fiscal da obra com IA (17/11)
+
+- [x] Migração `20261120090000_fiscal_ia.sql` aplicada antes do merge.
+- [ ] Testar na obra Nápoles: menu "Fiscal (IA)" → escolher um dia com foto no diário (ou de câmera) → "Fiscalizar o dia com
+      IA" → conferir cada achado (IA acertou / Corrigir / IA errou). Divergência e segurança aparecem também em Alertas.
+- [ ] Próxima etapa: zonas na imagem da câmera, leitura automática diária e documentos das NR dos trabalhadores (ASO e
+      treinamentos com vencimento, alerta na chamada).
+
 ## IA pelo OpenRouter (publicado em 16/11)
 
 - [ ] O OpenRouter passa a ser o principal (o Gemini grátis vive sobrecarregado e com cota curta). Sem crédito comprado, os
