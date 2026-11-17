@@ -259,7 +259,10 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 - Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): o provedor principal (`IA_PRINCIPAL`, padrão `openrouter`) e, se ele
   falhar, o outro. OpenRouter: `API_OPENROUTER` na Vercel (ou `OPENROUTER_CHAVE`), `OPENROUTER_MODELO` padrão `openrouter/free`
-  (roteador grátis), `reasoning: low` (modelo que pensa muito demora). Gemini: `IA_CHAVE`, API nativa, `IA_MODELO` padrão
+  (roteador grátis), `reasoning: low` (modelo que pensa muito demora). `OPENROUTER_MODELO` aceita vários modelos separados por
+  vírgula, em ordem de preferência (`modelosOpenRouter`); o último é sempre o roteador grátis, que sorteia um modelo por pedido.
+  Vazio, lotado (429/5xx) ou aposentado passa ao próximo (até 6 tentativas, a partir da segunda sem modo JSON); chave recusada
+  para na hora. Só então vai ao Gemini, que de reserva tenta só 2 modelos (o grátis vive sobrecarregado). Gemini: `IA_CHAVE`, API nativa, `IA_MODELO` padrão
   `gemini-flash-latest`; em 503/429/404 tenta até 4 modelos da família `gemini-<versão>-flash` (as variantes "omni" têm cota zero
   no grátis). Chave recusada para na hora. Modelo que falhou fica de fora por um tempo na instância (sem cota "limit: 0" 24 h;
   cota do dia 1 h; 429 2 min; 503 1 min).

@@ -11,7 +11,9 @@ import { prepararAnexosIa, type ParteIa } from '@/lib/anexosIa';
 //                      ou aposentado (404)? Tenta os outros Flash da lista do Google.
 //   API_OPENROUTER     chave do OpenRouter (opcional; também aceita OPENROUTER_CHAVE): reserva quando o Gemini falha,
 //                      e provedor único se não houver IA_CHAVE. Lê texto, imagem e PDF.
-//   OPENROUTER_MODELO  padrão "openrouter/free" (o roteador grátis escolhe um modelo livre).
+//   OPENROUTER_MODELO  um modelo ou vários separados por vírgula, na ordem de preferência ("a/x:free, b/y"). Se um
+//                      falhar (vazio, lotado, sem cota), vai ao próximo; o último recurso é sempre "openrouter/free"
+//                      (o roteador grátis sorteia um modelo livre). Sem a variável, só o roteador.
 //   IA_LIMITE_DIA      leituras por obra por dia (padrão 20), para não estourar a cota grátis.
 // Com nenhuma das chaves, as telas de IA ficam escondidas e o app segue normal.
 
@@ -204,12 +206,12 @@ async function chamarGemini(chave: string, modelo: string, p: Pedido): Promise<R
 }
 
 /** Tenta o modelo preferido e, se ele estiver sobrecarregado, sem cota ou aposentado, outros Flash da mesma chave. */
-async function perguntarGemini(chave: string, p: Pedido): Promise<RespostaIa> {
+async function perguntarGemini(chave: string, p: Pedido, maxModelos = MAX_MODELOS_GEMINI): Promise<RespostaIa> {
   const preferido = process.env.IA_MODELO || 'gemini-flash-latest';
   const tentados: string[] = [];
   let ultimo: ErroIa = new ErroPassageiro('O serviço de IA está sobrecarregado agora.');
   let fila = [preferido];
-  while (tentados.length < MAX_MODELOS_GEMINI) {
+  while (tentados.length < maxModelos) {
     const modelo = fila.shift();
     if (!modelo) {
       if (tentados.length === 1) {
@@ -240,7 +242,7 @@ async function perguntarGemini(chave: string, p: Pedido): Promise<RespostaIa> {
 
 async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa> {
   const url = (process.env.OPENROUTER_URL || BASE_OPENROUTER).replace(/\/$/, '');
-  const modelo = process.env.OPENROUTER_MODELO || 'openrouter/free';
+  const modelos = modelosOpenRouter();
   // PDF vai aberto pelo servidor (texto + imagens das páginas): o leitor de arquivos do OpenRouter recusa PDF grande
   // e não vê desenho nem prancha escaneada.
   tempoDaChamada(p, ESPERA_OPENROUTER);
@@ -255,6 +257,36 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
         : { role: m.papel === 'assistente' ? 'assistant' : 'user', content: m.texto },
     ),
   ];
+  // Vai pela lista de preferência: falhou (vazio, lotado, sem cota, aposentado), passa ao próximo. O último é o roteador
+  // grátis, que sorteia um modelo a cada pedido, então vale tentar de novo nele. Da segunda tentativa em diante, sem
+  // "response_format": o pedido já diz para responder em JSON, e o modo JSON restringe o sorteio a modelos que às vezes
+  // respondem vazio.
+  let ultimo: ErroIa | null = null;
+  const tentativas = Math.min(modelos.length + 2, 6);
+  for (let tentativa = 0; tentativa < tentativas; tentativa++) {
+    if (tentativa > 0 && p.fim - Date.now() < 30_000) break;
+    const modelo = modelos[Math.min(tentativa, modelos.length - 1)]!;
+    try {
+      return await chamarOpenRouter(chave, url, modelo, messages, p, p.json && tentativa === 0);
+    } catch (erro) {
+      if (!(erro instanceof ErroPassageiro) || erro instanceof ErroTempo) throw erro;
+      ultimo = erro;
+    }
+  }
+  throw ultimo ?? new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+}
+
+/** Modelos do OpenRouter na ordem de preferência (OPENROUTER_MODELO, separados por vírgula), sempre terminando no roteador grátis. */
+export function modelosOpenRouter(valor = process.env.OPENROUTER_MODELO): string[] {
+  const lista = (valor ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const unicos = [...new Set(lista)].filter((m) => m !== 'openrouter/free');
+  return [...unicos, 'openrouter/free'];
+}
+
+async function chamarOpenRouter(chave: string, url: string, modelo: string, messages: unknown[], p: Pedido, modoJson: boolean): Promise<RespostaIa> {
   const ms = tempoDaChamada(p, ESPERA_OPENROUTER);
   const r = await postar(
     `${url}/chat/completions`,
@@ -270,7 +302,7 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
       // Modelo que "pensa" antes de responder demora muito: pensa pouco e não devolve o raciocínio.
       reasoning: { effort: 'low', exclude: true },
       ...(p.maxTokens ? { max_tokens: p.maxTokens } : {}),
-      ...(p.json ? { response_format: { type: 'json_object' } } : {}),
+      ...(modoJson ? { response_format: { type: 'json_object' } } : {}),
     },
     ms,
   );
@@ -279,20 +311,24 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
     console.error(`IA (OpenRouter ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
     throw erroDoProvedor(r.status, textoBruto);
   }
-  let json: { choices?: { message?: { content?: string } }[]; model?: string; error?: { message?: string; code?: number } };
+  let json: {
+    choices?: { message?: { content?: string }; finish_reason?: string }[];
+    model?: string;
+    error?: { message?: string; code?: number };
+  };
   try {
     json = JSON.parse(textoBruto);
   } catch {
     console.error(`IA (OpenRouter ${modelo}) devolveu algo que não é JSON: ${textoBruto.slice(0, 300)}`);
-    throw new ErroPassageiro('A IA reserva respondeu com defeito. Tente de novo.');
+    throw new ErroPassageiro('A IA respondeu com defeito. Tente de novo.');
   }
   if (json.error) {
     console.error(`IA (OpenRouter ${json.model || modelo}) falhou: ${json.error.code ?? '?'} ${(json.error.message ?? '').slice(0, 300)}`);
     throw erroDoProvedor(json.error.code ?? 500, json.error.message ?? '');
   }
   const texto = json.choices?.[0]?.message?.content ?? '';
-  if (!texto) {
-    console.error(`IA (OpenRouter ${json.model || modelo}) respondeu vazio.`);
+  if (!texto.trim()) {
+    console.error(`IA (OpenRouter ${json.model || modelo}) respondeu vazio (fim: ${json.choices?.[0]?.finish_reason ?? '?'}).`);
     throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
   }
   return { texto, modelo: `openrouter:${json.model || modelo}` };
@@ -308,8 +344,10 @@ function provedores(): Provedor[] {
   const openrouter = chaveOpenRouter();
   const lista: Provedor[] = [];
   if (openrouter) lista.push({ nome: 'openrouter', perguntar: (p) => perguntarOpenRouter(openrouter, p) });
-  if (gemini) lista.push({ nome: 'gemini', perguntar: (p) => perguntarGemini(gemini, p) });
   const principal = (process.env.IA_PRINCIPAL || 'openrouter').toLowerCase();
+  // Gemini de reserva (o grátis vive sobrecarregado): só 2 modelos, para não gastar o tempo da pergunta com ele.
+  const geminiReserva = Boolean(openrouter) && principal !== 'gemini';
+  if (gemini) lista.push({ nome: 'gemini', perguntar: (p) => perguntarGemini(gemini, p, geminiReserva ? 2 : MAX_MODELOS_GEMINI) });
   return lista.sort((a, b) => Number(b.nome === principal) - Number(a.nome === principal));
 }
 

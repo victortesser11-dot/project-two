@@ -142,7 +142,7 @@ export async function perguntarAoAssistente(projetoId: string, mensagens: { pape
   const montado = Date.now();
   try {
     // Página com 120 s: a IA tem até 100 s, somando as tentativas.
-    const r = await conversarIa({ sistema: instrucaoAssistente(contexto.texto), mensagens: m.data, json: true, prazoMs: 100_000, maxTokens: 1_500 });
+    const r = await conversarIa({ sistema: instrucaoAssistente(contexto.texto), mensagens: m.data, json: true, prazoMs: 100_000, maxTokens: 2_000 });
     console.info(`Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s, IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`);
     const lida = lerRespostaAssistente(r.texto);
     const resposta = lida ? ligarItensAssistente(lida, contexto.tarefas, contexto.hoje) : null;

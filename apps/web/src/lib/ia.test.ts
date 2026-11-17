@@ -140,6 +140,59 @@ describe('camada de IA', () => {
     expect(chamadas.slice(antes).map((c) => c.url)).toEqual(['https://openrouter.ai/api/v1/chat/completions']);
   });
 
+  it('OpenRouter respondeu vazio: sorteia outro modelo (sem modo JSON) antes de passar ao Gemini', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    const vazio = () => resposta(200, { choices: [{ message: { content: '' }, finish_reason: 'length' }], model: 'flint:free' });
+    responder(vazio(), resposta(200, { choices: [{ message: { content: '{"resumo":"ok"}' } }], model: 'qwen:free' }));
+    const { conversarIa } = await import('./ia');
+    const r = await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }], json: true });
+    expect(r).toEqual({ texto: '{"resumo":"ok"}', modelo: 'openrouter:qwen:free' });
+    expect(chamadas.map((c) => c.url)).toEqual(['https://openrouter.ai/api/v1/chat/completions', 'https://openrouter.ai/api/v1/chat/completions']);
+    expect((chamadas[0]!.corpo as { response_format?: unknown }).response_format).toEqual({ type: 'json_object' });
+    expect((chamadas[1]!.corpo as { response_format?: unknown }).response_format).toBeUndefined();
+  });
+
+  it('OPENROUTER_MODELO com lista: vai pela ordem quando um modelo está lotado, e o roteador grátis fica por último', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    process.env.OPENROUTER_MODELO = 'a/um:free, b/dois:free';
+    const lotado = () => resposta(429, { error: { code: 429, message: 'Rate limit exceeded' } });
+    responder(lotado(), resposta(200, { choices: [{ message: { content: 'ok' } }], model: 'b/dois:free' }));
+    const { conversarIa, modelosOpenRouter } = await import('./ia');
+    const r = await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] });
+    expect(r.modelo).toBe('openrouter:b/dois:free');
+    expect(chamadas.map((c) => (c.corpo as { model: string }).model)).toEqual(['a/um:free', 'b/dois:free']);
+    expect(modelosOpenRouter('x/y, openrouter/free, x/y')).toEqual(['x/y', 'openrouter/free']);
+    expect(modelosOpenRouter('')).toEqual(['openrouter/free']);
+  });
+
+  it('chave do OpenRouter recusada: para na hora, sem passar pela lista', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    process.env.OPENROUTER_MODELO = 'a/um:free, b/dois:free';
+    responder(resposta(401, { error: { code: 401, message: 'No auth credentials found' } }));
+    const { conversarIa } = await import('./ia');
+    await expect(conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] })).rejects.toThrow(/chave/);
+    expect(chamadas).toHaveLength(1);
+  });
+
+  it('Gemini de reserva tenta só 2 modelos', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    const vazio = () => resposta(200, { choices: [{ message: { content: '' } }] });
+    responder(vazio(), vazio(), vazio(), sobrecarga(), listaGoogle('gemini-3.8-flash', 'gemini-3.6-flash'), sobrecarga(), okGemini('nunca'));
+    const { conversarIa } = await import('./ia');
+    await expect(conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] })).rejects.toThrow();
+    expect(chamadas.filter((c) => c.url.includes(':generateContent'))).toHaveLength(2);
+  });
+
+  it('OpenRouter vazio três vezes: passa ao Gemini', async () => {
+    process.env.API_OPENROUTER = 'chave-or';
+    const vazio = () => resposta(200, { choices: [{ message: { content: ' ' } }], model: 'flint:free' });
+    responder(vazio(), vazio(), vazio(), okGemini('oi', 'gemini-x-flash'));
+    const { conversarIa } = await import('./ia');
+    const r = await conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] });
+    expect(r.modelo).toBe('gemini-x-flash');
+    expect(chamadas).toHaveLength(4);
+  });
+
   it('os dois provedores falharam: a mensagem diz o motivo de cada um', async () => {
     process.env.API_OPENROUTER = 'chave-or';
     process.env.IA_PRINCIPAL = 'gemini';
