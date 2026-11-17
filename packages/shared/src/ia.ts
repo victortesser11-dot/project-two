@@ -473,6 +473,9 @@ export const leituraFiscalSchema = z.object({
 });
 export type LeituraFiscal = z.output<typeof leituraFiscalSchema>;
 
+/** Imagens por leitura do fiscal: até 3 câmeras (dia e dia anterior) mais fotos do diário. */
+export const MAX_IMAGENS_PEDIDO_FISCAL = 8;
+
 /** Diferença (pontos) entre o apontado no dia e o que a IA vê, a partir da qual vira divergência. */
 export const DIVERGENCIA_PONTOS = 20;
 

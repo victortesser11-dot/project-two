@@ -142,8 +142,82 @@ export type Database = {
           },
         ]
       }
+      achado_fiscal: {
+        Row: {
+          analise_id: string
+          avanco_id: string | null
+          criado_em: string
+          data: string
+          detalhe: string | null
+          empresa_id: string
+          evidencia: string | null
+          gravidade: string
+          id: string
+          norma: string | null
+          percentual_apontado: number | null
+          percentual_final: number | null
+          percentual_visto: number | null
+          projeto_id: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+          resposta: string | null
+          situacao: string
+          tarefa_id: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          analise_id: string
+          avanco_id?: string | null
+          criado_em?: string
+          data: string
+          detalhe?: string | null
+          empresa_id: string
+          evidencia?: string | null
+          gravidade?: string
+          id?: string
+          norma?: string | null
+          percentual_apontado?: number | null
+          percentual_final?: number | null
+          percentual_visto?: number | null
+          projeto_id: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resposta?: string | null
+          situacao?: string
+          tarefa_id?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          analise_id?: string
+          avanco_id?: string | null
+          criado_em?: string
+          data?: string
+          detalhe?: string | null
+          empresa_id?: string
+          evidencia?: string | null
+          gravidade?: string
+          id?: string
+          norma?: string | null
+          percentual_apontado?: number | null
+          percentual_final?: number | null
+          percentual_visto?: number | null
+          projeto_id?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          resposta?: string | null
+          situacao?: string
+          tarefa_id?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       analise_ia: {
         Row: {
+          data: string | null
+          fotos_camera: string[]
           arquivos: string[]
           criado_em: string
           criado_por: string | null
@@ -156,6 +230,8 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          data?: string | null
+          fotos_camera?: string[]
           arquivos?: string[]
           criado_em?: string
           criado_por?: string | null
@@ -168,6 +244,8 @@ export type Database = {
           tipo: string
         }
         Update: {
+          data?: string | null
+          fotos_camera?: string[]
           arquivos?: string[]
           criado_em?: string
           criado_por?: string | null
@@ -2660,6 +2738,19 @@ export type Database = {
         }
         Returns: number
       }
+      registrar_fiscal_ia: {
+        Args: {
+          p_achados?: Json
+          p_data: string
+          p_diario_id?: string
+          p_fotos_camera?: string[]
+          p_id: string
+          p_modelo: string
+          p_projeto_id: string
+          p_resultado: Json
+        }
+        Returns: string
+      }
       registrar_foto_camera: {
         Args: {
           p_camera_id: string
@@ -2701,6 +2792,16 @@ export type Database = {
       remover_item_contrato: { Args: { p_item_id: string }; Returns: undefined }
       reposicionar_item_eap: {
         Args: { p_acao: string; p_id: string }
+        Returns: undefined
+      }
+      resolver_achado_fiscal: {
+        Args: {
+          p_avanco_id?: string
+          p_id: string
+          p_percentual?: number
+          p_resposta?: string
+          p_situacao: string
+        }
         Returns: undefined
       }
       revogar_agente_camera: { Args: { p_id: string }; Returns: undefined }

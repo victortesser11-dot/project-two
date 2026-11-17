@@ -39,7 +39,7 @@ import type {
   ProjetoComFicha,
   StatusDiario,
 } from '@obras/shared';
-import { hojeIso, REGRA_SEMAFORO_PADRAO, type AlertaDefesaCivil, type AnaliseIa, type ArquivoObra } from '@obras/shared';
+import { hojeIso, REGRA_SEMAFORO_PADRAO, somarDias, type AchadoFiscal, type AlertaDefesaCivil, type AnaliseIa, type ArquivoObra } from '@obras/shared';
 import { emPaginas } from '@/lib/paginas';
 
 /** Colunas da ficha técnica da obra (carimbo das pranchas e licenciamento). */
@@ -942,3 +942,79 @@ export const papeisNasObras = cache(async (): Promise<Map<string, PapelProjeto>>
   const { data } = await supabase.from('membro_projeto').select('projeto_id, papel').eq('usuario_id', usuario.id);
   return new Map((data ?? []).map((m) => [m.projeto_id, m.papel]));
 });
+
+// ---------------------------------------------------------------- fiscal da obra (IA)
+
+const COLUNAS_ACHADO =
+  'id, analise_id, data, tipo, tarefa_id, norma, gravidade, titulo, detalhe, evidencia, percentual_visto, percentual_apontado, situacao, percentual_final, resposta, resolvido_em';
+
+/** Achados do fiscal: os a conferir e os dos últimos `dias` dias (para a taxa de acerto e o histórico). */
+export const listarAchadosFiscais = cache(async (projetoId: string, dias = 60): Promise<AchadoFiscal[]> => {
+  const { supabase } = await exigirUsuario();
+  const desde = somarDias(hojeIso(), -dias);
+  const { data, error } = await emPaginas((de, ate) =>
+    supabase
+      .from('achado_fiscal')
+      .select(COLUNAS_ACHADO)
+      .eq('projeto_id', projetoId)
+      .or(`situacao.eq.pendente,data.gte.${desde}`)
+      .order('data', { ascending: false })
+      .order('id')
+      .range(de, ate),
+  );
+  if (error) throw new Error(`Não foi possível carregar os achados do fiscal: ${error.message}`);
+  return (data ?? []) as AchadoFiscal[];
+});
+
+/** Leituras do fiscal (uma por pedido), da mais nova para a mais antiga. */
+export async function listarLeiturasFiscais(projetoId: string, limite = 30) {
+  const { supabase } = await exigirUsuario();
+  const { data, error } = await supabase
+    .from('analise_ia')
+    .select('id, data, modelo, resultado, fotos_camera, diario_id, criado_em')
+    .eq('projeto_id', projetoId)
+    .eq('tipo', 'fiscal')
+    .order('criado_em', { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`Não foi possível carregar as leituras do fiscal: ${error.message}`);
+  return data ?? [];
+}
+
+/** Para cada câmera ativa, a última foto do dia e a última do dia anterior (para a IA comparar). */
+export async function fotosCameraParaFiscal(projetoId: string, data: string) {
+  const { supabase } = await exigirUsuario();
+  const cameras = (await listarCameras(projetoId)).filter((c) => c.ativa);
+  const ontem = somarDias(data, -1);
+  const fotos = await Promise.all(
+    cameras.map(async (c) => {
+      const ultima = async (dia: string) =>
+        (
+          await supabase
+            .from('foto_camera')
+            .select('id, caminho, capturada_em')
+            .eq('camera_id', c.id)
+            .eq('data', dia)
+            .order('capturada_em', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        ).data;
+      const [hoje, anterior] = await Promise.all([ultima(data), ultima(ontem)]);
+      return { camera: { id: c.id, nome: c.nome }, hoje, ontem: anterior };
+    }),
+  );
+  return fotos.filter((f) => f.hoje);
+}
+
+/** Avanço apontado no dia, por tarefa (o mais recente do dia). */
+export async function avancosDoDia(projetoId: string, data: string): Promise<Map<string, number>> {
+  const { supabase } = await exigirUsuario();
+  const { data: linhas, error } = await supabase
+    .from('avanco_tarefa')
+    .select('tarefa_id, percentual, registrado_em')
+    .eq('projeto_id', projetoId)
+    .eq('data', data)
+    .order('registrado_em', { ascending: true })
+    .limit(1000);
+  if (error) throw new Error(`Não foi possível carregar o avanço do dia: ${error.message}`);
+  return new Map((linhas ?? []).map((l) => [l.tarefa_id, Number(l.percentual)]));
+}

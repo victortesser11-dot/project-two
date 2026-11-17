@@ -10,7 +10,7 @@ import { SeloGravidade } from './SeloGravidade';
 
 export const metadata: Metadata = { title: 'Alertas' };
 
-const ORDEM_SECOES: SecaoAlerta[] = ['defesa_civil', 'cronograma', 'clima', 'financeiro', 'almoxarifado', 'diario', 'cameras'];
+const ORDEM_SECOES: SecaoAlerta[] = ['defesa_civil', 'fiscal', 'cronograma', 'clima', 'financeiro', 'almoxarifado', 'diario', 'cameras'];
 
 export default async function PaginaAlertas({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
