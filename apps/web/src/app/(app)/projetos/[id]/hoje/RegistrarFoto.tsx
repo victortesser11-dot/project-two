@@ -208,7 +208,7 @@ export function RegistrarFoto({
       </div>
       <div className="flex flex-col gap-4 p-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={r.previa} alt="Foto que vai ser gravada" className="max-h-56 w-full rounded-medio object-cover" />
+        <img src={r.previa} alt="Foto que vai ser gravada" className="max-h-40 w-full rounded-medio object-cover" />
 
         {r.passo === 'servico' ? (
           <>

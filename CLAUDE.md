@@ -289,6 +289,9 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   atrasadas/em andamento/próximas 3 semanas, alertas, previsão, diário, chamada, almoxarifado, arquivos, resumo da leitura dos
   projetos; custos só para `podeVerCustos`) e manda com a instrução fixa (`instrucaoAssistente`: só os dados da obra, sem inventar,
   não altera nada). Até 20 mensagens e 2.000 letras por pergunta.
+- A resposta vem em JSON e vira cartão (`lerRespostaAssistente`, com folga): resumo, até 6 assuntos (gravidade, código da tarefa
+  e a tela onde resolver, com "Abrir"), texto pronto para copiar, fontes e até 3 próximas perguntas. `ligarItensAssistente` tira
+  código de tarefa que não existe e manda a tarefa para "Hoje" (já começou) ou "Cronograma". Sem JSON, mostra o texto como veio.
 
 ## Fiscal da obra (RF-105)
 
@@ -356,6 +359,13 @@ Claro e limpo, legível sob sol no canteiro (tokens em `apps/web/src/app/globals
 ui-ux-pro-max para construção: cinza industrial + azul de planta + amarelo de segurança, estilo suíço):
 - Casca (`components/Casca.tsx`): menu lateral azul-`noite` no computador; no celular, barra de cima `noite` e, dentro
   da obra, barra de baixo (Painel, Hoje, Alertas, Diário, Mais). As seções vêm de `components/navegacao/secoes.ts`.
+- Menu de 14 seções fica; o "anti-erro" é dentro de cada tela: uma ação principal grande no topo, o resto um nível abaixo
+  (`components/Recolhivel.tsx`, `<details>`), e "Desfazer" no aviso (`avisar.comDesfazer`, 8 s) em vez de perguntar antes
+  quando a ação volta atrás fácil. Painel: abrir o dia → três números (prazo, avanço, custo) → o que pede atenção (cada linha
+  leva para resolver) → "Ver detalhes da obra" e "Ajustes da obra" recolhidos.
+- Hoje: "Registrar foto do serviço" (`hoje/RegistrarFoto.tsx`): foto → serviço (o do dia já marcado, "Outro serviço" busca) →
+  25/50/75/100% ou "Não mudou". A foto vai para o diário do dia com a tarefa (precisa de sinal); o avanço entra pela fila do
+  aparelho. Cada cartão de serviço também tem "Foto".
 - Conteúdo sobre `fundo` (cinza frio) em cartões: utilitário `cartao` (branco, borda `linha`, raio 14px, sombra
   quase nula). Preenchimentos sutis em `concreto`; texto `grafite`/`regua`; borda de campo `campo` (3:1); ações e
   progresso em `cianotipia`; alertas em `marcador`; `seguranca` (amarelo) só como destaque sobre o azul-noite.
