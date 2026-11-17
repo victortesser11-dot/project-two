@@ -69,9 +69,10 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex flex-col gap-6">
-      <ResumoAlertas projetoId={id} alertas={alertas} />
-      <PrevisaoTempo dias={previsao.slice(0, 4)} hoje={hojeIso()} titulo="Tempo na obra" />
       <PainelObra
+        atencao={<ResumoAlertas projetoId={id} alertas={alertas} />}
+        tempo={<PrevisaoTempo dias={previsao.slice(0, 4)} hoje={hojeIso()} titulo="Tempo na obra" />}
+        ficha={<FichaObra projeto={projeto} podeEditar={podeEditar} comIa={iaConfigurada()} />}
         projeto={projeto}
         papel={papel}
         papelEmpresa={empresa?.papel ?? null}
@@ -85,7 +86,6 @@ export default async function PainelProjeto({ params }: { params: Promise<{ id: 
         ultimaFoto={ultimaFoto}
         equipeHoje={equipeHoje}
       />
-      <FichaObra projeto={projeto} podeEditar={podeEditar} comIa={iaConfigurada()} />
     </div>
   );
 }
