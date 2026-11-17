@@ -21,7 +21,8 @@ import { MembrosProjeto } from './MembrosProjeto';
 import { MODULOS } from './modulos';
 import { CurvaS } from './CurvaS';
 import { montarPainel } from './painel';
-import { Banknote, CalendarClock, Check, ClipboardList, Pencil, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Banknote, CalendarClock, Check, ChevronRight, ClipboardList, Pencil, Settings, TrendingUp, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Recolhivel } from '@/components/Recolhivel';
 
 // Passo a passo de configuração (PRD, "Fluxo de criação de um projeto").
 const PASSOS = [
@@ -34,7 +35,10 @@ const PASSOS = [
   { titulo: 'Equipe', modulo: 'equipe' },
 ] as const;
 
-/** Painel da obra: indicadores, curva S, etapas e configuração. Recebe os dados prontos. */
+/**
+ * Painel da obra. Em cima, o que se decide no dia: abrir o dia, três números (prazo, avanço, custo) e o que pede
+ * atenção. Curva S, etapas e resumo ficam em "Ver detalhes"; acessos e configuração em "Ajustes da obra".
+ */
 export function PainelObra({
   projeto,
   papel,
@@ -49,6 +53,9 @@ export function PainelObra({
   ultimaFoto = null,
   equipeHoje = null,
   hoje = hojeIso(),
+  atencao = null,
+  tempo = null,
+  ficha = null,
 }: {
   projeto: Projeto;
   papel: PapelProjeto | null;
@@ -67,6 +74,10 @@ export function PainelObra({
   /** Pessoas presentes na chamada de hoje (null = sem acesso). */
   equipeHoje?: number | null;
   hoje?: string;
+  /** Blocos montados pela página: o que pede atenção, a previsão do tempo e a ficha técnica. */
+  atencao?: ReactNode;
+  tempo?: ReactNode;
+  ficha?: ReactNode;
 }) {
   const p = montarPainel(itens, apontamentos, linhaBase !== null, hoje);
   const temTarefas = itens.some((i) => i.tipo === 'tarefa');
@@ -102,8 +113,14 @@ export function PainelObra({
         ? { texto: 'Aponte o avanço das tarefas em "Hoje" para ver o real contra o planejado.', acao: 'Apontar avanço', href: `${base}/hoje` }
         : null;
 
+  const resumoHoje = [
+    p.hoje.atrasadas > 0 ? `${p.hoje.atrasadas} ${p.hoje.atrasadas === 1 ? 'atrasado' : 'atrasados'}` : 'nenhum atrasado',
+    equipeHoje !== null ? (equipeHoje > 0 ? `${equipeHoje} na chamada` : 'chamada não feita') : null,
+    material && material.abaixoDoMinimo > 0 ? `${material.abaixoDoMinimo} ${material.abaixoDoMinimo === 1 ? 'material acabando' : 'materiais acabando'}` : null,
+  ].filter(Boolean);
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {proximo && (
         <div className="flex flex-col gap-3 rounded-medio border border-cianotipia/30 bg-cianotipia-claro px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <p className="text-sm text-cianotipia">
@@ -120,8 +137,27 @@ export function PainelObra({
         </div>
       )}
 
-      {/* Indicadores */}
-      <section aria-label="Indicadores da obra" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Ação principal: o dia na obra. */}
+      {temTarefas && (
+        <Link
+          href={`${base}/hoje`}
+          className="flex min-h-16 items-center gap-4 rounded-cartao bg-cianotipia px-4 py-3 text-white hover:bg-cianotipia-escuro sm:px-5"
+        >
+          <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-medio bg-white/15">
+            <ClipboardList className="size-6" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="numeros block text-lg font-semibold">
+              Abrir o dia: {p.hoje.previstas} {p.hoje.previstas === 1 ? 'serviço previsto' : 'serviços previstos'}
+            </span>
+            <span className="numeros block text-sm text-white/85">{resumoHoje.join(' · ')}</span>
+          </span>
+          <ChevronRight aria-hidden className="size-6 shrink-0" />
+        </Link>
+      )}
+
+      {/* Três números. */}
+      <section aria-label="Prazo, avanço e custo" className="grid gap-3 md:grid-cols-3">
         <CartaoPrazo projecao={p.projecao} fimProjeto={projeto.data_fim_prevista} />
         <Cartao rotulo="Avanço físico">
           <p className="numeros text-3xl font-bold tracking-tight">
@@ -130,151 +166,99 @@ export function PainelObra({
           <BarraDupla real={p.projecao.real} planejado={p.projecao.planejado} />
           <p className="numeros mt-2 text-sm text-regua">
             Planejado para hoje: <span className="font-semibold text-grafite">{Math.round(p.projecao.planejado)}%</span>
-            {p.ultimoApontamento && <span className="block">Último apontamento: {formatarData(p.ultimoApontamento)}</span>}
           </p>
         </Cartao>
-        <Cartao rotulo="Valor executado">
-          <p className="numeros text-3xl font-bold tracking-tight">{formatarMoeda(p.valorExecutado, { compacta: true })}</p>
-          <p className="numeros mt-1 text-sm text-regua">
-            {p.custoTotal !== null
-              ? `de ${formatarMoeda(p.custoTotal, { compacta: true })} previstos na EAP`
-              : 'Preencha o custo das tarefas'}
-            {orcamento !== null && p.custoTotal !== null && p.custoTotal > orcamento && (
-              <span className="block font-semibold text-marcador">
-                EAP {Math.round((p.custoTotal / orcamento) * 100 - 100)}% acima do orçamento
-              </span>
-            )}
-          </p>
+        <Cartao rotulo="Custo">
           {gastoReal !== null ? (
-            <div className="numeros mt-2 border-t border-linha pt-2 text-sm">
-              <p>
-                <span className="text-regua">Gasto real até hoje:</span> <span className="font-semibold">{formatarMoeda(gastoReal, { compacta: true })}</span>
+            <>
+              <p className="numeros text-3xl font-bold tracking-tight">{formatarMoeda(gastoReal, { compacta: true })}</p>
+              <p className="numeros mt-1 text-sm text-regua">
+                gastos até hoje · {formatarMoeda(p.valorExecutado, { compacta: true })} de serviço feito
               </p>
-              <p className="text-xs text-regua">
-                {maoDeObra && (
-                  <Link href={`${base}/equipe`} className="hover:text-cianotipia">
-                    Mão de obra {formatarMoeda(maoDeObra.custo, { compacta: true })}
-                  </Link>
-                )}
-                {maoDeObra && materialAplicado !== null && ' · '}
-                {materialAplicado !== null && (
-                  <Link href={`${base}/almoxarifado`} className="hover:text-cianotipia">
-                    Material {formatarMoeda(materialAplicado, { compacta: true })}
-                  </Link>
-                )}
-              </p>
-              <Link href={`${base}/orcamento/realizado`} className="mt-1 inline-block text-xs font-semibold text-cianotipia hover:underline underline-offset-4">
-                Orçado × realizado
-              </Link>
-              {maoDeObra && maoDeObra.semCusto > 0 && (
-                <span className="block text-xs font-semibold text-marcador">{maoDeObra.semCusto} apontamentos sem custo lançado</span>
-              )}
-            </div>
+            </>
           ) : (
-            <p className="mt-2 text-xs text-regua">Serviço feito × custo previsto. O gasto real entra com almoxarifado, equipe e despesas.</p>
+            <>
+              <p className="numeros text-3xl font-bold tracking-tight">{formatarMoeda(p.valorExecutado, { compacta: true })}</p>
+              <p className="numeros mt-1 text-sm text-regua">
+                {p.custoTotal !== null ? `de serviço feito, de ${formatarMoeda(p.custoTotal, { compacta: true })} previstos` : 'Preencha o custo dos serviços'}
+              </p>
+            </>
           )}
-        </Cartao>
-        <Cartao rotulo="Hoje na obra">
-          <p className="numeros text-3xl font-bold tracking-tight">
-            {p.hoje.previstas} <span className="text-base font-normal text-regua">{p.hoje.previstas === 1 ? 'tarefa prevista' : 'tarefas previstas'}</span>
-          </p>
-          <p className="numeros mt-1 text-sm">
-            {p.hoje.atrasadas > 0 ? (
-              <span className="font-semibold text-marcador">
-                {p.hoje.atrasadas} {p.hoje.atrasadas === 1 ? 'atrasada' : 'atrasadas'}
-              </span>
-            ) : (
-              <span className="text-regua">Nenhuma atrasada</span>
-            )}
-            <span className="text-regua"> · {p.hoje.proximas} nos próximos dias</span>
-          </p>
-          {equipeHoje !== null && (
-            <Link href={`${base}/equipe/chamada/${hoje}`} className="numeros mt-1 block text-sm hover:text-cianotipia">
-              {equipeHoje > 0 ? (
-                <>
-                  <span className="font-semibold">{equipeHoje}</span> {equipeHoje === 1 ? 'pessoa' : 'pessoas'} na chamada de hoje
-                </>
-              ) : (
-                <span className="text-regua">Chamada de hoje ainda não feita</span>
-              )}
-            </Link>
+          {orcamento !== null && p.custoTotal !== null && p.custoTotal > orcamento && (
+            <p className="numeros mt-1 text-sm font-semibold text-marcador">Previsto {Math.round((p.custoTotal / orcamento) * 100 - 100)}% acima do orçamento</p>
           )}
-          {material && material.abaixoDoMinimo > 0 && (
-            <Link href={`${base}/almoxarifado`} className="numeros mt-1 block text-sm font-semibold text-marcador hover:underline underline-offset-4">
-              {material.abaixoDoMinimo} {material.abaixoDoMinimo === 1 ? 'material abaixo' : 'materiais abaixo'} do estoque mínimo
-            </Link>
-          )}
-          <Link href={`${base}/hoje`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-cianotipia hover:underline underline-offset-4">
-            Ver tarefas de hoje
+          <Link href={`${base}/orcamento/realizado`} className="mt-auto inline-flex min-h-11 items-center pt-2 text-sm font-semibold text-cianotipia hover:underline underline-offset-4">
+            Ver orçado × gasto
           </Link>
         </Cartao>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-8">
-          <section aria-labelledby="titulo-curva" className="cartao p-4 sm:p-5">
-            <h2 id="titulo-curva" className="text-base font-semibold">
-              Curva S física
-            </h2>
-            <p className="mt-1 mb-4 text-sm text-regua">Avanço acumulado da obra, planejado contra o apontado.</p>
-            {p.curva.length >= 2 ? (
-              <CurvaS pontos={p.curva} hoje={hoje} referencia={linhaBase ? 'linha de base' : 'previsto atual'} />
-            ) : (
-              <p className="text-sm text-regua">Aparece quando as tarefas tiverem datas.</p>
-            )}
-          </section>
+      {atencao}
+      {tempo}
 
-          {p.etapas.length > 0 && (
-            <section aria-labelledby="titulo-etapas" className="cartao">
-              <div className="border-b border-linha px-4 py-4 sm:px-5">
-                <h2 id="titulo-etapas" className="text-base font-semibold">
-                  Etapas
-                </h2>
-                <p className="mt-1 text-sm text-regua">Onde está o atraso: feito × planejado para hoje e término contra a linha de base.</p>
-              </div>
-              <ul className="divide-y divide-linha">
-                {p.etapas.map((e) => {
-                  const atras = e.planejado - e.real;
-                  return (
-                    <li key={e.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_auto] sm:items-center sm:gap-4 sm:px-5">
-                      <p className="min-w-0 font-medium break-words">
-                        <span className="numeros mr-1.5 text-sm text-regua">{e.codigo}</span>
-                        {e.nome}
-                      </p>
-                      <div>
-                        <BarraDupla real={e.real} planejado={e.planejado} fina />
-                        <p className="numeros mt-1 text-xs text-regua">
-                          {Math.round(e.real)}% feito · {Math.round(e.planejado)}% planejado
-                          {atras >= 5 && <span className="font-semibold text-marcador"> · {Math.round(atras)} p.p. atrás</span>}
-                        </p>
-                      </div>
-                      <p className="numeros text-sm sm:text-right">
-                        {e.desvioDias === null ? (
-                          <span className="text-regua">Sem base</span>
-                        ) : e.desvioDias > 0 ? (
-                          <span className="font-semibold text-marcador">+{e.desvioDias} dias</span>
-                        ) : e.desvioDias < 0 ? (
-                          <span className="font-semibold text-obra-ok">{e.desvioDias} dias</span>
-                        ) : (
-                          <span className="text-obra-ok">Na data</span>
-                        )}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+      <Recolhivel titulo="Ver detalhes da obra" resumo="Curva S, etapas, última foto, resumo e ficha técnica" icone={TrendingUp}>
+        <section aria-labelledby="titulo-curva">
+          <h2 id="titulo-curva" className="text-base font-semibold">
+            Curva S física
+          </h2>
+          <p className="mt-1 mb-4 text-sm text-regua">Avanço acumulado da obra, planejado contra o apontado.</p>
+          {p.curva.length >= 2 ? (
+            <CurvaS pontos={p.curva} hoje={hoje} referencia={linhaBase ? 'linha de base' : 'previsto atual'} />
+          ) : (
+            <p className="text-sm text-regua">Aparece quando os serviços tiverem datas.</p>
           )}
-        </div>
+        </section>
 
-        <div className="flex min-w-0 flex-col gap-6">
+        {p.etapas.length > 0 && (
+          <section aria-labelledby="titulo-etapas" className="rounded-medio border border-linha">
+            <div className="border-b border-linha px-4 py-3">
+              <h2 id="titulo-etapas" className="text-base font-semibold">
+                Etapas
+              </h2>
+              <p className="mt-1 text-sm text-regua">Feito × planejado para hoje e término contra a linha de base.</p>
+            </div>
+            <ul className="divide-y divide-linha">
+              {p.etapas.map((e) => {
+                const atras = e.planejado - e.real;
+                return (
+                  <li key={e.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_auto] sm:items-center sm:gap-4">
+                    <p className="min-w-0 font-medium break-words">
+                      <span className="numeros mr-1.5 text-sm text-regua">{e.codigo}</span>
+                      {e.nome}
+                    </p>
+                    <div>
+                      <BarraDupla real={e.real} planejado={e.planejado} fina />
+                      <p className="numeros mt-1 text-xs text-regua">
+                        {Math.round(e.real)}% feito · {Math.round(e.planejado)}% planejado
+                        {atras >= 5 && <span className="font-semibold text-marcador"> · {Math.round(atras)} p.p. atrás</span>}
+                      </p>
+                    </div>
+                    <p className="numeros text-sm sm:text-right">
+                      {e.desvioDias === null ? (
+                        <span className="text-regua">Sem base</span>
+                      ) : e.desvioDias > 0 ? (
+                        <span className="font-semibold text-marcador">+{e.desvioDias} dias</span>
+                      ) : e.desvioDias < 0 ? (
+                        <span className="font-semibold text-obra-ok">{e.desvioDias} dias</span>
+                      ) : (
+                        <span className="text-obra-ok">Na data</span>
+                      )}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-2">
           {ultimaFoto && (
-            <section aria-labelledby="titulo-ultima-foto" className="overflow-hidden cartao">
+            <section aria-labelledby="titulo-ultima-foto" className="overflow-hidden rounded-medio border border-linha">
               <Link href={`${base}/cameras`} className="block aspect-video bg-concreto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ultimaFoto.url} alt={`Última foto de ${ultimaFoto.camera}`} className="h-full w-full object-cover" />
               </Link>
-              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+              <div className="flex items-baseline justify-between gap-3 px-4 py-3">
                 <h2 id="titulo-ultima-foto" className="text-base font-semibold">
                   Última foto
                 </h2>
@@ -284,65 +268,69 @@ export function PainelObra({
               </div>
             </section>
           )}
-          <aside className="cartao" aria-labelledby="titulo-resumo">
-            <h2 id="titulo-resumo" className="border-b border-linha px-5 py-4 text-base font-semibold">
+          <section aria-labelledby="titulo-resumo" className="rounded-medio border border-linha">
+            <h2 id="titulo-resumo" className="border-b border-linha px-4 py-3 text-base font-semibold">
               Resumo
             </h2>
             <dl className="numeros divide-y divide-linha text-sm">
               <Linha rotulo="Orçamento total" valor={formatarMoeda(projeto.orcamento_total)} />
-              <Linha rotulo="Custo previsto na EAP" valor={formatarMoeda(p.custoTotal)} />
+              <Linha rotulo="Custo previsto nos serviços" valor={formatarMoeda(p.custoTotal)} />
               <Linha rotulo="Início" valor={formatarData(projeto.data_inicio)} />
               <Linha rotulo="Fim previsto" valor={formatarData(projeto.data_fim_prevista)} />
               <Linha
                 rotulo="Linha de base"
                 valor={linhaBase ? formatarData(hojeIso('America/Sao_Paulo', new Date(linhaBase.definida_em))) : 'Não definida'}
               />
+              {p.ultimoApontamento && <Linha rotulo="Último apontamento" valor={formatarData(p.ultimoApontamento)} />}
+              {maoDeObra && <Linha rotulo="Gasto com mão de obra" valor={formatarMoeda(maoDeObra.custo)} />}
+              {materialAplicado !== null && <Linha rotulo="Gasto com material" valor={formatarMoeda(materialAplicado)} />}
               <Linha rotulo="Seu papel" valor={papelTexto} />
             </dl>
-            {podeEditar && (
-              <div className="border-t border-linha px-5 py-3">
-                <Link href={`${base}/editar`} className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-cianotipia underline-offset-4 hover:underline">
-                  <Pencil aria-hidden className="size-4" />
-                  Editar dados da obra
-                </Link>
-              </div>
-            )}
-          </aside>
-
-          <MembrosProjeto projetoId={projeto.id} membros={membros} podeEditar={podeEditar} />
-
-          <section aria-labelledby="titulo-config" className="cartao px-5 py-4">
-            <h2 id="titulo-config" className="text-base font-semibold">
-              Configuração da obra
-            </h2>
-            <ol className="mt-3 flex flex-col gap-2 text-sm">
-              {PASSOS.map((passo) => {
-                const modulo = passo.modulo ? MODULOS.find((m) => m.slug === passo.modulo) : null;
-                const feito = feitos[passo.titulo] ?? false;
-                return (
-                  <li key={passo.titulo} className="flex items-center gap-2.5">
-                    <span
-                      aria-hidden
-                      className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                        feito ? 'border-cianotipia bg-cianotipia text-white' : 'border-linha'
-                      }`}
-                    >
-                      {feito && (
-                        <Check className="size-3" strokeWidth={3} />
-                      )}
-                    </span>
-                    <span className={feito ? '' : 'text-regua'}>
-                      {passo.titulo}
-                      <span className="sr-only">{feito ? ' (feito)' : ' (pendente)'}</span>
-                    </span>
-                    {modulo && !modulo.disponivel && <span className="ml-auto text-xs text-regua">sprint {modulo.sprint}</span>}
-                  </li>
-                );
-              })}
-            </ol>
           </section>
         </div>
-      </div>
+        {ficha}
+      </Recolhivel>
+
+      <Recolhivel titulo="Ajustes da obra" resumo="Dados da obra, quem tem acesso e o que falta configurar" icone={Settings}>
+        {podeEditar && (
+          <Link
+            href={`${base}/editar`}
+            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-medio border border-campo/60 bg-papel px-4 font-semibold hover:bg-concreto/50"
+          >
+            <Pencil aria-hidden className="size-4" />
+            Editar dados da obra
+          </Link>
+        )}
+        <MembrosProjeto projetoId={projeto.id} membros={membros} podeEditar={podeEditar} />
+        <section aria-labelledby="titulo-config" className="rounded-medio border border-linha px-4 py-4">
+          <h2 id="titulo-config" className="text-base font-semibold">
+            Configuração da obra
+          </h2>
+          <ol className="mt-3 flex flex-col gap-2 text-sm">
+            {PASSOS.map((passo) => {
+              const modulo = passo.modulo ? MODULOS.find((m) => m.slug === passo.modulo) : null;
+              const feito = feitos[passo.titulo] ?? false;
+              return (
+                <li key={passo.titulo} className="flex items-center gap-2.5">
+                  <span
+                    aria-hidden
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                      feito ? 'border-cianotipia bg-cianotipia text-white' : 'border-linha'
+                    }`}
+                  >
+                    {feito && <Check className="size-3" strokeWidth={3} />}
+                  </span>
+                  <span className={feito ? '' : 'text-regua'}>
+                    {passo.titulo}
+                    <span className="sr-only">{feito ? ' (feito)' : ' (pendente)'}</span>
+                  </span>
+                  {modulo && !modulo.disponivel && <span className="ml-auto text-xs text-regua">sprint {modulo.sprint}</span>}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      </Recolhivel>
     </div>
   );
 }
@@ -350,8 +338,7 @@ export function PainelObra({
 const ICONE_CARTAO: Record<string, LucideIcon> = {
   Prazo: CalendarClock,
   'Avanço físico': TrendingUp,
-  'Valor executado': Banknote,
-  'Hoje na obra': ClipboardList,
+  Custo: Banknote,
 };
 
 function Cartao({ rotulo, children }: { rotulo: string; children: ReactNode }) {
