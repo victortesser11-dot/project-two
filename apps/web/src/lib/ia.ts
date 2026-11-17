@@ -255,6 +255,27 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
         : { role: m.papel === 'assistente' ? 'assistant' : 'user', content: m.texto },
     ),
   ];
+  // O roteador grátis sorteia um modelo a cada pedido, e às vezes cai num que devolve vazio ou com defeito: tenta de
+  // novo (outro sorteio) enquanto houver tempo. A partir da segunda vez sem "response_format" (o pedido já diz para
+  // responder em JSON, e o modo JSON restringe o sorteio a modelos que às vezes respondem vazio).
+  let ultimo: ErroIa | null = null;
+  for (let tentativa = 0; tentativa < TENTATIVAS_OPENROUTER; tentativa++) {
+    if (tentativa > 0 && p.fim - Date.now() < 30_000) break;
+    try {
+      return await chamarOpenRouter(chave, url, modelo, messages, p, p.json && tentativa === 0);
+    } catch (erro) {
+      if (!(erro instanceof ErroVazio)) throw erro;
+      ultimo = erro;
+    }
+  }
+  throw ultimo ?? new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+}
+
+/** Resposta vazia ou quebrada do roteador grátis: vale sortear outro modelo. */
+class ErroVazio extends ErroPassageiro {}
+const TENTATIVAS_OPENROUTER = 3;
+
+async function chamarOpenRouter(chave: string, url: string, modelo: string, messages: unknown[], p: Pedido, modoJson: boolean): Promise<RespostaIa> {
   const ms = tempoDaChamada(p, ESPERA_OPENROUTER);
   const r = await postar(
     `${url}/chat/completions`,
@@ -270,7 +291,7 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
       // Modelo que "pensa" antes de responder demora muito: pensa pouco e não devolve o raciocínio.
       reasoning: { effort: 'low', exclude: true },
       ...(p.maxTokens ? { max_tokens: p.maxTokens } : {}),
-      ...(p.json ? { response_format: { type: 'json_object' } } : {}),
+      ...(modoJson ? { response_format: { type: 'json_object' } } : {}),
     },
     ms,
   );
@@ -279,21 +300,25 @@ async function perguntarOpenRouter(chave: string, p: Pedido): Promise<RespostaIa
     console.error(`IA (OpenRouter ${modelo}) recusou: ${r.status} ${textoBruto.slice(0, 500)}`);
     throw erroDoProvedor(r.status, textoBruto);
   }
-  let json: { choices?: { message?: { content?: string } }[]; model?: string; error?: { message?: string; code?: number } };
+  let json: {
+    choices?: { message?: { content?: string }; finish_reason?: string }[];
+    model?: string;
+    error?: { message?: string; code?: number };
+  };
   try {
     json = JSON.parse(textoBruto);
   } catch {
     console.error(`IA (OpenRouter ${modelo}) devolveu algo que não é JSON: ${textoBruto.slice(0, 300)}`);
-    throw new ErroPassageiro('A IA reserva respondeu com defeito. Tente de novo.');
+    throw new ErroVazio('A IA respondeu com defeito. Tente de novo.');
   }
   if (json.error) {
     console.error(`IA (OpenRouter ${json.model || modelo}) falhou: ${json.error.code ?? '?'} ${(json.error.message ?? '').slice(0, 300)}`);
     throw erroDoProvedor(json.error.code ?? 500, json.error.message ?? '');
   }
   const texto = json.choices?.[0]?.message?.content ?? '';
-  if (!texto) {
-    console.error(`IA (OpenRouter ${json.model || modelo}) respondeu vazio.`);
-    throw new ErroPassageiro('A IA não respondeu nada desta vez. Tente de novo.');
+  if (!texto.trim()) {
+    console.error(`IA (OpenRouter ${json.model || modelo}) respondeu vazio (fim: ${json.choices?.[0]?.finish_reason ?? '?'}).`);
+    throw new ErroVazio('A IA não respondeu nada desta vez. Tente de novo.');
   }
   return { texto, modelo: `openrouter:${json.model || modelo}` };
 }
