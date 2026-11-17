@@ -21,7 +21,7 @@ export default async function PaginaHoje({ params }: { params: Promise<{ id: str
         <h2 className="text-xl font-semibold sm:text-2xl">Tarefas de hoje</h2>
         <p className="mt-1 text-regua">
           {podeApontar
-            ? 'Aponte o avanço de cada frente. Sem sinal, o apontamento fica no aparelho e sobe sozinho depois.'
+            ? 'Tire a foto do serviço e diga quanto está feito: a foto vai para o diário e o avanço para o cronograma. Sem sinal, o avanço fica no aparelho e sobe sozinho depois.'
             : 'O que está previsto para hoje e o avanço apontado pela obra.'}
         </p>
       </div>

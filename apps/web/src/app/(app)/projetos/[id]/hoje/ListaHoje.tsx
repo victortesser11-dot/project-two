@@ -5,6 +5,7 @@ import { formatarData, hojeIso, type ApontamentoEntrada, type ItemEap } from '@o
 import { sincronizarApontamentos } from './acoes';
 import { tarefasDoDia } from './selecao';
 import { classeEntrada } from '@/components/ui';
+import { BotaoFoto, RegistrarFoto } from './RegistrarFoto';
 
 type Pendente = ApontamentoEntrada & { erro?: string; definitivo?: boolean };
 
@@ -53,6 +54,7 @@ export function ListaHoje({
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const enviandoRef = useRef(false);
+  const [foto, setFoto] = useState<{ arquivo: File; tarefaId: string | null } | null>(null);
   const hoje = hojeIso();
 
   // Fila salva no aparelho + service worker para abrir a página sem sinal.
@@ -155,6 +157,11 @@ export function ListaHoje({
   }
 
   const grupos = tarefasDoDia(itens, hoje);
+  // Serviço provável da foto: os do dia primeiro (em andamento, depois atrasados), o resto pela busca.
+  const sugeridas = [...grupos.emAndamento, ...grupos.atrasadas];
+  const abertas = itens.filter((i) => i.tipo === 'tarefa' && Number(i.percentual_fisico) < 100);
+  const pctAtual = (t: ItemEap) => pctLocal.get(t.id) ?? Number(t.percentual_fisico);
+  const comFoto = (tarefaId: string | null) => (arquivo: File) => setFoto({ arquivo, tarefaId });
   const pendentes = fila.filter((p) => !p.definitivo).length;
   const recusados = fila.filter((p) => p.definitivo);
   const nomeTarefa = new Map(itens.map((i) => [i.id, i.nome]));
@@ -184,6 +191,23 @@ export function ListaHoje({
         )}
       </div>
       {aviso && <p className="-mt-3 text-sm text-regua">{aviso}</p>}
+
+      {podeApontar &&
+        (foto ? (
+          <RegistrarFoto
+            projetoId={projetoId}
+            hoje={hoje}
+            sugeridas={sugeridas}
+            todas={abertas}
+            etapas={etapas}
+            pctAtual={pctAtual}
+            onApontar={apontar}
+            inicio={foto}
+            onFechar={() => setFoto(null)}
+          />
+        ) : (
+          <BotaoFoto grande rotulo="Registrar foto do serviço" onFoto={comFoto(null)} />
+        ))}
 
       {recusados.length > 0 && (
         <section aria-labelledby="titulo-recusados" className="rounded-medio border border-marcador/40 bg-marcador-claro p-4">
@@ -215,20 +239,20 @@ export function ListaHoje({
         descricao="Já deviam ter terminado."
         tarefas={grupos.atrasadas}
         alerta
-        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar }}
+        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar, comFoto }}
       />
       <Grupo
         titulo="Previstas para hoje"
         descricao={formatarData(hoje)}
         tarefas={grupos.emAndamento}
         vazio="Nenhuma tarefa prevista para hoje."
-        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar }}
+        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar, comFoto }}
       />
       <Grupo
         titulo="Próximos dias"
         descricao="Para separar equipe e material."
         tarefas={grupos.proximas}
-        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar }}
+        {...{ etapas, hoje, podeApontar, pctLocal, qtdLocal, apontar, comFoto }}
       />
       {grupos.concluidasHoje.length > 0 && (
         <p className="text-sm text-obra-ok">
@@ -251,6 +275,7 @@ function Grupo({
   pctLocal,
   qtdLocal,
   apontar,
+  comFoto,
 }: {
   titulo: string;
   descricao: string;
@@ -263,6 +288,7 @@ function Grupo({
   pctLocal: Map<string, number>;
   qtdLocal: Map<string, number>;
   apontar: (t: ItemEap, v: { percentual?: number; quantidade?: number; observacao?: string }) => void;
+  comFoto: (tarefaId: string | null) => (arquivo: File) => void;
 }) {
   if (tarefas.length === 0 && !vazio) return null;
   const idTitulo = `grupo-${titulo.replace(/\W+/g, '-').toLowerCase()}`;
@@ -288,6 +314,7 @@ function Grupo({
               pctPendente={pctLocal.get(t.id)}
               qtdPendente={qtdLocal.get(t.id)}
               onApontar={(v) => apontar(t, v)}
+              onFoto={comFoto(t.id)}
             />
           ))}
         </ul>
@@ -306,6 +333,7 @@ function CartaoTarefa({
   pctPendente,
   qtdPendente,
   onApontar,
+  onFoto,
 }: {
   tarefa: ItemEap;
   etapa?: string;
@@ -314,6 +342,7 @@ function CartaoTarefa({
   pctPendente?: number;
   qtdPendente?: number;
   onApontar: (v: { percentual?: number; quantidade?: number; observacao?: string }) => void;
+  onFoto: (arquivo: File) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [modo, setModo] = useState<'pct' | 'qtd'>(tarefa.quantidade && tarefa.unidade ? 'qtd' : 'pct');
@@ -488,13 +517,18 @@ function CartaoTarefa({
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setAberto(true)}
-            className="flex min-h-12 w-full items-center justify-center gap-2 border-t border-linha font-semibold text-cianotipia hover:bg-cianotipia-claro"
-          >
-            Apontar avanço
-          </button>
+          <div className="flex items-stretch border-t border-linha">
+            <button
+              type="button"
+              onClick={() => setAberto(true)}
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 font-semibold text-cianotipia hover:bg-cianotipia-claro"
+            >
+              Apontar avanço
+            </button>
+            <div className="flex items-center border-l border-linha px-2">
+              <BotaoFoto rotulo="Foto" onFoto={onFoto} />
+            </div>
+          </div>
         ))}
     </li>
   );
