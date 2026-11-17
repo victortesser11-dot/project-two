@@ -8,12 +8,17 @@ import {
   instrucaoAssistente,
   itensComSaldo,
   leituraArquivosSchema,
+  lerRespostaAssistente,
+  ligarItensAssistente,
   LIMITE_MENSAGENS_ASSISTENTE,
   LIMITE_TEXTO_PERGUNTA,
   ROTULO_CATEGORIA_ARQUIVO,
   ROTULO_STATUS,
   textoContextoObra,
+  textoDaResposta,
   type ContextoObra,
+  type RespostaAssistente,
+  type TarefaContexto,
 } from '@obras/shared';
 import {
   buscarApontamentos,
@@ -32,7 +37,10 @@ import { alertasDaObra } from '@/lib/alertas';
 import { conversarIa, ErroIa } from '@/lib/ia';
 import { montarPainel } from '../painel';
 
-export type ResultadoAssistente = { ok: true; texto: string; modelo: string } | { ok: false; erro: string };
+/** `resposta` em cartões quando o modelo devolveu o JSON pedido; senão só o texto, como veio. */
+export type ResultadoAssistente =
+  | { ok: true; texto: string; resposta: RespostaAssistente | null; modelo: string }
+  | { ok: false; erro: string };
 
 const mensagensSchema = z
   .array(z.object({ papel: z.enum(['usuario', 'assistente']), texto: z.string().trim().min(1).max(LIMITE_TEXTO_PERGUNTA * 3) }))
@@ -41,7 +49,7 @@ const mensagensSchema = z
   .refine((m) => m.at(-1)?.papel === 'usuario' && m.at(-1)!.texto.length <= LIMITE_TEXTO_PERGUNTA, 'Pergunta inválida');
 
 /** Junta os dados da obra que a pessoa pode ver num texto para o modelo. Módulo que falhar fica de fora. */
-async function contextoDaObra(projetoId: string): Promise<string | null> {
+async function contextoDaObra(projetoId: string): Promise<{ texto: string; tarefas: TarefaContexto[]; hoje: string } | null> {
   const dados = await buscarProjeto(projetoId);
   if (!dados) return null;
   const { projeto, papel } = dados;
@@ -116,7 +124,7 @@ async function contextoDaObra(projetoId: string): Promise<string | null> {
       ? { orcamento: projeto.orcamento_total !== null ? Number(projeto.orcamento_total) : null, previstoEap: painel?.custoTotal ?? null, realizado: null }
       : null,
   };
-  return textoContextoObra(c);
+  return { texto: textoContextoObra(c), tarefas: c.tarefas, hoje };
 }
 
 /**
@@ -134,9 +142,11 @@ export async function perguntarAoAssistente(projetoId: string, mensagens: { pape
   const montado = Date.now();
   try {
     // Página com 120 s: a IA tem até 100 s, somando as tentativas.
-    const r = await conversarIa({ sistema: instrucaoAssistente(contexto), mensagens: m.data, prazoMs: 100_000, maxTokens: 1_500 });
+    const r = await conversarIa({ sistema: instrucaoAssistente(contexto.texto), mensagens: m.data, json: true, prazoMs: 100_000, maxTokens: 1_500 });
     console.info(`Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s, IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`);
-    return { ok: true, texto: r.texto.trim(), modelo: r.modelo };
+    const lida = lerRespostaAssistente(r.texto);
+    const resposta = lida ? ligarItensAssistente(lida, contexto.tarefas, contexto.hoje) : null;
+    return { ok: true, texto: resposta ? textoDaResposta(resposta) : r.texto.trim(), resposta, modelo: r.modelo };
   } catch (erro) {
     if (!(erro instanceof ErroIa)) console.error('IA: falha inesperada', erro);
     return { ok: false, erro: erro instanceof ErroIa ? erro.message : 'O assistente não respondeu. Tente de novo.' };

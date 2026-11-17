@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { instrucaoAssistente, tarefasRelevantes, textoContextoObra, type ContextoObra } from './assistente';
+import {
+  instrucaoAssistente,
+  lerRespostaAssistente,
+  ligarItensAssistente,
+  tarefasRelevantes,
+  textoContextoObra,
+  textoDaResposta,
+  type ContextoObra,
+} from './assistente';
 
 const hoje = '2026-11-16';
 const t = (codigo: string, nome: string, inicio: string, fim: string, percentual: number) => ({ codigo, nome, etapa: 'Torre A 4º Pavimento', inicio, fim, percentual });
@@ -66,5 +74,59 @@ describe('ficha técnica no contexto do assistente', () => {
       prazo: null, etapas: [], tarefas: [], alertas: [], previsao: [], diarios: [], equipeHoje: null, materiais: [], arquivos: [], resumoProjeto: null, custos: null,
     });
     expect(texto).toContain('Ficha técnica: Área construída (m²): 17.923,63; Pavimentos: Térreo + 6.');
+  });
+});
+
+describe('resposta do assistente em cartões', () => {
+  const bruto = JSON.stringify({
+    resumo: 'Duas frentes atrasadas travam a Torre A.',
+    itens: [
+      { titulo: 'Alvenaria lado 2', detalhe: '9 dias de atraso', tarefa: '1.4.4', secao: null, gravidade: 'alta' },
+      { titulo: 'Contrapiso', detalhe: 'começa dia 20', tarefa: '1.5.1', secao: null, gravidade: 'media' },
+      { titulo: 'Tarefa inventada', detalhe: 'x', tarefa: '9.9.9', secao: 'Almoxarifado', gravidade: 'urgente' },
+      { titulo: '', detalhe: '' },
+    ],
+    texto_pronto: null,
+    fontes: ['cronograma', 'Alertas', 'planilha'],
+    sugestoes: ['E o material?', '', 'O tempo atrapalha?', 'quarta', 'quinta'],
+  });
+
+  it('lê o JSON com folga e descarta o que não serve', () => {
+    const r = lerRespostaAssistente('```json\n' + bruto + '\n```')!;
+    expect(r.resumo).toBe('Duas frentes atrasadas travam a Torre A.');
+    expect(r.itens).toHaveLength(3);
+    expect(r.itens[2]).toMatchObject({ secao: 'almoxarifado', gravidade: null });
+    expect(r.fontes).toEqual(['cronograma', 'alertas']);
+    expect(r.sugestoes).toEqual(['E o material?', 'O tempo atrapalha?']);
+  });
+
+  it('texto sem JSON volta null (a tela mostra como veio)', () => {
+    expect(lerRespostaAssistente('A obra está 9 dias atrasada.')).toBeNull();
+    expect(lerRespostaAssistente('{"resumo": "", "itens": []}')).toBeNull();
+  });
+
+  it('liga cada tarefa à tela certa e tira código que não existe', () => {
+    const r = ligarItensAssistente(
+      lerRespostaAssistente(bruto)!,
+      [
+        { codigo: '1.4.4', inicio: '2026-10-01', percentual: 40 },
+        { codigo: '1.5.1', inicio: '2026-11-20', percentual: 0 },
+      ],
+      hoje,
+    );
+    expect(r.itens.map((i) => [i.tarefa, i.secao])).toEqual([
+      ['1.4.4', 'hoje'],
+      ['1.5.1', 'cronograma'],
+      [null, 'almoxarifado'],
+    ]);
+    expect(textoDaResposta(r)).toBe(
+      'Duas frentes atrasadas travam a Torre A.\n- 1.4.4 Alvenaria lado 2: 9 dias de atraso\n- 1.5.1 Contrapiso: começa dia 20\n- Tarefa inventada: x',
+    );
+  });
+
+  it('a instrução pede o JSON e lista as telas', () => {
+    const i = instrucaoAssistente('DADOS');
+    expect(i).toContain('"texto_pronto"');
+    expect(i).toContain('hoje, cronograma, alertas');
   });
 });
