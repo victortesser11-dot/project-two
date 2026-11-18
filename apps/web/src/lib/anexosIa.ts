@@ -144,14 +144,15 @@ async function prepararPdf(m: { unpdf: typeof import('unpdf'); canvas: Canvas },
 
 /**
  * Anexos em partes que qualquer modelo com visão lê: texto e imagens JPEG. PDF que não abre volta como veio (o provedor
- * decide), para a leitura não cair por causa de um arquivo.
+ * decide), para a leitura não cair por causa de um arquivo. `maxImagens`: quantas imagens o modelo aceita (o PDF se
+ * ajusta; foto solta nunca é descartada, e quem chama confere se coube).
  */
-export async function prepararAnexosIa(anexos: Anexo[]): Promise<ParteIa[]> {
+export async function prepararAnexosIa(anexos: Anexo[], maxImagens = MAX_IMAGENS_PEDIDO): Promise<ParteIa[]> {
   if (anexos.length === 0) return [];
   const m = await carregar();
   const partes: ParteIa[] = [];
   const imagensSoltas = anexos.filter((a) => a.mime.startsWith('image/')).length;
-  let vagas = MAX_IMAGENS_PEDIDO - imagensSoltas;
+  let vagas = maxImagens - imagensSoltas;
   for (const a of anexos) {
     if (a.mime.startsWith('image/')) {
       partes.push(await prepararImagem(m.canvas, a));

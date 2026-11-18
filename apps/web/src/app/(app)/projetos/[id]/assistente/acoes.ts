@@ -141,9 +141,11 @@ export async function perguntarAoAssistente(projetoId: string, mensagens: { pape
   if (!contexto) return { ok: false, erro: 'Obra não encontrada.' };
   const montado = Date.now();
   try {
-    // Página com 120 s: a IA tem até 100 s, somando as tentativas.
-    const r = await conversarIa({ sistema: instrucaoAssistente(contexto.texto), mensagens: m.data, json: true, prazoMs: 100_000, maxTokens: 2_000 });
-    console.info(`Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s, IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`);
+    // Fila de conversa (modelos rápidos, só texto); até 60 s somando as tentativas, dentro dos 120 s da página.
+    const r = await conversarIa({ tarefa: 'conversa', sistema: instrucaoAssistente(contexto.texto), mensagens: m.data, json: true, maxTokens: 2_000 });
+    console.info(
+      `Assistente: dados da obra em ${((montado - inicio) / 1000).toFixed(1)} s (${contexto.texto.length} letras), IA (${r.modelo}) em ${((Date.now() - montado) / 1000).toFixed(1)} s.`,
+    );
     const lida = lerRespostaAssistente(r.texto);
     const resposta = lida ? ligarItensAssistente(lida, contexto.tarefas, contexto.hoje) : null;
     return { ok: true, texto: resposta ? textoDaResposta(resposta) : r.texto.trim(), resposta, modelo: r.modelo };

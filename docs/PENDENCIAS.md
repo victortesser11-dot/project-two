@@ -63,6 +63,15 @@ por lote, com a coluna "Realizado" virando avanço). As migrações `20261106090
       modelos grátis do OpenRouter têm limite diário baixo; com uma compra única de créditos (a partir de US$ 10, que ficam lá
       e nem são gastos pelos modelos grátis) o limite diário sobe bastante. Vale fazer quando a equipe começar a usar todo dia.
 - [ ] Para voltar ao Gemini como principal: variável `IA_PRINCIPAL=gemini` na Vercel.
+- [x] 18/11: o roteador grátis estava caindo em `cohere/north-mini-code` (modelo de programação, só texto) e
+      `dots-3-note-preview`. Criada na Vercel `OPENROUTER_MODELO=nvidia/nemotron-3.5-super-vl:free, google/gemma-4-31b-it:free`
+      (modelos fixos com visão; `openrouter/free` só no fim) e produção republicada.
+- [ ] 18/11: nova arquitetura (fila por tipo de pedido, Groq + OpenRouter + Gemini). Depois do merge: cadastrar **`GROQ_CHAVE`**
+      na Vercel (console.groq.com/keys, grátis, sem cartão) e apagar `OPENROUTER_MODELO`, `IA_PRINCIPAL` e `IA_MODELO`, que
+      deixaram de ser lidas.
+- [ ] Sem crédito comprado, os modelos `:free` têm **50 pedidos por dia na conta** (falha também conta); com US$ 10 de
+      crédito único sobe para 1.000 por dia, para sempre, e o crédito não é gasto pelos modelos grátis.
+- [ ] **Vercel Hobby é só para uso não comercial** (e guarda 1 h de registros). Antes de cobrar de cliente: plano Pro.
 
 ## IA (16/11)
 

@@ -257,23 +257,31 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 ## IA (leitura de arquivos e de fotos)
 
-- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor): o provedor principal (`IA_PRINCIPAL`, padrão `openrouter`) e, se ele
-  falhar, o outro. OpenRouter: `API_OPENROUTER` na Vercel (ou `OPENROUTER_CHAVE`), `OPENROUTER_MODELO` padrão `openrouter/free`
-  (roteador grátis), `reasoning: low` (modelo que pensa muito demora). `OPENROUTER_MODELO` aceita vários modelos separados por
-  vírgula, em ordem de preferência (`modelosOpenRouter`); o último é sempre o roteador grátis, que sorteia um modelo por pedido.
-  Vazio, lotado (429/5xx) ou aposentado passa ao próximo (até 6 tentativas, a partir da segunda sem modo JSON); chave recusada
-  para na hora. Só então vai ao Gemini, que de reserva tenta só 2 modelos (o grátis vive sobrecarregado). Gemini: `IA_CHAVE`, API nativa, `IA_MODELO` padrão
-  `gemini-flash-latest`; em 503/429/404 tenta até 4 modelos da família `gemini-<versão>-flash` (as variantes "omni" têm cota zero
-  no grátis). Chave recusada para na hora. Modelo que falhou fica de fora por um tempo na instância (sem cota "limit: 0" 24 h;
-  cota do dia 1 h; 429 2 min; 503 1 min).
+- Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), com uma **fila de modelos por tipo de pedido** (`ROTAS_PADRAO`,
+  trocável pelas variáveis `IA_CONVERSA` e `IA_LEITURA`, formato `provedor:modelo, provedor:modelo`): `conversa` (assistente, só
+  texto, rápido: Groq `gpt-oss-120b` primeiro) e `leitura` (pranchas, fotos, fiscal: modelos com visão, OpenRouter
+  `nemotron-3.5-super-vl:free` primeiro). Sem `tarefa`, pedido com anexo é leitura. Cada modelo é tentado uma vez, na ordem;
+  item cujo provedor não tem chave sai da fila. Três provedores grátis, cada um com a sua cota: Groq (`GROQ_CHAVE`; o qwen lê no
+  máximo 3 imagens, e pedido com mais pula o Groq sem gastar cota), OpenRouter (`API_OPENROUTER`; os `:free` têm 50 pedidos por
+  dia na conta, 1.000 depois de US$ 10 de crédito único) e Gemini (`IA_CHAVE`, de reserva).
+- **Raciocínio desligado** (OpenRouter `reasoning: none`, Groq `reasoning_effort` low/none): nos modelos grátis o raciocínio é
+  lento e conta dentro do `max_tokens`; com 3.000 tokens o modelo pensava tudo e devolvia vazio (`finish_reason: length`). Vazio
+  por tamanho, ou modelo que exige raciocínio (400), repete **no mesmo modelo** com +8.000 tokens. No Gemini, sem
+  `maxOutputTokens` (o raciocínio entra no limite) e as partes `thought` ficam de fora.
+- Modelo que falhou fica de fora por um tempo na instância (`rotaDeFora`): chave recusada 10 min (o provedor todo); cota diária
+  dos grátis do OpenRouter (`free-models-per-day`) todos os `:free` até 0 h UTC; "limit: 0" ou 404 24 h; cota do dia 1 h; 429 pelo
+  `retry-after` (até 10 min, senão 2 min); 5xx 1 min. Todos de fora: tenta o primeiro mesmo assim. Ao falhar todos, a tela recebe
+  o motivo mais útil (`mensagemFinal`: arquivo grande > chaves > cota > demora). Cada pedido loga `IA <tarefa>: <modelo>
+  respondeu em X s` ou a lista de falhas.
 - Anexos preparados no servidor (`lib/anexosIa.ts`, unpdf + `@napi-rs/canvas`, em `serverExternalPackages`): o leitor de arquivos
   do OpenRouter recusa PDF grande e só tira texto. O PDF vira texto (camada de texto) + imagens JPEG das 3 primeiras páginas;
   prancha (lado > 1400 pt) é desenhada a 5000 px e ganha 3 recortes de até 1600 px (os de mais conteúdo, sempre com o canto
   inferior direito, do carimbo); prancha escaneada em pé é girada 90° no sentido horário. Até 8 imagens por pedido (imagem demais
-  deixa o modelo grátis lento); foto acima de 1,5 MB vai a 2000 px.
-- Prazo total por pedido (`prazoMs`, somando as tentativas; leitura 250 s, assistente 100 s) abaixo do `maxDuration` da página:
-  sem tempo para outra tentativa, para e explica (`ErroTempo`). Cada chamada espera no máximo 150 s (OpenRouter) ou 90 s
-  (Gemini). `maxTokens` limita a resposta (modelo grátis escreve devagar); o pedido de leitura pede listas curtas.
+  deixa o modelo grátis lento; `prepararAnexosIa(anexos, maxImagens)` encolhe o PDF para o Groq); foto acima de 1,5 MB vai a 2000 px.
+- Prazo total por pedido (`prazoMs`, somando as tentativas; padrão conversa 60 s, leitura 240 s; as telas de leitura passam 250 s)
+  abaixo do `maxDuration` da página: sem tempo para outra tentativa, para e explica (`ErroTempo`). Cada chamada espera no máximo
+  `ESPERA[tarefa][provedor]` (conversa 25–40 s, para passar logo ao próximo; leitura até 150 s no OpenRouter). `maxTokens` é o
+  tamanho da resposta sem o raciocínio (padrão 2.000); o pedido de leitura pede listas curtas.
   O Gemini recebe o PDF direto quando cabe (até 8 MB cada, 14 MB no total); acima disso, as mesmas partes preparadas. Sem nenhuma chave, as telas de IA somem. `IA_LIMITE_DIA` (leituras por
   obra por dia, padrão 20). `conversarIa` (sistema + histórico) serve ao assistente; `perguntarIa` é o pedido em JSON.
 - Pedido e resposta no shared (`packages/shared/src/ia.ts`): texto do pedido em pt-BR, resposta em JSON validada com folga
