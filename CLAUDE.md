@@ -259,7 +259,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
 
 - Camada plugável em `apps/web/src/lib/ia.ts` (só servidor), com uma **fila de modelos por tipo de pedido** (`ROTAS_PADRAO`,
   trocável pelas variáveis `IA_CONVERSA` e `IA_LEITURA`, formato `provedor:modelo, provedor:modelo`): `conversa` (assistente, só
-  texto, rápido: Groq `gpt-oss-120b` primeiro) e `leitura` (pranchas, fotos, fiscal: modelos com visão, OpenRouter
+  texto, rápido: Groq `gpt-oss-120b` e depois `qwen3.8-27b`, porque o limite do Groq é por modelo, 8.000 tokens por minuto, e uma
+  pergunta usa ~6.000) e `leitura` (pranchas, fotos, fiscal: modelos com visão, OpenRouter
   `nemotron-3.5-super-vl:free` primeiro). Sem `tarefa`, pedido com anexo é leitura. Cada modelo é tentado uma vez, na ordem;
   item cujo provedor não tem chave sai da fila. Três provedores grátis, cada um com a sua cota: Groq (`GROQ_CHAVE`; o qwen lê no
   máximo 3 imagens, e pedido com mais pula o Groq sem gastar cota), OpenRouter (`API_OPENROUTER`; os `:free` têm 50 pedidos por
@@ -277,7 +278,8 @@ e roda `supabase/tests/*_test.sql`. Qualquer Postgres 15+ serve (não precisa de
   do OpenRouter recusa PDF grande e só tira texto. O PDF vira texto (camada de texto) + imagens JPEG das 3 primeiras páginas;
   prancha (lado > 1400 pt) é desenhada a 5000 px e ganha 3 recortes de até 1600 px (os de mais conteúdo, sempre com o canto
   inferior direito, do carimbo); prancha escaneada em pé é girada 90° no sentido horário. Até 8 imagens por pedido (imagem demais
-  deixa o modelo grátis lento; `prepararAnexosIa(anexos, maxImagens)` encolhe o PDF para o Groq); foto acima de 1,5 MB vai a 2000 px.
+  deixa o modelo grátis lento; `prepararAnexosIa(anexos, maxImagens)` divide as vagas entre os PDFs: 4 pranchas em 8 vagas dão visão geral + carimbo
+  de cada; PDF sem vaga vai só com o texto; o pedido nunca passa do limite do modelo); foto acima de 1,5 MB vai a 2000 px.
 - Prazo total por pedido (`prazoMs`, somando as tentativas; padrão conversa 60 s, leitura 240 s; as telas de leitura passam 250 s)
   abaixo do `maxDuration` da página: sem tempo para outra tentativa, para e explica (`ErroTempo`). Cada chamada espera no máximo
   `ESPERA[tarefa][provedor]` (conversa 25–40 s, para passar logo ao próximo; leitura até 150 s no OpenRouter). `maxTokens` é o

@@ -89,8 +89,8 @@ async function prepararPdf(m: { unpdf: typeof import('unpdf'); canvas: Canvas },
     for (let n = 1; n <= paginas && vagas > 0; n++) {
       const vp = (await pdf.getPage(n)).getViewport({ scale: 1 });
       const prancha = Math.max(vp.width, vp.height) > PRANCHA_PONTOS;
-      // Recortes só na primeira página de prancha, e só se sobrar lugar para a visão geral e pelo menos 2 recortes.
-      const comRecortes = prancha && n === 1 && vagas >= 3;
+      // Recortes só na primeira página de prancha, e só se sobrar lugar para a visão geral e pelo menos 1 recorte (o carimbo).
+      const comRecortes = prancha && n === 1 && vagas >= 2;
       const maxRecortes = Math.min(MAX_RECORTES_PRANCHA, vagas - 1);
       const lado = comRecortes ? LADO_PRANCHA : LADO_VISAO_GERAL * 1.25;
       const largura = Math.round(vp.width >= vp.height ? lado : (lado * vp.width) / vp.height);
@@ -152,16 +152,23 @@ export async function prepararAnexosIa(anexos: Anexo[], maxImagens = MAX_IMAGENS
   const m = await carregar();
   const partes: ParteIa[] = [];
   const imagensSoltas = anexos.filter((a) => a.mime.startsWith('image/')).length;
-  let vagas = maxImagens - imagensSoltas;
+  const pdfs = anexos.filter((a) => a.mime === 'application/pdf');
+  // As vagas de imagem são divididas entre os PDFs (4 pranchas em 8 vagas: 2 cada, visão geral + carimbo). O que um PDF
+  // não usa passa ao seguinte. Sem vaga, o PDF vai só com o texto: o pedido nunca passa do limite do modelo.
+  let vagas = Math.max(0, maxImagens - imagensSoltas);
+  let pdfsRestantes = pdfs.length;
   for (const a of anexos) {
     if (a.mime.startsWith('image/')) {
       partes.push(await prepararImagem(m.canvas, a));
       continue;
     }
     if (a.mime !== 'application/pdf') continue;
+    const cota = pdfsRestantes > 0 ? Math.ceil(vagas / pdfsRestantes) : 0;
+    pdfsRestantes--;
     try {
-      const doPdf = await prepararPdf(m, a, Math.max(1, vagas));
+      const doPdf = await prepararPdf(m, a, cota);
       vagas -= doPdf.filter((p) => p.tipo === 'imagem').length;
+      if (cota === 0) doPdf.push({ tipo: 'texto', texto: `"${nomeCurto(a.nome)}" vai só com o texto (sem imagem, pelo limite de imagens do pedido).` });
       partes.push(...doPdf);
     } catch (erro) {
       console.error(`IA: não consegui preparar "${nomeCurto(a.nome)}"`, erro);

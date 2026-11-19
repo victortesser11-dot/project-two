@@ -165,9 +165,21 @@ describe('camada de IA', () => {
   it('só chaves recusadas: a mensagem diz para conferir as chaves', async () => {
     delete process.env.IA_CHAVE;
     delete process.env.API_OPENROUTER;
-    responder(resposta(401, { error: { message: 'Invalid API Key' } }), resposta(401, { error: { message: 'Invalid API Key' } }));
+    responder(resposta(401, { error: { message: 'Invalid API Key' } }));
     const { conversarIa } = await import('./ia');
     await expect(conversarIa({ mensagens: [{ papel: 'usuario', texto: 'oi' }] })).rejects.toThrow(/chave.*GROQ_CHAVE/);
+    // Os outros modelos do Groq usam a mesma chave: nem são tentados.
+    expect(chamadas).toHaveLength(1);
+  });
+
+  it('Groq: o limite por minuto é por modelo, então a segunda pergunta vai ao outro modelo do Groq', async () => {
+    const tpm = () =>
+      resposta(429, { error: { message: 'Rate limit reached for model `openai/gpt-oss-120b` on tokens per minute (TPM): Limit 8000, Used 4606, Requested 5980. Please try again in 19.395s.' } }, { 'retry-after': '20' });
+    responder(chat('a', 'openai/gpt-oss-120b'), tpm(), chat('b', 'qwen/qwen3.8-27b'));
+    const { conversarIa } = await import('./ia');
+    const msg = { mensagens: [{ papel: 'usuario' as const, texto: 'oi' }] };
+    await conversarIa(msg);
+    expect((await conversarIa(msg)).modelo).toBe('groq:qwen/qwen3.8-27b');
   });
 
   it('todos falharam: o motivo mais útil vai para a tela (arquivo grande vence sobrecarga)', async () => {
@@ -189,7 +201,7 @@ describe('camada de IA', () => {
     const msg = { mensagens: [{ papel: 'usuario' as const, texto: 'oi' }] };
     await conversarIa(msg);
     await conversarIa(msg);
-    expect(modelos()).toEqual(['groq:openai/gpt-oss-120b', 'openrouter:nvidia/nemotron-3.5-super-vl:free', 'openrouter:nvidia/nemotron-3.5-super-vl:free']);
+    expect(modelos()).toEqual(['groq:openai/gpt-oss-120b', 'groq:qwen/qwen3.8-27b', 'groq:qwen/qwen3.8-27b']);
     vi.setSystemTime(Date.now() + 31_000);
     expect((await conversarIa(msg)).modelo).toBe('groq:openai/gpt-oss-120b');
   });

@@ -42,10 +42,13 @@ class ErroCortado extends ErroPassageiro {
 
 /** Filas padrão: o mais rápido e confiável primeiro. Escritas como nas variáveis IA_CONVERSA e IA_LEITURA. */
 export const ROTAS_PADRAO: Record<TarefaIa, string> = {
+  // No Groq o limite é por modelo (8.000 tokens por minuto cada, e uma pergunta do assistente usa ~6.000): a segunda
+  // pergunta no mesmo minuto vai ao outro modelo do Groq, ainda rápido, antes de cair no OpenRouter.
   conversa: [
     'groq:openai/gpt-oss-120b',
-    'openrouter:nvidia/nemotron-3.5-super-vl:free',
     'groq:qwen/qwen3.8-27b',
+    'openrouter:nvidia/nemotron-3.5-super-vl:free',
+    'groq:openai/gpt-oss-20b',
     'gemini:gemini-flash-lite-latest',
     'openrouter:openrouter/free',
   ].join(', '),
@@ -437,6 +440,8 @@ export async function conversarIa(p: {
   const erros: ErroIa[] = [];
   for (const rota of fila) {
     if (falhas.length > 0 && pedido.fim - Date.now() < 15_000) break;
+    // Saiu da fila durante este pedido (chave recusada no mesmo provedor, cota diária dos grátis): nem tenta.
+    if (falhas.length > 0 && rotaDeFora(rota)) continue;
     const inicio = Date.now();
     try {
       const r = await tentarRota(rota, c[rota.provedor]!, pedido);

@@ -46,6 +46,25 @@ describe('preparo dos anexos para a IA', () => {
     expect(partes.filter((p) => p.tipo === 'imagem')).toHaveLength(2);
   }, 60_000);
 
+  it('várias pranchas dividem as vagas de imagem (visão geral + carimbo) e nunca passam do limite do modelo', async () => {
+    const { prepararAnexosIa } = await import('./anexosIa');
+    const pranchas = [1, 2, 3, 4].map((n) => ({ mime: 'application/pdf', dados: pdfComTexto(2951, 1684, `PRANCHA ARQ 0${n} - Residencial Multifamiliar - planta baixa do pavimento tipo`), nome: `ARQ 0${n}.pdf` }));
+    const imagensDe = (partes: Awaited<ReturnType<typeof prepararAnexosIa>>, n: number) =>
+      partes.filter((p) => p.tipo === 'imagem' && p.nome.startsWith(`ARQ 0${n}.pdf`)).length;
+
+    const oito = await prepararAnexosIa(pranchas, 8);
+    expect(oito.filter((p) => p.tipo === 'imagem')).toHaveLength(8);
+    for (const n of [1, 2, 3, 4]) expect(imagensDe(oito, n)).toBe(2);
+    expect(oito.some((p) => p.tipo === 'texto' && p.texto.includes('ARQ 04.pdf') && p.texto.includes('canto inferior direito'))).toBe(true);
+
+    // Groq: 3 imagens. A quarta prancha vai só com o texto, avisando.
+    const tres = await prepararAnexosIa(pranchas, 3);
+    expect(tres.filter((p) => p.tipo === 'imagem')).toHaveLength(3);
+    expect(imagensDe(tres, 4)).toBe(0);
+    expect(tres.some((p) => p.tipo === 'texto' && p.texto.includes('PRANCHA ARQ 04'))).toBe(true);
+    expect(tres.some((p) => p.tipo === 'texto' && p.texto.includes('"ARQ 04.pdf" vai só com o texto'))).toBe(true);
+  }, 120_000);
+
   it('PDF que não abre não derruba a leitura: vira um aviso em texto', async () => {
     const { prepararAnexosIa } = await import('./anexosIa');
     const erro = vi.spyOn(console, 'error').mockImplementation(() => undefined);
